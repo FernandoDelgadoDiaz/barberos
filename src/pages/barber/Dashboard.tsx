@@ -180,13 +180,13 @@ export function Dashboard() {
       )}
 
       {/* Hero card */}
-      <div style={{ background: '#242424', border: '1px solid #383838', borderRadius: '14px', padding: '24px', marginBottom: '24px', position: 'relative', overflow: 'hidden' }}>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '28px', color: '#fff', margin: 0 }}>
+      <div className="dashboard-hero" style={{ background: '#242424', border: '1px solid #383838', borderRadius: '14px', padding: '24px', marginBottom: '24px', position: 'relative', overflow: 'hidden' }}>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(22px, 5vw, 32px)', color: '#fff', margin: 0 }}>
           Hola, {profile?.display_name || 'Barbero'}
         </h1>
         <p style={{ color: '#999', fontSize: '14px', marginTop: '8px' }}>Tu día empieza ahora. Que los cortes fluyan.</p>
         {/* Barber pole decorative */}
-        <svg width="120" height="120" viewBox="0 0 120 120" fill="none" style={{ position: 'absolute', right: '20px', top: '20px', opacity: 0.1 }}>
+        <svg className="hide-mobile" width="120" height="120" viewBox="0 0 120 120" fill="none" style={{ position: 'absolute', right: '20px', top: '20px', opacity: 0.1 }}>
           <rect x="50" y="10" width="20" height="100" fill="#C8A97E" />
           <rect x="50" y="10" width="20" height="33.33" fill="#fff" />
           <rect x="50" y="43.33" width="20" height="33.33" fill="#1a1a1a" />
@@ -213,7 +213,7 @@ export function Dashboard() {
       )}
 
       {/* Grid cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
@@ -243,7 +243,7 @@ export function Dashboard() {
       </div>
 
       {/* Services list */}
-      <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
+      <div className="services-catalog" style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
         <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#555', margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '1px' }}>Catálogo de servicios</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {services.length === 0 ? (
@@ -254,6 +254,7 @@ export function Dashboard() {
             services.map((service) => (
               <div
                 key={service.id}
+                className="service-item"
                 onClick={() => handleServiceClick(service)}
                 style={{
                   display: 'flex',
@@ -264,6 +265,7 @@ export function Dashboard() {
                   borderBottom: '1px solid #383838',
                   cursor: 'pointer',
                   transition: 'border-color 0.2s',
+                  minHeight: '60px',
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.borderColor = '#C8A97E'}
                 onMouseLeave={(e) => e.currentTarget.style.borderColor = '#383838'}
@@ -275,8 +277,8 @@ export function Dashboard() {
                     </svg>
                   </div>
                   <div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#fff' }}>{service.name}</div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '11px', color: '#999', marginTop: '2px' }}>
+                    <div className="service-name" style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#fff' }}>{service.name}</div>
+                    <div className="service-estimated" style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '11px', color: '#999', marginTop: '2px' }}>
                       Ganancia estimada: <span style={{ color: '#C8A97E' }}>${service.estimatedEarning.toLocaleString()}</span>
                     </div>
                   </div>
@@ -297,6 +299,7 @@ export function Dashboard() {
           onClick={() => services.length > 0 && handleServiceClick(services[0])}
           style={{
             width: '100%',
+            height: '52px',
             background: '#C8A97E',
             color: '#1a1a1a',
             fontFamily: 'Space Grotesk, sans-serif',
@@ -338,8 +341,9 @@ export function Dashboard() {
             border: '1px solid #383838',
             borderRadius: '16px',
             padding: '32px',
-            width: '100%',
+            width: '90vw',
             maxWidth: '480px',
+            alignSelf: 'center',
           }}>
             <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '16px' }}>
               ¿Confirmar servicio?
@@ -359,7 +363,7 @@ export function Dashboard() {
                 <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#fff' }}>
                   {selectedService.name}
                 </div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: '#C8A97E' }}>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 'clamp(18px, 4vw, 24px)', color: '#C8A97E' }}>
                   ${selectedService.base_price.toLocaleString()}
                 </div>
               </div>
@@ -367,11 +371,11 @@ export function Dashboard() {
                 Duración: {selectedService.duration_min} min
               </div>
               <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#999', marginTop: '8px' }}>
-                Tu ganancia estimada: ${selectedService.estimatedEarning.toLocaleString()}
+                Tu ganancia estimada: <span style={{ fontSize: 'clamp(16px, 3vw, 20px)', fontWeight: 700 }}>${selectedService.estimatedEarning.toLocaleString()}</span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <div className="mobile-stack" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
               <button
                 onClick={() => setShowConfirmModal(false)}
                 disabled={processing}

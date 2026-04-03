@@ -150,7 +150,7 @@ export function Summary() {
       )}
 
       {/* Summary cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', marginBottom: '32px' }}>
         <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '24px' }}>
           <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#999', margin: '0 0 12px 0' }}>
             Servicios hoy
@@ -171,7 +171,7 @@ export function Summary() {
 
       {/* Close day section */}
       <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '32px', marginBottom: '32px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <div className="mobile-stack" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <div>
             <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '8px' }}>
               Cierre del día
@@ -194,6 +194,8 @@ export function Summary() {
               fontSize: '14px',
               cursor: logs.length === 0 ? 'not-allowed' : 'pointer',
               opacity: closingDay ? 0.6 : 1,
+              width: '100%',
+              height: '52px',
             }}
           >
             {closingDay ? 'Procesando...' : 'Cerrar el día'}
@@ -211,7 +213,7 @@ export function Summary() {
             <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: '#C8A97E', marginBottom: '12px' }}>
               Día cerrado exitosamente
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
               <div>
                 <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#999' }}>Servicios totales</div>
                 <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: '#fff' }}>

@@ -33,7 +33,7 @@ export function LivePanel() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#888', margin: 0 }}>Total del día</h3>
-            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '36px', color: '#C8A97E', marginTop: '4px' }}>$12,500</div>
+            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 'clamp(28px, 7vw, 42px)', color: '#C8A97E', marginTop: '4px' }}>$12,500</div>
             <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '14px', color: '#fff', marginTop: '8px' }}>Tu parte: <span style={{ fontWeight: 600 }}>$3,125</span></div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -58,7 +58,7 @@ export function LivePanel() {
         <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#fff', margin: '0 0 20px 0' }}>Barberos activos</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {barbers.map((barber) => (
-            <div key={barber.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: '#383838', borderRadius: '8px', border: '1px solid #484848' }}>
+            <div key={barber.id} className="mobile-padding" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: '#383838', borderRadius: '8px', border: '1px solid #484848' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: barber.avatarColor === 'gold' ? 'linear-gradient(135deg, #C8A97E, #8B6200)' : barber.avatarColor === 'purple' ? 'linear-gradient(135deg, #7c3aed, #4c1d95)' : 'linear-gradient(135deg, #888, #333)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: '#080808' }}>
                   {barber.name.split(' ').map(n => n[0]).join('').slice(0, 2)}

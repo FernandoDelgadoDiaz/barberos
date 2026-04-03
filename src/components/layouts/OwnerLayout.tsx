@@ -37,27 +37,27 @@ export function OwnerLayout() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#1a1a1a' }}>
-      <header style={{ background: '#1a1a1a', borderBottom: '1px solid #383838', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <header className="owner-header" style={{ background: '#1a1a1a', borderBottom: '1px solid #383838', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <ScissorsIcon />
-          <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', letterSpacing: '2px', color: '#fff' }}>
+          <span className="owner-logo" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', letterSpacing: '2px', color: '#fff' }}>
             BARBER<span style={{ color: '#C8A97E' }}>OS</span>
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '100px', padding: '4px 12px', fontSize: '10px', color: '#777', letterSpacing: '1.5px', textTransform: 'uppercase' }}>owner</span>
+          <span className="hide-mobile" style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '100px', padding: '4px 12px', fontSize: '10px', color: '#777', letterSpacing: '1.5px', textTransform: 'uppercase' }}>owner</span>
           <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: 'linear-gradient(135deg, #C8A97E, #8B6200)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '11px', color: '#1a1a1a' }}>{initials}</div>
           <button onClick={handleSignOut} style={{ background: 'transparent', border: '1px solid #383838', borderRadius: '8px', padding: '6px 14px', color: '#555', fontSize: '12px', cursor: 'pointer' }}>Salir</button>
         </div>
       </header>
-      <nav style={{ background: '#1a1a1a', borderBottom: '1px solid #383838', display: 'flex', padding: '0 20px' }}>
+      <nav className="owner-nav" style={{ background: '#1a1a1a', borderBottom: '1px solid #383838', display: 'flex', padding: '0 20px' }}>
         {navItems.map(({ to, label }) => (
-          <NavLink key={to} to={to} style={({ isActive }) => ({ padding: '12px 16px', fontSize: '13px', fontWeight: 500, color: isActive ? '#C8A97E' : '#555', borderBottom: isActive ? '2px solid #C8A97E' : '2px solid transparent', textDecoration: 'none', letterSpacing: '0.3px' })}>
+          <NavLink key={to} to={to} className="owner-nav-link" style={({ isActive }) => ({ padding: '12px 16px', fontSize: '13px', fontWeight: 500, color: isActive ? '#C8A97E' : '#555', borderBottom: isActive ? '2px solid #C8A97E' : '2px solid transparent', textDecoration: 'none', letterSpacing: '0.3px' })}>
             {label}
           </NavLink>
         ))}
       </nav>
-      <main style={{ padding: '20px' }}>
+      <main className="owner-main" style={{ padding: '20px' }}>
         <Outlet />
       </main>
     </div>

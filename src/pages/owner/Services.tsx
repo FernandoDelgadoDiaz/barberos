@@ -180,13 +180,14 @@ export function Services() {
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', background: '#2a2a2a', color: '#fff', padding: '24px', borderRadius: '12px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+      <div className="mobile-stack" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#fff', marginBottom: '8px' }}>Servicios</h1>
           <p style={{ color: '#888', fontSize: '14px' }}>{tenant?.name || 'Tu barbería'} • Catálogo de servicios y precios</p>
         </div>
         <button
           onClick={handleAdd}
+          className="mobile-full"
           style={{
             background: '#C8A97E',
             color: '#2a2a2a',
@@ -372,8 +373,9 @@ export function Services() {
             border: '1px solid #383838',
             borderRadius: '12px',
             padding: '32px',
-            width: '100%',
+            width: '90vw',
             maxWidth: '480px',
+            alignSelf: 'center',
           }}>
             <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '24px' }}>
               {editingService ? 'Editar servicio' : 'Agregar servicio'}
@@ -402,7 +404,7 @@ export function Services() {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
                     Precio ($)

@@ -29,3 +29,80 @@ h1, h2, h3 {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ===== RESPONSIVE MOBILE-FIRST ===== */
+/* Base mobile-friendly styles */
+html {
+  font-size: 16px; /* Prevents iOS zoom on focus */
+}
+body {
+  font-size: 16px;
+}
+
+input, button, select, textarea {
+  min-height: 48px; /* Minimum touch target height */
+}
+
+/* Utility classes for responsive behavior */
+@media (max-width: 768px) {
+  .hide-mobile { display: none !important; }
+  .mobile-full { width: 100% !important; }
+  .mobile-stack { flex-direction: column !important; }
+  .mobile-col { flex-direction: column !important; }
+  .mobile-padding { padding: 12px !important; }
+}
+
+/* Desktop enhancements (≥768px) */
+@media (min-width: 768px) {
+  .hide-desktop { display: none !important; }
+}
+
+/* Prevent hover-only interactions on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  /* Any hover-dependent styles can be overridden here */
+}
+
+/* ===== BARBER LAYOUT MOBILE STYLES ===== */
+@media (max-width: 768px) {
+  .barber-header {
+    padding: 12px 16px !important;
+  }
+  .barber-logo {
+    font-size: 16px !important;
+    letter-spacing: 1px !important;
+  }
+  .barber-nav {
+    padding: 0 !important;
+    display: flex !important;
+    width: 100% !important;
+  }
+  .barber-nav-link {
+    flex: 1 !important;
+    text-align: center !important;
+    padding: 10px 8px !important;
+    font-size: 13px !important;
+  }
+  .barber-main {
+    padding: 16px !important;
+  }
+}
+
+/* ===== OWNER LAYOUT MOBILE STYLES ===== */
+@media (max-width: 768px) {
+  .owner-header {
+    padding: 12px 16px !important;
+  }
+  .owner-nav {
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    padding: 0 16px !important;
+  }
+  .owner-nav-link {
+    padding: 10px 8px !important;
+    font-size: 12px !important;
+    flex-shrink: 0 !important;
+  }
+  .owner-main {
+    padding: 16px !important;
+  }
+}

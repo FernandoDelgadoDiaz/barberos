@@ -78,7 +78,7 @@ export function Login() {
       <div style={{ position: 'fixed', top: 0, left: 0, width: '384px', height: '384px', background: 'rgba(200, 169, 126, 0.05)', borderRadius: '9999px', filter: 'blur(48px)', transform: 'translate(-50%, -50%)' }} />
       <div style={{ position: 'fixed', bottom: 0, right: 0, width: '384px', height: '384px', background: 'rgba(200, 169, 126, 0.05)', borderRadius: '9999px', filter: 'blur(48px)', transform: 'translate(33%, 33%)' }} />
 
-      <div style={{ width: '100%', maxWidth: '28rem', position: 'relative', zIndex: 10 }}>
+      <div style={{ width: 'min(90vw, 400px)', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
         <div style={{ background: '#242424', border: '1px solid #383838', borderRadius: '16px', boxShadow: '0 20px 60px rgba(0,0,0,0.5)', padding: '32px' }}>
           {/* Logo and header */}
           <div style={{ marginBottom: '32px', textAlign: 'center' }}>
@@ -123,7 +123,7 @@ export function Login() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  style={{ width: '100%', padding: '14px 16px', background: '#2a2a2a', border: '1px solid #383838', borderRadius: '8px', color: '#ffffff', fontSize: '16px', outline: 'none', transition: 'all 0.2s' }}
+                  style={{ width: '100%', padding: '14px 16px', background: '#2a2a2a', border: '1px solid #383838', borderRadius: '8px', color: '#ffffff', fontSize: '16px', outline: 'none', transition: 'all 0.2s', height: '48px' }}
                   placeholder="tu@email.com"
                   required
                   disabled={isLoading}
@@ -144,7 +144,7 @@ export function Login() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  style={{ width: '100%', padding: '14px 16px', background: '#2a2a2a', border: '1px solid #383838', borderRadius: '8px', color: '#ffffff', fontSize: '16px', outline: 'none', transition: 'all 0.2s' }}
+                  style={{ width: '100%', padding: '14px 16px', background: '#2a2a2a', border: '1px solid #383838', borderRadius: '8px', color: '#ffffff', fontSize: '16px', outline: 'none', transition: 'all 0.2s', height: '48px' }}
                   placeholder="••••••••"
                   required
                   disabled={isLoading}
@@ -162,7 +162,7 @@ export function Login() {
               <button
                 type="submit"
                 disabled={isLoading}
-                style={{ width: '100%', padding: '14px', background: '#C8A97E', color: '#1a1a1a', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', borderRadius: '8px', border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.5 : 1, transition: 'all 0.2s' }}
+                style={{ width: '100%', padding: '14px', background: '#C8A97E', color: '#1a1a1a', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', borderRadius: '8px', border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.5 : 1, transition: 'all 0.2s', height: '52px' }}
               >
                 {isLoading ? (
                   <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>

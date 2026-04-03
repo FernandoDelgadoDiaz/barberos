@@ -69,7 +69,7 @@ export function Metrics() {
       <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#fff', marginBottom: '8px' }}>Métricas</h1>
       <p style={{ color: '#888', fontSize: '14px', marginBottom: '32px' }}>Análisis y reportes de desempeño</p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '32px' }}>
         {metrics.map((metric, index) => (
           <div
             key={index}
