@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="60" height="120" viewBox="0 0 60 120" fill="none">
+  <!-- Dark Luxury Barber Pole -->
+
+  <!-- Pole base -->
+  <rect x="20" y="0" width="20" height="120" fill="#111111" rx="2"/>
+
+  <!-- Spiral stripes -->
+  <g transform="translate(30, 10)">
+    <!-- Green stripe -->
+    <path d="M0,0 Q15,10 0,20 Q-15,30 0,40 Q15,50 0,60 Q-15,70 0,80 Q15,90 0,100"
+          stroke="#B8FF47" stroke-width="8" fill="none" stroke-linecap="round"/>
+
+    <!-- White stripe (offset) -->
+    <path d="M0,5 Q12,15 0,25 Q-12,35 0,45 Q12,55 0,65 Q-12,75 0,85 Q12,95 0,105"
+          stroke="#ffffff" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.9"/>
+
+    <!-- Dark stripe -->
+    <path d="M0,10 Q10,20 0,30 Q-10,40 0,50 Q10,60 0,70 Q-10,80 0,90 Q10,100 0,110"
+          stroke="#2a2a2a" stroke-width="4" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- Top cap -->
+  <circle cx="30" cy="10" r="12" fill="#080808" stroke="#B8FF47" stroke-width="2"/>
+  <circle cx="30" cy="10" r="6" fill="#B8FF47"/>
+
+  <!-- Bottom cap -->
+  <circle cx="30" cy="110" r="12" fill="#080808" stroke="#B8FF47" stroke-width="2"/>
+  <circle cx="30" cy="110" r="6" fill="#B8FF47"/>
+
+  <!-- Decorative rings -->
+  <circle cx="30" cy="30" r="14" stroke="#2a2a2a" stroke-width="1" fill="none"/>
+  <circle cx="30" cy="60" r="14" stroke="#2a2a2a" stroke-width="1" fill="none"/>
+  <circle cx="30" cy="90" r="14" stroke="#2a2a2a" stroke-width="1" fill="none"/>
+</svg>

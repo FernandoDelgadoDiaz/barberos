@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="80" viewBox="0 0 200 80" fill="none">
+  <!-- Background (transparent) -->
+
+  <!-- Crossed Scissors -->
+  <g transform="translate(40, 20)">
+    <!-- First scissor blade -->
+    <path d="M0,0 L15,20 L5,30 L-10,10 Z" fill="#B8FF47" stroke="#080808" stroke-width="1"/>
+    <!-- Second scissor blade (crossed) -->
+    <path d="M20,0 L5,20 L15,30 L30,10 Z" fill="#B8FF47" stroke="#080808" stroke-width="1"/>
+    <!-- Scissor handles -->
+    <path d="M-10,10 L-20,30 Q-25,35 -20,40 L-5,25" fill="#111111" stroke="#B8FF47" stroke-width="1.5"/>
+    <path d="M30,10 L40,30 Q45,35 40,40 L25,25" fill="#111111" stroke="#B8FF47" stroke-width="1.5"/>
+    <!-- Pivot screw -->
+    <circle cx="10" cy="20" r="3" fill="#080808" stroke="#B8FF47" stroke-width="1"/>
+    <circle cx="10" cy="20" r="1" fill="#B8FF47"/>
+  </g>
+
+  <!-- BARBEROS Text -->
+  <g transform="translate(80, 30)">
+    <text x="0" y="0" font-family="Syne, sans-serif" font-weight="800" font-size="24" fill="#ffffff">
+      BARBER
+      <tspan fill="#B8FF47">OS</tspan>
+    </text>
+    <text x="0" y="28" font-family="Space Grotesk, sans-serif" font-weight="400" font-size="12" fill="#a0a0a0">
+      Sistema de Gestión para Barberías
+    </text>
+  </g>
+</svg>
