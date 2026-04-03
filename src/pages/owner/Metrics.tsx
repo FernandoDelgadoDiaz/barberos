@@ -10,7 +10,7 @@ export function Metrics() {
 
   const renderIcon = (icon: string) => {
     const size = 20
-    const stroke = '#B8FF47'
+    const stroke = '#C8A97E'
     switch (icon) {
       case 'calendar':
         return (
@@ -65,17 +65,17 @@ export function Metrics() {
   }
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '32px', color: '#fff', marginBottom: '8px' }}>Métricas</h1>
-      <p style={{ color: '#666', fontSize: '14px', marginBottom: '32px' }}>Análisis y reportes de desempeño</p>
+    <div style={{ maxWidth: '1000px', margin: '0 auto', background: '#1a1a1a', color: '#fff', padding: '24px', borderRadius: '12px' }}>
+      <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#fff', marginBottom: '8px' }}>Métricas</h1>
+      <p style={{ color: '#888', fontSize: '14px', marginBottom: '32px' }}>Análisis y reportes de desempeño</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px', marginBottom: '32px' }}>
         {metrics.map((metric, index) => (
           <div
             key={index}
             style={{
-              background: '#111111',
-              border: '1px solid #1c1c1c',
+              background: '#2a2a2a',
+              border: '1px solid #383838',
               borderRadius: '12px',
               padding: '20px',
               display: 'flex',
@@ -83,14 +83,14 @@ export function Metrics() {
               gap: '16px',
             }}
           >
-            <div style={{ width: '48px', height: '48px', borderRadius: '10px', background: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '10px', background: '#2a2a2a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {renderIcon(metric.icon)}
             </div>
             <div>
-              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#666', marginBottom: '4px' }}>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '4px' }}>
                 {metric.label}
               </div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '24px', color: '#fff' }}>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '24px', color: '#fff' }}>
                 --
               </div>
             </div>
@@ -98,8 +98,8 @@ export function Metrics() {
         ))}
       </div>
 
-      <div style={{ background: '#111111', border: '1px solid #1c1c1c', borderRadius: '12px', padding: '40px', textAlign: 'center' }}>
-        <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '16px', color: '#666', lineHeight: 1.5 }}>
+      <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '40px', textAlign: 'center' }}>
+        <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '16px', color: '#555', lineHeight: 1.5 }}>
           Los datos aparecerán cuando registres servicios
         </div>
       </div>

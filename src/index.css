@@ -1,24 +1,31 @@
 @import "tailwindcss";
 :root {
-  --bg: #080808;
-  --surface: #111111;
-  --card: #111111;
-  --border: #1c1c1c;
-  --accent: #B8FF47;
-  --accent-dark: #080808;
-  --purple: #c084fc;
-  --primary: #080808;
-  --secondary: #B8FF47;
+  --bg: #1a1a1a;
+  --surface: #222222;
+  --card: #2a2a2a;
+  --border: #383838;
+  --accent: #C8A97E;
+  --accent-dark: #1a1a1a;
+  --primary: #1a1a1a;
+  --secondary: #C8A97E;
+  --text: #ffffff;
+  --text-muted: #999999;
+  --text-dim: #555555;
+  --danger: #e94560;
 }
 * { box-sizing: border-box; }
 body {
-  background: var(--bg);
+  background: #1a1a1a;
   color: #ffffff;
   font-family: 'Space Grotesk', sans-serif;
   margin: 0;
 }
 h1, h2, h3 {
   font-family: 'Syne', sans-serif;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.5px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

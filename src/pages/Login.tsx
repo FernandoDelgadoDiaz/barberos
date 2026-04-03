@@ -4,6 +4,18 @@ import { useAuth } from '../hooks/useAuth'
 import { useTenantStore } from '../stores/tenantStore'
 import { supabase } from '../config/supabase'
 
+const ScissorsIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+    <circle cx="5" cy="19" r="2.5" stroke="#C8A97E" strokeWidth="1.5"/>
+    <circle cx="19" cy="19" r="2.5" stroke="#C8A97E" strokeWidth="1.5"/>
+    <line x1="5" y1="19" x2="19" y2="5" stroke="#C8A97E" strokeWidth="1.5" strokeLinecap="round"/>
+    <line x1="19" y1="19" x2="5" y2="5" stroke="#555" strokeWidth="1.5" strokeLinecap="round"/>
+    <circle cx="5" cy="5" r="2.5" stroke="#555" strokeWidth="1.5"/>
+    <circle cx="19" cy="5" r="2.5" stroke="#555" strokeWidth="1.5"/>
+    <line x1="10" y1="12" x2="14" y2="12" stroke="#C8A97E" strokeWidth="1"/>
+  </svg>
+)
+
 export function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -56,48 +68,53 @@ export function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1a1a1a', padding: '20px', position: 'relative', overflow: 'hidden' }}>
       {/* Decorative barber pole background */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none z-0">
-        <img src="/barber-pole.svg" alt="" className="h-96" />
+      <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0.06, pointerEvents: 'none', zIndex: 0 }}>
+        <img src="/barber-pole.svg" alt="" style={{ height: '384px' }} />
       </div>
 
       {/* Animated gradient orbs */}
-      <div className="fixed top-0 left-0 w-96 h-96 bg-accent/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-      <div className="fixed bottom-0 right-0 w-96 h-96 bg-accent/5 rounded-full blur-3xl translate-x-1/3 translate-y-1/3" />
+      <div style={{ position: 'fixed', top: 0, left: 0, width: '384px', height: '384px', background: 'rgba(200, 169, 126, 0.05)', borderRadius: '9999px', filter: 'blur(48px)', transform: 'translate(-50%, -50%)' }} />
+      <div style={{ position: 'fixed', bottom: 0, right: 0, width: '384px', height: '384px', background: 'rgba(200, 169, 126, 0.05)', borderRadius: '9999px', filter: 'blur(48px)', transform: 'translate(33%, 33%)' }} />
 
-      <div className="w-full max-w-md relative z-10">
-        <div className="bg-surface border border-border rounded-2xl shadow-luxury p-8">
+      <div style={{ width: '100%', maxWidth: '28rem', position: 'relative', zIndex: 10 }}>
+        <div style={{ background: '#242424', border: '1px solid #383838', borderRadius: '16px', boxShadow: '0 20px 60px rgba(0,0,0,0.5)', padding: '32px' }}>
           {/* Logo and header */}
-          <div className="mb-8 text-center">
-            <div className="flex justify-center mb-6">
-              <img src="/logo.svg" alt="BARBEROS" className="h-16" />
+          <div style={{ marginBottom: '32px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ScissorsIcon />
+                <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '24px', letterSpacing: '2px', color: '#fff' }}>
+                  BARBER<span style={{ color: '#C8A97E' }}>OS</span>
+                </span>
+              </div>
             </div>
 
             {tenantName ? (
               <>
-                <h1 className="text-2xl font-syne font-bold text-text-primary mb-2">
+                <h1 style={{ fontSize: '24px', fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>
                   {tenantName}
                 </h1>
-                <p className="text-text-secondary">Ingresa a tu cuenta</p>
+                <p style={{ color: '#999999' }}>Ingresa a tu cuenta</p>
               </>
             ) : (
               <>
-                <h1 className="text-2xl font-syne font-bold text-text-primary mb-2">
-                  BARBER<span className="text-accent">OS</span>
+                <h1 style={{ fontSize: '24px', fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>
+                  BARBER<span style={{ color: '#C8A97E' }}>OS</span>
                 </h1>
-                <p className="text-text-secondary">Sistema de gestión para barberías</p>
+                <p style={{ color: '#999999' }}>Sistema de gestión para barberías</p>
               </>
             )}
           </div>
 
           {/* Login form */}
           <form onSubmit={handleSubmit}>
-            <div className="space-y-6">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-sm font-medium text-text-secondary mb-3"
+                  style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#999999', marginBottom: '12px' }}
                 >
                   Email
                 </label>
@@ -106,17 +123,19 @@ export function Login() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3.5 bg-card border border-border rounded-xl focus:ring-2 focus:ring-accent focus:border-transparent text-text-primary placeholder-text-tertiary transition-all duration-200"
+                  style={{ width: '100%', padding: '14px 16px', background: '#2a2a2a', border: '1px solid #383838', borderRadius: '8px', color: '#ffffff', fontSize: '16px', outline: 'none', transition: 'all 0.2s' }}
                   placeholder="tu@email.com"
                   required
                   disabled={isLoading}
+                  onFocus={(e) => e.target.style.borderColor = '#C8A97E'}
+                  onBlur={(e) => e.target.style.borderColor = '#383838'}
                 />
               </div>
 
               <div>
                 <label
                   htmlFor="password"
-                  className="block text-sm font-medium text-text-secondary mb-3"
+                  style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#999999', marginBottom: '12px' }}
                 >
                   Contraseña
                 </label>
@@ -125,27 +144,29 @@ export function Login() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3.5 bg-card border border-border rounded-xl focus:ring-2 focus:ring-accent focus:border-transparent text-text-primary placeholder-text-tertiary transition-all duration-200"
+                  style={{ width: '100%', padding: '14px 16px', background: '#2a2a2a', border: '1px solid #383838', borderRadius: '8px', color: '#ffffff', fontSize: '16px', outline: 'none', transition: 'all 0.2s' }}
                   placeholder="••••••••"
                   required
                   disabled={isLoading}
+                  onFocus={(e) => e.target.style.borderColor = '#C8A97E'}
+                  onBlur={(e) => e.target.style.borderColor = '#383838'}
                 />
               </div>
 
               {error && (
-                <div className="p-4 bg-card border border-border rounded-xl">
-                  <p className="text-accent text-sm font-medium">{error}</p>
+                <div style={{ padding: '16px', background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px' }}>
+                  <p style={{ color: '#e94560', fontSize: '14px', fontWeight: 500 }}>{error}</p>
                 </div>
               )}
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3.5 bg-accent text-background font-syne font-bold rounded-xl hover:bg-accent-dark transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-luxury-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ width: '100%', padding: '14px', background: '#C8A97E', color: '#1a1a1a', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', borderRadius: '8px', border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.5 : 1, transition: 'all 0.2s' }}
               >
                 {isLoading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <div className="w-5 h-5 border-2 border-background border-t-transparent rounded-full animate-spin" />
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <div style={{ width: '20px', height: '20px', border: '2px solid #1a1a1a', borderTopColor: 'transparent', borderRadius: '9999px', animation: 'spin 1s linear infinite' }} />
                     Ingresando...
                   </span>
                 ) : (
@@ -156,37 +177,37 @@ export function Login() {
           </form>
 
           {/* Demo credentials */}
-          <div className="mt-8 pt-6 border-t border-border">
-            <p className="text-sm text-text-secondary text-center mb-4">
+          <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid #383838' }}>
+            <p style={{ fontSize: '14px', color: '#999999', textAlign: 'center', marginBottom: '16px' }}>
               Credenciales de prueba:
             </p>
-            <div className="space-y-3">
-              <div className="p-4 bg-card border border-border rounded-xl">
-                <div className="font-medium text-text-primary">owner@demo.com</div>
-                <div className="text-text-secondary text-sm">Demo1234!</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ padding: '16px', background: '#222222', border: '1px solid #383838', borderRadius: '12px' }}>
+                <div style={{ fontWeight: 500, color: '#ffffff' }}>owner@demo.com</div>
+                <div style={{ color: '#555555', fontSize: '14px' }}>Demo1234!</div>
               </div>
-              <div className="p-4 bg-card border border-border rounded-xl">
-                <div className="font-medium text-text-primary">carlos@demo.com</div>
-                <div className="text-text-secondary text-sm">Demo1234!</div>
+              <div style={{ padding: '16px', background: '#222222', border: '1px solid #383838', borderRadius: '12px' }}>
+                <div style={{ fontWeight: 500, color: '#ffffff' }}>carlos@demo.com</div>
+                <div style={{ color: '#555555', fontSize: '14px' }}>Demo1234!</div>
               </div>
-              <div className="p-4 bg-card border border-border rounded-xl">
-                <div className="font-medium text-text-primary">gabriel@demo.com</div>
-                <div className="text-text-secondary text-sm">Demo1234!</div>
+              <div style={{ padding: '16px', background: '#222222', border: '1px solid #383838', borderRadius: '12px' }}>
+                <div style={{ fontWeight: 500, color: '#ffffff' }}>gabriel@demo.com</div>
+                <div style={{ color: '#555555', fontSize: '14px' }}>Demo1234!</div>
               </div>
             </div>
 
             {/* Hint */}
-            <div className="mt-6 p-4 bg-card/50 border border-border rounded-xl">
-              <p className="text-xs text-text-tertiary text-center">
-                <span className="text-accent">BARBEROS Luxury Edition</span> • Diseño Dark Luxury
+            <div style={{ marginTop: '24px', padding: '16px', background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px' }}>
+              <p style={{ fontSize: '12px', color: '#555555', textAlign: 'center' }}>
+                <span style={{ color: '#C8A97E' }}>BARBEROS Luxury Edition</span> • Diseño Dark Luxury
               </p>
             </div>
           </div>
         </div>
 
         {/* Footer note */}
-        <div className="mt-6 text-center">
-          <p className="text-text-tertiary text-sm">
+        <div style={{ marginTop: '24px', textAlign: 'center' }}>
+          <p style={{ color: '#555555', fontSize: '14px' }}>
             © {new Date().getFullYear()} BARBEROS • Sistema de gestión profesional
           </p>
         </div>

@@ -4,12 +4,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: '#080808',
-        surface: '#0e0e0e',
-        card: '#111111',
-        border: '#1c1c1c',
-        accent: '#B8FF47',
-        purple: '#c084fc',
+        bg: '#1a1a1a',
+        surface: '#222222',
+        card: '#2a2a2a',
+        'border-custom': '#383838',
+        accent: '#C8A97E',
       },
       fontFamily: {
         display: ['Syne', 'sans-serif'],

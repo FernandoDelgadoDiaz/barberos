@@ -12,7 +12,7 @@ interface Barber {
 export function Barbers() {
   const { tenant } = useTenantStore()
   const [barbers, setBarbers] = useState<Barber[]>([
-    { id: 1, name: 'Carlos', email: 'carlos@barberia.com', is_active: true, avatar_color: 'green' },
+    { id: 1, name: 'Carlos', email: 'carlos@barberia.com', is_active: true, avatar_color: 'gold' },
     { id: 2, name: 'Gabriel', email: 'gabriel@barberia.com', is_active: true, avatar_color: 'purple' },
   ])
   const [showModal, setShowModal] = useState(false)
@@ -37,17 +37,17 @@ export function Barbers() {
   }
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+    <div style={{ maxWidth: '1000px', margin: '0 auto', background: '#1a1a1a', color: '#fff', padding: '24px', borderRadius: '12px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
         <div>
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '32px', color: '#fff', marginBottom: '8px' }}>Barberos</h1>
-          <p style={{ color: '#666', fontSize: '14px' }}>{tenant?.name || 'Tu barbería'} • Gestiona tu equipo</p>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#fff', marginBottom: '8px' }}>Barberos</h1>
+          <p style={{ color: '#888', fontSize: '14px' }}>{tenant?.name || 'Tu barbería'} • Gestiona tu equipo</p>
         </div>
         <button
           onClick={handleAdd}
           style={{
-            background: '#B8FF47',
-            color: '#080808',
+            background: '#C8A97E',
+            color: '#1a1a1a',
             border: 'none',
             borderRadius: '8px',
             padding: '12px 20px',
@@ -72,8 +72,8 @@ export function Barbers() {
           <div
             key={barber.id}
             style={{
-              background: '#111111',
-              border: '1px solid #1c1c1c',
+              background: '#2a2a2a',
+              border: '1px solid #383838',
               borderRadius: '12px',
               padding: '20px',
               display: 'flex',
@@ -82,14 +82,14 @@ export function Barbers() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
-              <div style={{ width: '56px', height: '56px', borderRadius: '12px', background: barber.avatar_color === 'green' ? 'linear-gradient(135deg, #B8FF47, #4a9900)' : 'linear-gradient(135deg, #c084fc, #9333ea)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '18px', color: '#080808' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '12px', background: barber.avatar_color === 'gold' ? 'linear-gradient(135deg, #C8A97E, #8B6200)' : 'linear-gradient(135deg, #7c3aed, #4c1d95)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#080808' }}>
                 {getInitials(barber.name)}
               </div>
               <div>
                 <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#fff', marginBottom: '4px' }}>
                   {barber.name}
                 </div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#666' }}>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888' }}>
                   {barber.email}
                 </div>
               </div>
@@ -100,13 +100,13 @@ export function Barbers() {
                 onClick={() => handleEdit(barber)}
                 style={{
                   background: 'transparent',
-                  border: '1px solid #333',
+                  border: '1px solid #383838',
                   borderRadius: '6px',
                   padding: '8px 12px',
                   fontFamily: 'Space Grotesk, sans-serif',
                   fontWeight: 500,
                   fontSize: '12px',
-                  color: '#666',
+                  color: '#888',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -120,7 +120,7 @@ export function Barbers() {
               </button>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: barber.is_active ? '#B8FF47' : '#666' }}>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: barber.is_active ? '#C8A97E' : '#888' }}>
                   {barber.is_active ? 'Activo' : 'Inactivo'}
                 </div>
                 <div
@@ -129,7 +129,7 @@ export function Barbers() {
                     width: '36px',
                     height: '20px',
                     borderRadius: '10px',
-                    background: barber.is_active ? '#B8FF47' : '#333',
+                    background: barber.is_active ? '#C8A97E' : '#383838',
                     position: 'relative',
                     cursor: 'pointer',
                   }}
@@ -165,20 +165,20 @@ export function Barbers() {
           zIndex: 1000,
         }}>
           <div style={{
-            background: '#111111',
-            border: '1px solid #1c1c1c',
+            background: '#242424',
+            border: '1px solid #383838',
             borderRadius: '12px',
             padding: '32px',
             width: '100%',
             maxWidth: '480px',
           }}>
-            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '20px', color: '#fff', marginBottom: '24px' }}>
+            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '24px' }}>
               {editingBarber ? 'Editar barbero' : 'Agregar barbero'}
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#666', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
                   Nombre
                 </label>
                 <input
@@ -186,8 +186,8 @@ export function Barbers() {
                   defaultValue={editingBarber?.name || ''}
                   style={{
                     width: '100%',
-                    background: '#1a1a1a',
-                    border: '1px solid #333',
+                    background: '#2a2a2a',
+                    border: '1px solid #383838',
                     borderRadius: '6px',
                     padding: '12px',
                     fontFamily: 'Space Grotesk, sans-serif',
@@ -199,7 +199,7 @@ export function Barbers() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#666', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
                   Email
                 </label>
                 <input
@@ -207,8 +207,8 @@ export function Barbers() {
                   defaultValue={editingBarber?.email || ''}
                   style={{
                     width: '100%',
-                    background: '#1a1a1a',
-                    border: '1px solid #333',
+                    background: '#2a2a2a',
+                    border: '1px solid #383838',
                     borderRadius: '6px',
                     padding: '12px',
                     fontFamily: 'Space Grotesk, sans-serif',
@@ -225,13 +225,13 @@ export function Barbers() {
                 onClick={() => setShowModal(false)}
                 style={{
                   background: 'transparent',
-                  border: '1px solid #333',
+                  border: '1px solid #383838',
                   borderRadius: '6px',
                   padding: '10px 20px',
                   fontFamily: 'Space Grotesk, sans-serif',
                   fontWeight: 500,
                   fontSize: '14px',
-                  color: '#666',
+                  color: '#888',
                   cursor: 'pointer',
                 }}
               >
@@ -240,8 +240,8 @@ export function Barbers() {
               <button
                 onClick={() => setShowModal(false)}
                 style={{
-                  background: '#B8FF47',
-                  color: '#080808',
+                  background: '#C8A97E',
+                  color: '#1a1a1a',
                   border: 'none',
                   borderRadius: '6px',
                   padding: '10px 20px',

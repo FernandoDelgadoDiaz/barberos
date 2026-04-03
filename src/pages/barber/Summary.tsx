@@ -1,30 +1,278 @@
+import { useState, useEffect } from 'react'
+import { useTenantStore } from '../../stores/tenantStore'
+import { supabase } from '../../config/supabase'
+import type { ServiceLog } from '../../types'
+
+interface DailySummary {
+  totalServices: number
+  totalRevenue: number
+  barberEarnings: number
+  ownerEarnings: number
+}
+
 export function Summary() {
+  const { tenant, profile } = useTenantStore()
+  const [logs, setLogs] = useState<ServiceLog[]>([])
+  const [summary, setSummary] = useState<DailySummary | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [closingDay, setClosingDay] = useState(false)
+  const [closeResult, setCloseResult] = useState<any>(null)
+
+  // Load today's logs
+  useEffect(() => {
+    if (!tenant?.id || !profile?.id) return
+
+    const loadTodayLogs = async () => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const today = new Date().toISOString().split('T')[0]
+        const { data, error } = await supabase
+          .from('service_logs')
+          .select('*')
+          .eq('tenant_id', tenant.id)
+          .eq('barber_id', profile.id)
+          .gte('started_at', `${today}T00:00:00`)
+          .lte('started_at', `${today}T23:59:59`)
+          .order('started_at', { ascending: false })
+
+        if (error) throw error
+
+        setLogs(data || [])
+
+        // Calculate summary
+        const totalServices = data.length
+        const totalRevenue = data.reduce((sum, log) => sum + log.price_charged, 0)
+        const barberEarnings = data.reduce((sum, log) => sum + log.barber_earning, 0)
+        const ownerEarnings = data.reduce((sum, log) => sum + log.owner_earning, 0)
+
+        setSummary({
+          totalServices,
+          totalRevenue,
+          barberEarnings,
+          ownerEarnings,
+        })
+      } catch (err: unknown) {
+        console.error('Error loading today logs:', err)
+        const errorMessage = err instanceof Error ? err.message : 'Error al cargar resumen'
+        setError(errorMessage)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadTodayLogs()
+  }, [tenant, profile])
+
+  const handleCloseDay = async () => {
+    if (!profile?.id || !tenant?.id) return
+
+    setClosingDay(true)
+    setError(null)
+
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      const response = await fetch('/api/close-day', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          barber_id: profile.id,
+          date: today,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error al cerrar el día')
+      }
+
+      const result = await response.json()
+      setCloseResult(result)
+
+      // Reload logs to reflect closure
+      const { data } = await supabase
+        .from('service_logs')
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .eq('barber_id', profile.id)
+        .gte('started_at', `${today}T00:00:00`)
+        .lte('started_at', `${today}T23:59:59`)
+        .order('started_at', { ascending: false })
+
+      setLogs(data || [])
+    } catch (err: unknown) {
+      console.error('Error closing day:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Error al cerrar el día'
+      setError(errorMessage)
+    } finally {
+      setClosingDay(false)
+    }
+  }
+
+  const formatTime = (isoString: string) => {
+    const date = new Date(isoString)
+    return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+  }
+
+  if (loading) {
+    return (
+      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px', textAlign: 'center', color: '#999' }}>
+        Cargando resumen...
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-white">Resumen del Día</h1>
-        <p className="text-gray-300 mt-2">Consulta tus métricas diarias</p>
+    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '32px' }}>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#fff', marginBottom: '8px' }}>
+          Resumen del Día
+        </h1>
+        <p style={{ color: '#999', fontSize: '14px' }}>Consulta tus métricas diarias</p>
       </div>
 
-      <div className="bg-[#111] rounded-xl p-8 text-center">
-        <div className="max-w-md mx-auto">
-          <div className="p-4 bg-[var(--secondary)]/20 rounded-full inline-flex mb-6">
-            <svg className="w-12 h-12 text-[var(--secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-          </div>
-          <h3 className="text-xl font-medium text-white mb-4">
-            Disponible al cierre del día
+      {/* Error message */}
+      {error && (
+        <div style={{
+          background: '#2a2a2a',
+          border: '1px solid #e94560',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          marginBottom: '24px',
+          color: '#e94560',
+          fontFamily: 'Space Grotesk, sans-serif',
+          fontSize: '14px',
+        }}>
+          {error}
+        </div>
+      )}
+
+      {/* Summary cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
+        <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '24px' }}>
+          <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#999', margin: '0 0 12px 0' }}>
+            Servicios hoy
           </h3>
-          <p className="text-gray-400">
-            El resumen detallado de servicios, comisiones y ganancias se generará automáticamente al final de cada jornada.
-          </p>
-          <div className="mt-6 p-4 bg-[#1a1a1a] rounded-lg">
-            <p className="text-sm text-gray-400">
-              Próximamente
-            </p>
+          <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '36px', color: '#fff' }}>
+            {summary?.totalServices || 0}
           </div>
         </div>
+        <div style={{ background: '#2a2a2a', border: '1px solid #C8A97E', borderRadius: '12px', padding: '24px' }}>
+          <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#999', margin: '0 0 12px 0' }}>
+            Mi ganancia total
+          </h3>
+          <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '36px', color: '#C8A97E' }}>
+            ${summary?.barberEarnings.toLocaleString() || '0'}
+          </div>
+        </div>
+      </div>
+
+      {/* Close day section */}
+      <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '32px', marginBottom: '32px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <div>
+            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '8px' }}>
+              Cierre del día
+            </h2>
+            <p style={{ color: '#999', fontSize: '14px', fontFamily: 'Space Grotesk, sans-serif' }}>
+              Genera el resumen final de hoy y registra tus ganancias.
+            </p>
+          </div>
+          <button
+            onClick={handleCloseDay}
+            disabled={closingDay || logs.length === 0}
+            style={{
+              background: logs.length === 0 ? '#383838' : '#C8A97E',
+              color: logs.length === 0 ? '#999' : '#1a1a1a',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 24px',
+              fontFamily: 'Space Grotesk, sans-serif',
+              fontWeight: 600,
+              fontSize: '14px',
+              cursor: logs.length === 0 ? 'not-allowed' : 'pointer',
+              opacity: closingDay ? 0.6 : 1,
+            }}
+          >
+            {closingDay ? 'Procesando...' : 'Cerrar el día'}
+          </button>
+        </div>
+
+        {closeResult && (
+          <div style={{
+            background: '#2a2a2a',
+            border: '1px solid #C8A97E',
+            borderRadius: '8px',
+            padding: '20px',
+            marginTop: '20px',
+          }}>
+            <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: '#C8A97E', marginBottom: '12px' }}>
+              Día cerrado exitosamente
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#999' }}>Servicios totales</div>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: '#fff' }}>
+                  {closeResult.summary.total_services}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#999' }}>Ganancia total</div>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: '#C8A97E' }}>
+                  ${closeResult.summary.barber_earnings.toLocaleString()}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Services history */}
+      <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '32px' }}>
+        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '24px' }}>
+          Historial de servicios hoy
+        </h2>
+
+        {logs.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#999', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px' }}>
+            No hay servicios registrados hoy.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {logs.map((log) => (
+              <div
+                key={log.id}
+                style={{
+                  background: '#2a2a2a',
+                  borderBottom: '1px solid #383838',
+                  padding: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#fff', marginBottom: '4px' }}>
+                    Servicio #{log.service_number_today}
+                  </div>
+                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#999' }}>
+                    {formatTime(log.started_at)} • ${log.price_charged.toLocaleString()}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: '#C8A97E' }}>
+                    +${log.barber_earning.toLocaleString()}
+                  </div>
+                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#999', marginTop: '2px' }}>
+                    Ganancia
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
