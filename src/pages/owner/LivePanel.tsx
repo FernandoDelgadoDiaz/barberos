@@ -83,7 +83,7 @@ export function LivePanel() {
       }))
       setLogs(logsWithBarber)
 
-      // Load all barbers for this tenant
+      // Load all barbers for this tenant (no is_active filter)
       const { data: barbersData, error: barbersError } = await supabase
         .from('profiles')
         .select('*')
