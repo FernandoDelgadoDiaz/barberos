@@ -30,7 +30,7 @@ export type Profile = {
   user_id: string
   role: UserRole
   display_name: string
-  is_active: boolean
+  is_active: boolean | null
   created_at: string
 }
 

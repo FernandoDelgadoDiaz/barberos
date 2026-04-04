@@ -1,25 +1,63 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTenantStore } from '../../stores/tenantStore'
+import { supabase } from '../../config/supabase'
+import type { Profile } from '../../types'
 
-interface Barber {
-  id: number
-  name: string
-  email: string
-  is_active: boolean
+interface Barber extends Profile {
   avatar_color: string
 }
 
 export function Barbers() {
-  const { tenant } = useTenantStore()
-  const [barbers, setBarbers] = useState<Barber[]>([
-    { id: 1, name: 'Carlos', email: 'carlos@barberia.com', is_active: true, avatar_color: 'gold' },
-    { id: 2, name: 'Gabriel', email: 'gabriel@barberia.com', is_active: true, avatar_color: 'purple' },
-  ])
+  const { tenant, profile } = useTenantStore()
+  const tenantId = tenant?.id || profile?.tenant_id
+  const [barbers, setBarbers] = useState<Barber[]>([])
+  const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingBarber, setEditingBarber] = useState<Barber | null>(null)
 
-  const handleToggleActive = (id: number) => {
-    setBarbers(barbers.map(b => b.id === id ? { ...b, is_active: !b.is_active } : b))
+  const loadBarbers = useCallback(async () => {
+    if (!tenantId) return
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('role', 'barber')
+        .order('display_name')
+      if (error) throw error
+      // Map to Barber with avatar_color based on id, ensure is_active is boolean
+      const barbersWithColor: Barber[] = (data || []).map(profile => ({
+        ...profile,
+        is_active: profile.is_active ?? false,
+        avatar_color: profile.id.charCodeAt(0) % 2 === 0 ? 'gold' : 'purple'
+      }))
+      setBarbers(barbersWithColor)
+    } catch (error) {
+      console.error('Error loading barbers:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [tenantId])
+
+  useEffect(() => {
+    loadBarbers()
+  }, [loadBarbers])
+
+  const handleToggleActive = async (id: string) => {
+    const barber = barbers.find(b => b.id === id)
+    if (!barber || !tenantId) return
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_active: !barber.is_active })
+        .eq('id', id)
+        .eq('tenant_id', tenantId)
+      if (error) throw error
+      // Update local state
+      setBarbers(barbers.map(b => b.id === id ? { ...b, is_active: !b.is_active } : b))
+    } catch (error) {
+      console.error('Error updating barber status:', error)
+    }
   }
 
   const handleEdit = (barber: Barber) => {
@@ -34,6 +72,14 @@ export function Barbers() {
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+  }
+
+  if (loading) {
+    return (
+      <div style={{ maxWidth: '1000px', margin: '0 auto', background: '#1a1a1a', color: '#fff', padding: '24px', borderRadius: '12px', textAlign: 'center' }}>
+        Cargando barberos...
+      </div>
+    )
   }
 
   return (
@@ -81,14 +127,14 @@ export function Barbers() {
           >
             <div className="responsive-row-left" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '56px', height: '56px', borderRadius: '12px', background: barber.avatar_color === 'gold' ? 'linear-gradient(135deg, #C8A97E, #8B6200)' : 'linear-gradient(135deg, #7c3aed, #4c1d95)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#080808' }}>
-                {getInitials(barber.name)}
+                {getInitials(barber.display_name)}
               </div>
               <div>
                 <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#fff', marginBottom: '4px' }}>
-                  {barber.name}
+                  {barber.display_name}
                 </div>
                 <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888' }}>
-                  {barber.email}
+                  Barbero
                 </div>
               </div>
             </div>
@@ -177,32 +223,11 @@ export function Barbers() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
-                  Nombre
+                  Nombre para mostrar
                 </label>
                 <input
                   type="text"
-                  defaultValue={editingBarber?.name || ''}
-                  style={{
-                    width: '100%',
-                    background: '#2a2a2a',
-                    border: '1px solid #383838',
-                    borderRadius: '6px',
-                    padding: '12px',
-                    fontFamily: 'Space Grotesk, sans-serif',
-                    fontWeight: 400,
-                    fontSize: '14px',
-                    color: '#fff',
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
-                  Email
-                </label>
-                <input
-                  type="email"
-                  defaultValue={editingBarber?.email || ''}
+                  defaultValue={editingBarber?.display_name || ''}
                   style={{
                     width: '100%',
                     background: '#2a2a2a',

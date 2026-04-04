@@ -83,13 +83,12 @@ export function LivePanel() {
       }))
       setLogs(logsWithBarber)
 
-      // Load active barbers
+      // Load all barbers for this tenant
       const { data: barbersData, error: barbersError } = await supabase
         .from('profiles')
         .select('*')
         .eq('tenant_id', tenantId)
         .eq('role', 'barber')
-        .eq('is_active', true)
         .order('display_name')
 
       if (barbersError) throw barbersError
@@ -206,11 +205,11 @@ export function LivePanel() {
 
       {/* Barbers list */}
       <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '24px' }}>
-        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#fff', margin: '0 0 20px 0' }}>Barberos activos</h2>
+        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#fff', margin: '0 0 20px 0' }}>Barberos</h2>
 
         {barberStats.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
-            <p style={{ fontSize: '16px', marginBottom: '8px' }}>No hay barberos activos</p>
+            <p style={{ fontSize: '16px', marginBottom: '8px' }}>No hay barberos</p>
             <p style={{ fontSize: '14px' }}>Agrega barberos en la configuración</p>
           </div>
         ) : (
