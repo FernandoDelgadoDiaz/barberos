@@ -12,11 +12,22 @@ export function Barbers() {
   const tenantId = tenant?.id || profile?.tenant_id
   const [barbers, setBarbers] = useState<Barber[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [editingBarber, setEditingBarber] = useState<Barber | null>(null)
+  const [modalLoading, setModalLoading] = useState(false)
+  const [modalError, setModalError] = useState<string | null>(null)
+  const [displayName, setDisplayName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
   const loadBarbers = useCallback(async () => {
-    if (!tenantId) return
+    setError(null)
+    if (!tenantId) {
+      setError('No se pudo identificar la barbería (tenantId missing).')
+      setLoading(false)
+      return
+    }
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -34,6 +45,7 @@ export function Barbers() {
       setBarbers(barbersWithColor)
     } catch (error) {
       console.error('Error loading barbers:', error)
+      setError('Error al cargar la lista de barberos. Verifica la conexión e inténtalo nuevamente.')
     } finally {
       setLoading(false)
     }
@@ -62,12 +74,92 @@ export function Barbers() {
 
   const handleEdit = (barber: Barber) => {
     setEditingBarber(barber)
+    setDisplayName(barber.display_name)
+    setEmail('')
+    setPassword('')
+    setModalError(null)
     setShowModal(true)
   }
 
   const handleAdd = () => {
     setEditingBarber(null)
+    setDisplayName('')
+    setEmail('')
+    setPassword('')
+    setModalError(null)
     setShowModal(true)
+  }
+
+  const handleCreateBarber = async () => {
+    if (!tenantId) {
+      setModalError('No se pudo identificar la barbería.')
+      return
+    }
+    if (!displayName.trim()) {
+      setModalError('El nombre es obligatorio.')
+      return
+    }
+    if (!editingBarber) {
+      // Creating new barber requires email and password
+      if (!email.trim()) {
+        setModalError('El email es obligatorio.')
+        return
+      }
+      if (!password.trim()) {
+        setModalError('La contraseña es obligatoria.')
+        return
+      }
+    }
+    setModalLoading(true)
+    setModalError(null)
+    try {
+      if (editingBarber) {
+        // Update existing barber (only display_name)
+        const { error } = await supabase
+          .from('profiles')
+          .update({ display_name: displayName.trim() })
+          .eq('id', editingBarber.id)
+          .eq('tenant_id', tenantId)
+        if (error) throw error
+        // Update local state
+        setBarbers(barbers.map(b => b.id === editingBarber.id ? { ...b, display_name: displayName.trim() } : b))
+        setShowModal(false)
+      } else {
+        // Create new barber via Netlify Function
+        const response = await fetch('/api/create-barber', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            display_name: displayName.trim(),
+            email: email.trim(),
+            password: password.trim(),
+            tenant_id: tenantId,
+          }),
+        })
+        const data = await response.json()
+        if (!response.ok) {
+          throw new Error(data.error || 'Error desconocido al crear barbero')
+        }
+        // Add to local state
+        const newBarber: Barber = {
+          id: data.profile_id,
+          tenant_id: tenantId,
+          user_id: data.user_id,
+          role: 'barber',
+          display_name: displayName.trim(),
+          is_active: true,
+          avatar_color: data.profile_id.charCodeAt(0) % 2 === 0 ? 'gold' : 'purple',
+          created_at: data.created_at,
+        }
+        setBarbers([...barbers, newBarber])
+        setShowModal(false)
+      }
+    } catch (error: unknown) {
+      console.error('Error saving barber:', error)
+      setModalError(error instanceof Error ? error.message : 'Error desconocido')
+    } finally {
+      setModalLoading(false)
+    }
   }
 
   const getInitials = (name: string) => {
@@ -78,6 +170,62 @@ export function Barbers() {
     return (
       <div style={{ maxWidth: '1000px', margin: '0 auto', background: '#1a1a1a', color: '#fff', padding: '24px', borderRadius: '12px', textAlign: 'center' }}>
         Cargando barberos...
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div style={{ maxWidth: '1000px', margin: '0 auto', background: '#1a1a1a', color: '#fff', padding: '24px', borderRadius: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+          <div>
+            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#fff', marginBottom: '8px' }}>Barberos</h1>
+            <p style={{ color: '#888', fontSize: '14px' }}>{tenant?.name || 'Tu barbería'} • Gestiona tu equipo</p>
+          </div>
+          <button
+            onClick={handleAdd}
+            style={{
+              background: '#C8A97E',
+              color: '#1a1a1a',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 20px',
+              fontFamily: 'Space Grotesk, sans-serif',
+              fontWeight: 600,
+              fontSize: '14px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Agregar barbero
+          </button>
+        </div>
+        <div style={{ background: '#2a2a2a', border: '1px solid #cc3333', borderRadius: '12px', padding: '20px', color: '#ff9999', fontFamily: 'Space Grotesk, sans-serif' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>Error al cargar barberos</h3>
+          <p style={{ fontSize: '14px' }}>{error}</p>
+          <button
+            onClick={() => loadBarbers()}
+            style={{
+              background: '#C8A97E',
+              color: '#1a1a1a',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '8px 16px',
+              fontFamily: 'Space Grotesk, sans-serif',
+              fontWeight: 600,
+              fontSize: '13px',
+              cursor: 'pointer',
+              marginTop: '16px',
+            }}
+          >
+            Reintentar
+          </button>
+        </div>
       </div>
     )
   }
@@ -220,6 +368,21 @@ export function Barbers() {
               {editingBarber ? 'Editar barbero' : 'Agregar barbero'}
             </h2>
 
+            {modalError && (
+              <div style={{
+                background: '#2a2a2a',
+                border: '1px solid #cc3333',
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '20px',
+                color: '#ff9999',
+                fontFamily: 'Space Grotesk, sans-serif',
+                fontSize: '13px',
+              }}>
+                {modalError}
+              </div>
+            )}
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
@@ -227,7 +390,8 @@ export function Barbers() {
                 </label>
                 <input
                   type="text"
-                  defaultValue={editingBarber?.display_name || ''}
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
                   style={{
                     width: '100%',
                     background: '#2a2a2a',
@@ -241,11 +405,59 @@ export function Barbers() {
                   }}
                 />
               </div>
+
+              {!editingBarber && (
+                <>
+                  <div>
+                    <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: '#2a2a2a',
+                        border: '1px solid #383838',
+                        borderRadius: '6px',
+                        padding: '12px',
+                        fontFamily: 'Space Grotesk, sans-serif',
+                        fontWeight: 400,
+                        fontSize: '14px',
+                        color: '#fff',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+                      Contraseña
+                    </label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: '#2a2a2a',
+                        border: '1px solid #383838',
+                        borderRadius: '6px',
+                        padding: '12px',
+                        fontFamily: 'Space Grotesk, sans-serif',
+                        fontWeight: 400,
+                        fontSize: '14px',
+                        color: '#fff',
+                      }}
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px' }}>
               <button
                 onClick={() => setShowModal(false)}
+                disabled={modalLoading}
                 style={{
                   background: 'transparent',
                   border: '1px solid #383838',
@@ -256,12 +468,14 @@ export function Barbers() {
                   fontSize: '14px',
                   color: '#888',
                   cursor: 'pointer',
+                  opacity: modalLoading ? 0.5 : 1,
                 }}
               >
                 Cancelar
               </button>
               <button
-                onClick={() => setShowModal(false)}
+                onClick={handleCreateBarber}
+                disabled={modalLoading}
                 style={{
                   background: '#C8A97E',
                   color: '#1a1a1a',
@@ -272,9 +486,10 @@ export function Barbers() {
                   fontWeight: 600,
                   fontSize: '14px',
                   cursor: 'pointer',
+                  opacity: modalLoading ? 0.5 : 1,
                 }}
               >
-                {editingBarber ? 'Guardar cambios' : 'Crear barbero'}
+                {modalLoading ? 'Procesando...' : editingBarber ? 'Guardar cambios' : 'Crear barbero'}
               </button>
             </div>
           </div>
