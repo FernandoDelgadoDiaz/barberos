@@ -182,3 +182,28 @@
     border-right-color: var(--border);
   }
 }
+
+.responsive-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.responsive-row-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.responsive-row-right {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .responsive-row-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

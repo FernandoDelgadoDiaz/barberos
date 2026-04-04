@@ -244,17 +244,15 @@ export function Services() {
           services.map((service) => (
             <div
               key={service.id}
+              className="responsive-row"
               style={{
                 background: '#2a2a2a',
                 border: '1px solid #383838',
                 borderRadius: '12px',
                 padding: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
               }}
             >
-              <div style={{ flex: 1 }}>
+              <div className="responsive-row-left">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                   <div style={{ width: '48px', height: '48px', borderRadius: '10px', background: '#2a2a2a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={service.is_active ? '#C8A97E' : '#888'} strokeWidth="2">
@@ -274,7 +272,7 @@ export function Services() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div className="responsive-row-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
                   onClick={() => handleEdit(service)}
                   style={{

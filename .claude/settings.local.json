@@ -3,7 +3,12 @@
     "allow": [
       "Bash(git:*)",
       "Bash(npm run:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(curl:*)",
+      "Bash(gh:*)",
+      "Bash(npm list:*)",
+      "Bash(netlify status:*)",
+      "Bash(netlify:*)"
     ]
   }
 }

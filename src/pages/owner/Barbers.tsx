@@ -71,17 +71,15 @@ export function Barbers() {
         {barbers.map((barber) => (
           <div
             key={barber.id}
+            className="responsive-row"
             style={{
               background: '#2a2a2a',
               border: '1px solid #383838',
               borderRadius: '12px',
               padding: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
+            <div className="responsive-row-left" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '56px', height: '56px', borderRadius: '12px', background: barber.avatar_color === 'gold' ? 'linear-gradient(135deg, #C8A97E, #8B6200)' : 'linear-gradient(135deg, #7c3aed, #4c1d95)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#080808' }}>
                 {getInitials(barber.name)}
               </div>
@@ -95,7 +93,7 @@ export function Barbers() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div className="responsive-row-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
                 onClick={() => handleEdit(barber)}
                 style={{
