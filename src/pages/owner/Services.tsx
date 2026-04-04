@@ -94,9 +94,24 @@ export function Services() {
   }
 
   const handleSave = async () => {
-    if (!tenant?.id) return
+    if (!tenant?.id) {
+      setError('No hay tenant seleccionado')
+      return
+    }
     if (!formData.name || !formData.base_price || !formData.duration_min) {
       setError('Por favor completa todos los campos')
+      return
+    }
+
+    // Validación numérica
+    const basePrice = parseFloat(formData.base_price)
+    const durationMin = parseInt(formData.duration_min)
+    if (isNaN(basePrice) || basePrice < 0) {
+      setError('El precio debe ser un número válido y mayor o igual a 0')
+      return
+    }
+    if (isNaN(durationMin) || durationMin <= 0) {
+      setError('La duración debe ser un número entero positivo')
       return
     }
 
@@ -107,23 +122,30 @@ export function Services() {
       const serviceData = {
         tenant_id: tenant.id,
         name: formData.name,
-        base_price: parseFloat(formData.base_price),
-        duration_min: parseInt(formData.duration_min),
+        base_price: basePrice,
+        duration_min: durationMin,
         is_active: editingService ? formData.is_active : true,
       }
 
       if (editingService) {
-        // Update existing
+        // Update existing - no incluir tenant_id (no debe cambiar)
+        const updateData = {
+          name: formData.name,
+          base_price: basePrice,
+          duration_min: durationMin,
+          is_active: formData.is_active,
+        }
         const { error } = await supabase
           .from('services_catalog')
-          .update(serviceData)
+          .update(updateData)
           .eq('id', editingService.id)
           .eq('tenant_id', tenant.id)
 
         if (error) throw error
 
+        // Actualizar estado local con los datos actualizados (incluyendo tenant_id)
         setServices(services.map(s =>
-          s.id === editingService.id ? { ...s, ...serviceData } : s
+          s.id === editingService.id ? { ...s, ...updateData } : s
         ))
       } else {
         // Insert new
