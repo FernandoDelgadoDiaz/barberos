@@ -24,6 +24,7 @@ export function Dashboard() {
   const [error, setError] = useState<string | null>(null)
   const [selectedService, setSelectedService] = useState<ServiceWithEstimation | null>(null)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [showSelectionModal, setShowSelectionModal] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
@@ -85,6 +86,12 @@ export function Dashboard() {
 
   const handleServiceClick = (service: ServiceWithEstimation) => {
     setSelectedService(service)
+    setShowConfirmModal(true)
+  }
+
+  const openConfirmModal = (service: ServiceWithEstimation) => {
+    setSelectedService(service)
+    setShowSelectionModal(false)
     setShowConfirmModal(true)
   }
 
@@ -255,7 +262,7 @@ export function Dashboard() {
               <div
                 key={service.id}
                 className="service-item"
-                onClick={() => handleServiceClick(service)}
+                onClick={() => openConfirmModal(service)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -296,7 +303,7 @@ export function Dashboard() {
       {/* Register service button (hidden when no services) */}
       {services.length > 0 && (
         <button
-          onClick={() => services.length > 0 && handleServiceClick(services[0])}
+          onClick={() => setShowSelectionModal(true)}
           style={{
             width: '100%',
             height: '52px',
@@ -410,6 +417,97 @@ export function Dashboard() {
                 }}
               >
                 {processing ? 'Procesando...' : 'Confirmar servicio'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Service Selection Modal */}
+      {showSelectionModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.7)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            background: '#242424',
+            border: '1px solid #383838',
+            borderRadius: '16px',
+            padding: '24px',
+            width: '90vw',
+            maxWidth: '480px',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+          }}>
+            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '16px' }}>
+              Seleccionar servicio
+            </h2>
+            <p style={{ color: '#999', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', marginBottom: '20px' }}>
+              Elige el servicio que deseas registrar:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {services.map((service) => (
+                <div
+                  key={service.id}
+                  onClick={() => openConfirmModal(service)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 16px',
+                    background: '#2a2a2a',
+                    border: '1px solid #383838',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'border-color 0.2s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = '#C8A97E'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = '#383838'}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-7-7m7 7l-7 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#fff' }}>{service.name}</div>
+                      <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '11px', color: '#999', marginTop: '2px' }}>
+                        Ganancia estimada: <span style={{ color: '#C8A97E' }}>${service.estimatedEarning.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '16px', color: '#C8A97E' }}>${service.base_price.toLocaleString()}</div>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '11px', color: '#999' }}>{service.duration_min} min</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+              <button
+                onClick={() => setShowSelectionModal(false)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #383838',
+                  borderRadius: '6px',
+                  padding: '10px 20px',
+                  fontFamily: 'Space Grotesk, sans-serif',
+                  fontWeight: 500,
+                  fontSize: '14px',
+                  color: '#999',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancelar
               </button>
             </div>
           </div>
