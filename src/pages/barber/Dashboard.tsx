@@ -186,7 +186,7 @@ export function Dashboard() {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Error al cerrar turno')
       }
-      const result = await response.json()
+      await response.json()
       // Update local state
       setShiftStatus('closed')
       setCurrentShift(null)
