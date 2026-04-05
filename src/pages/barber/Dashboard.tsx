@@ -31,10 +31,15 @@ export function Dashboard() {
 
   // Load services and today's logs
   useEffect(() => {
-    if (!tenant?.id || !profile?.id) return
+    let isMounted = true
+
+    if (!tenant?.id || !profile?.id) {
+      if (isMounted) setLoading(false)
+      return
+    }
 
     const loadData = async () => {
-      setLoading(true)
+      if (isMounted) setLoading(true)
       setError(null)
 
       try {
@@ -50,7 +55,7 @@ export function Dashboard() {
           .maybeSingle()
 
         const dayClosed = !!dailySummary
-        setDayClosed(dayClosed)
+        if (isMounted) setDayClosed(dayClosed)
 
         // Load services catalog
         const { data: servicesData, error: servicesError } = await supabase
@@ -62,18 +67,22 @@ export function Dashboard() {
 
         if (servicesError) throw servicesError
 
-        // Load today's service logs
-        const { data: logsData, error: logsError } = await supabase
-          .from('service_logs')
-          .select('*')
-          .eq('tenant_id', tenant.id)
-          .eq('barber_id', profile.id)
-          .eq('status', 'completed')
-          .gte('started_at', `${today}T00:00:00`)
-          .lte('started_at', `${today}T23:59:59`)
-          .order('started_at', { ascending: false })
+        // Load today's service logs only if day not closed
+        let logsData: any[] = []
+        if (!dayClosed) {
+          const { data: logsDataQuery, error: logsError } = await supabase
+            .from('service_logs')
+            .select('*')
+            .eq('tenant_id', tenant.id)
+            .eq('barber_id', profile.id)
+            .eq('status', 'completed')
+            .gte('started_at', `${today}T00:00:00`)
+            .lte('started_at', `${today}T23:59:59`)
+            .order('started_at', { ascending: false })
 
-        if (logsError) throw logsError
+          if (logsError) throw logsError
+          logsData = logsDataQuery || []
+        }
 
         // Calculate estimated earnings for each service based on next service number
         const nextServiceNumber = dayClosed ? 1 : (logsData?.length || 0) + 1
@@ -83,24 +92,31 @@ export function Dashboard() {
           estimatedEarning: applyCommission(commissionRules, nextServiceNumber, service.base_price),
         }))
 
-        setServices(servicesWithEstimation)
-        setTodayLogs(logsData || [])
+        if (isMounted) {
+          setServices(servicesWithEstimation)
+          setTodayLogs(logsData || [])
+        }
       } catch (err: unknown) {
         console.error('Error loading dashboard data:', err)
         const errorMessage = err instanceof Error ? err.message : 'Error al cargar datos'
-        setError(errorMessage)
+        if (isMounted) setError(errorMessage)
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
 
     loadData()
+    return () => { isMounted = false }
   }, [tenant, profile])
 
   const totalEarningsToday = todayLogs.reduce((sum, log) => sum + log.barber_earning, 0)
 
 
   const openConfirmModal = (service: ServiceWithEstimation) => {
+    if (dayClosed) {
+      setError('El día ya ha sido cerrado. No se pueden registrar más servicios.')
+      return
+    }
     setSelectedService(service)
     setShowSelectionModal(false)
     setShowConfirmModal(true)
@@ -108,6 +124,10 @@ export function Dashboard() {
 
   const confirmService = async () => {
     if (!selectedService || !tenant || !profile) return
+    if (dayClosed) {
+      setError('El día ya ha sido cerrado. No se pueden registrar más servicios.')
+      return
+    }
 
     setProcessing(true)
     setError(null)
@@ -282,12 +302,13 @@ export function Dashboard() {
                   padding: '12px',
                   background: '#2a2a2a',
                   borderBottom: '1px solid #383838',
-                  cursor: 'pointer',
+                  cursor: dayClosed ? 'not-allowed' : 'pointer',
                   transition: 'border-color 0.2s',
                   minHeight: '60px',
+                  opacity: dayClosed ? 0.5 : 1,
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--secondary, #C8A97E)'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#383838'}
+                onMouseEnter={!dayClosed ? (e) => e.currentTarget.style.borderColor = 'var(--secondary, #C8A97E)' : undefined}
+                onMouseLeave={!dayClosed ? (e) => e.currentTarget.style.borderColor = '#383838' : undefined}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: 'var(--primary, #1a1a1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -312,8 +333,8 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Register service button (hidden when no services) */}
-      {services.length > 0 && (
+      {/* Register service button (hidden when no services or day closed) */}
+      {services.length > 0 && !dayClosed && (
         <button
           onClick={() => setShowSelectionModal(true)}
           style={{
@@ -478,11 +499,12 @@ export function Dashboard() {
                     background: '#2a2a2a',
                     border: '1px solid #383838',
                     borderRadius: '8px',
-                    cursor: 'pointer',
+                    cursor: dayClosed ? 'not-allowed' : 'pointer',
                     transition: 'border-color 0.2s',
+                    opacity: dayClosed ? 0.5 : 1,
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--secondary, #C8A97E)'}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = '#383838'}
+                  onMouseEnter={!dayClosed ? (e) => e.currentTarget.style.borderColor = 'var(--secondary, #C8A97E)' : undefined}
+                  onMouseLeave={!dayClosed ? (e) => e.currentTarget.style.borderColor = '#383838' : undefined}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: 'var(--primary, #1a1a1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
