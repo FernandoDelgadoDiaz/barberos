@@ -159,11 +159,11 @@ export function Summary() {
             {summary?.totalServices || 0}
           </div>
         </div>
-        <div style={{ background: '#2a2a2a', border: '1px solid #C8A97E', borderRadius: '12px', padding: '24px' }}>
+        <div style={{ background: '#2a2a2a', border: '1px solid var(--secondary, #C8A97E)', borderRadius: '12px', padding: '24px' }}>
           <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#999', margin: '0 0 12px 0' }}>
             Mi ganancia total
           </h3>
-          <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '36px', color: '#C8A97E' }}>
+          <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '36px', color: 'var(--secondary, #C8A97E)' }}>
             ${summary?.barberEarnings.toLocaleString() || '0'}
           </div>
         </div>
@@ -184,8 +184,8 @@ export function Summary() {
             onClick={handleCloseDay}
             disabled={closingDay || logs.length === 0}
             style={{
-              background: logs.length === 0 ? '#383838' : '#C8A97E',
-              color: logs.length === 0 ? '#999' : '#1a1a1a',
+              background: logs.length === 0 ? '#383838' : 'var(--secondary, #C8A97E)',
+              color: logs.length === 0 ? '#999' : 'var(--primary, #1a1a1a)',
               border: 'none',
               borderRadius: '8px',
               padding: '12px 24px',
@@ -205,12 +205,12 @@ export function Summary() {
         {closeResult && (
           <div style={{
             background: '#2a2a2a',
-            border: '1px solid #C8A97E',
+            border: '1px solid var(--secondary, #C8A97E)',
             borderRadius: '8px',
             padding: '20px',
             marginTop: '20px',
           }}>
-            <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: '#C8A97E', marginBottom: '12px' }}>
+            <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--secondary, #C8A97E)', marginBottom: '12px' }}>
               Día cerrado exitosamente
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
@@ -222,7 +222,7 @@ export function Summary() {
               </div>
               <div>
                 <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#999' }}>Ganancia total</div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: '#C8A97E' }}>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--secondary, #C8A97E)' }}>
                   ${closeResult.summary.barber_earnings.toLocaleString()}
                 </div>
               </div>
@@ -264,7 +264,7 @@ export function Summary() {
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: '#C8A97E' }}>
+                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--secondary, #C8A97E)' }}>
                     +${log.barber_earning.toLocaleString()}
                   </div>
                   <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#999', marginTop: '2px' }}>

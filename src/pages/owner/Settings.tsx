@@ -178,7 +178,7 @@ export function Settings() {
   }
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', background: '#1a1a1a', color: '#fff', padding: '24px', borderRadius: '12px' }}>
+    <div style={{ maxWidth: '1000px', margin: '0 auto', background: 'var(--primary, #1a1a1a)', color: '#fff', padding: '24px', borderRadius: '12px' }}>
       <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#fff', marginBottom: '8px' }}>Configuración</h1>
       <p style={{ color: '#888', fontSize: '14px', marginBottom: '32px' }}>Personaliza tu barbería</p>
 
@@ -186,11 +186,11 @@ export function Settings() {
       {success && (
         <div style={{
           background: '#2a2a2a',
-          border: '1px solid #C8A97E',
+          border: '1px solid var(--secondary, #C8A97E)',
           borderRadius: '8px',
           padding: '12px 16px',
           marginBottom: '24px',
-          color: '#C8A97E',
+          color: 'var(--secondary, #C8A97E)',
           fontFamily: 'Space Grotesk, sans-serif',
           fontSize: '14px',
         }}>
@@ -378,8 +378,8 @@ export function Settings() {
           <button
             onClick={() => setShowAddRule(true)}
             style={{
-              background: '#C8A97E',
-              color: '#1a1a1a',
+              background: 'var(--secondary, #C8A97E)',
+              color: 'var(--primary, #1a1a1a)',
               border: 'none',
               borderRadius: '6px',
               padding: '8px 16px',
@@ -457,7 +457,7 @@ export function Settings() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: commissionRules.resets_daily ? '#C8A97E' : '#888' }}>
+            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: commissionRules.resets_daily ? 'var(--secondary, #C8A97E)' : '#888' }}>
               {commissionRules.resets_daily ? 'Reinicio diario' : 'Acumulativo'}
             </div>
             <div
@@ -466,7 +466,7 @@ export function Settings() {
                 width: '36px',
                 height: '20px',
                 borderRadius: '10px',
-                background: commissionRules.resets_daily ? '#C8A97E' : '#383838',
+                background: commissionRules.resets_daily ? 'var(--secondary, #C8A97E)' : '#383838',
                 position: 'relative',
                 cursor: 'pointer',
               }}
@@ -537,8 +537,8 @@ export function Settings() {
           onClick={handleSaveTenant}
           disabled={saving}
           style={{
-            background: '#C8A97E',
-            color: '#1a1a1a',
+            background: 'var(--secondary, #C8A97E)',
+            color: 'var(--primary, #1a1a1a)',
             border: 'none',
             borderRadius: '8px',
             padding: '14px 32px',
@@ -708,8 +708,8 @@ export function Settings() {
               <button
                 onClick={handleAddRule}
                 style={{
-                  background: '#C8A97E',
-                  color: '#1a1a1a',
+                  background: 'var(--secondary, #C8A97E)',
+                  color: 'var(--primary, #1a1a1a)',
                   border: 'none',
                   borderRadius: '6px',
                   padding: '10px 20px',

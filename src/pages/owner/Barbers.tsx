@@ -168,7 +168,7 @@ export function Barbers() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: '1000px', margin: '0 auto', background: '#1a1a1a', color: '#fff', padding: '24px', borderRadius: '12px', textAlign: 'center' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto', background: 'var(--primary, #1a1a1a)', color: '#fff', padding: '24px', borderRadius: '12px', textAlign: 'center' }}>
         Cargando barberos...
       </div>
     )
@@ -176,7 +176,7 @@ export function Barbers() {
 
   if (error) {
     return (
-      <div style={{ maxWidth: '1000px', margin: '0 auto', background: '#1a1a1a', color: '#fff', padding: '24px', borderRadius: '12px' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto', background: 'var(--primary, #1a1a1a)', color: '#fff', padding: '24px', borderRadius: '12px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
           <div>
             <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#fff', marginBottom: '8px' }}>Barberos</h1>
@@ -185,8 +185,8 @@ export function Barbers() {
           <button
             onClick={handleAdd}
             style={{
-              background: '#C8A97E',
-              color: '#1a1a1a',
+              background: 'var(--secondary, #C8A97E)',
+              color: 'var(--primary, #1a1a1a)',
               border: 'none',
               borderRadius: '8px',
               padding: '12px 20px',
@@ -211,8 +211,8 @@ export function Barbers() {
           <button
             onClick={() => loadBarbers()}
             style={{
-              background: '#C8A97E',
-              color: '#1a1a1a',
+              background: 'var(--secondary, #C8A97E)',
+              color: 'var(--primary, #1a1a1a)',
               border: 'none',
               borderRadius: '6px',
               padding: '8px 16px',
@@ -231,7 +231,7 @@ export function Barbers() {
   }
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', background: '#1a1a1a', color: '#fff', padding: '24px', borderRadius: '12px' }}>
+    <div style={{ maxWidth: '1000px', margin: '0 auto', background: 'var(--primary, #1a1a1a)', color: '#fff', padding: '24px', borderRadius: '12px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
         <div>
           <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#fff', marginBottom: '8px' }}>Barberos</h1>
@@ -240,8 +240,8 @@ export function Barbers() {
         <button
           onClick={handleAdd}
           style={{
-            background: '#C8A97E',
-            color: '#1a1a1a',
+            background: 'var(--secondary, #C8A97E)',
+            color: 'var(--primary, #1a1a1a)',
             border: 'none',
             borderRadius: '8px',
             padding: '12px 20px',
@@ -274,7 +274,7 @@ export function Barbers() {
             }}
           >
             <div className="responsive-row-left" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '56px', height: '56px', borderRadius: '12px', background: barber.avatar_color === 'gold' ? 'linear-gradient(135deg, #C8A97E, #8B6200)' : 'linear-gradient(135deg, #7c3aed, #4c1d95)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#080808' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '12px', background: barber.avatar_color === 'gold' ? 'linear-gradient(135deg, var(--secondary, #C8A97E), #8B6200)' : 'linear-gradient(135deg, #7c3aed, #4c1d95)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#080808' }}>
                 {getInitials(barber.display_name)}
               </div>
               <div>
@@ -312,7 +312,7 @@ export function Barbers() {
               </button>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: barber.is_active ? '#C8A97E' : '#888' }}>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: barber.is_active ? 'var(--secondary, #C8A97E)' : '#888' }}>
                   {barber.is_active ? 'Activo' : 'Inactivo'}
                 </div>
                 <div
@@ -321,7 +321,7 @@ export function Barbers() {
                     width: '36px',
                     height: '20px',
                     borderRadius: '10px',
-                    background: barber.is_active ? '#C8A97E' : '#383838',
+                    background: barber.is_active ? 'var(--secondary, #C8A97E)' : '#383838',
                     position: 'relative',
                     cursor: 'pointer',
                   }}
@@ -477,8 +477,8 @@ export function Barbers() {
                 onClick={handleCreateBarber}
                 disabled={modalLoading}
                 style={{
-                  background: '#C8A97E',
-                  color: '#1a1a1a',
+                  background: 'var(--secondary, #C8A97E)',
+                  color: 'var(--primary, #1a1a1a)',
                   border: 'none',
                   borderRadius: '6px',
                   padding: '10px 20px',

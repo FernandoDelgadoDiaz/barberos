@@ -211,7 +211,7 @@ export function Services() {
           onClick={handleAdd}
           className="mobile-full"
           style={{
-            background: '#C8A97E',
+            background: 'var(--secondary, #C8A97E)',
             color: '#2a2a2a',
             border: 'none',
             borderRadius: '8px',
@@ -277,7 +277,7 @@ export function Services() {
               <div className="responsive-row-left">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                   <div style={{ width: '48px', height: '48px', borderRadius: '10px', background: '#2a2a2a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={service.is_active ? '#C8A97E' : '#888'} strokeWidth="2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={service.is_active ? 'var(--secondary, #C8A97E)' : '#888'} strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                     </svg>
                   </div>
@@ -286,7 +286,7 @@ export function Services() {
                       {service.name}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888' }}>
-                      <span style={{ color: '#C8A97E' }}>${service.base_price.toLocaleString()}</span>
+                      <span style={{ color: 'var(--secondary, #C8A97E)' }}>${service.base_price.toLocaleString()}</span>
                       <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#888' }} />
                       <span>{service.duration_min} min</span>
                     </div>
@@ -342,7 +342,7 @@ export function Services() {
                 </button>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: service.is_active ? '#C8A97E' : '#888' }}>
+                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: service.is_active ? 'var(--secondary, #C8A97E)' : '#888' }}>
                     {service.is_active ? 'Activo' : 'Inactivo'}
                   </div>
                   <div
@@ -351,7 +351,7 @@ export function Services() {
                       width: '36px',
                       height: '20px',
                       borderRadius: '10px',
-                      background: service.is_active ? '#C8A97E' : '#383838',
+                      background: service.is_active ? 'var(--secondary, #C8A97E)' : '#383838',
                       position: 'relative',
                       cursor: 'pointer',
                     }}
@@ -482,7 +482,7 @@ export function Services() {
                         width: '36px',
                         height: '20px',
                         borderRadius: '10px',
-                        background: formData.is_active ? '#C8A97E' : '#383838',
+                        background: formData.is_active ? 'var(--secondary, #C8A97E)' : '#383838',
                         position: 'relative',
                         cursor: 'pointer',
                       }}
@@ -498,7 +498,7 @@ export function Services() {
                         transition: 'left 0.2s',
                       }} />
                     </div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: formData.is_active ? '#C8A97E' : '#888' }}>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: formData.is_active ? 'var(--secondary, #C8A97E)' : '#888' }}>
                       {formData.is_active ? 'Activo' : 'Inactivo'}
                     </div>
                   </div>
@@ -528,8 +528,8 @@ export function Services() {
                 onClick={handleSave}
                 disabled={saving}
                 style={{
-                  background: '#C8A97E',
-                  color: '#1a1a1a',
+                  background: 'var(--secondary, #C8A97E)',
+                  color: 'var(--primary, #1a1a1a)',
                   border: 'none',
                   borderRadius: '6px',
                   padding: '10px 20px',

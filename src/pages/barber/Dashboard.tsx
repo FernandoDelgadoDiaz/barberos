@@ -169,7 +169,7 @@ export function Dashboard() {
           right: '20px',
           background: '#2a2a2a',
           color: '#fff',
-          border: '1px solid #C8A97E',
+          border: '1px solid var(--secondary, #C8A97E)',
           padding: '16px 20px',
           borderRadius: '8px',
           fontFamily: 'Space Grotesk, sans-serif',
@@ -190,19 +190,19 @@ export function Dashboard() {
         <p style={{ color: '#999', fontSize: '14px', marginTop: '8px' }}>Tu día empieza ahora. Que los cortes fluyan.</p>
         {/* Barber pole decorative */}
         <svg className="hide-mobile" width="120" height="120" viewBox="0 0 120 120" fill="none" style={{ position: 'absolute', right: '20px', top: '20px', opacity: 0.1 }}>
-          <rect x="50" y="10" width="20" height="100" fill="#C8A97E" />
+          <rect x="50" y="10" width="20" height="100" fill="var(--secondary, #C8A97E)" />
           <rect x="50" y="10" width="20" height="33.33" fill="#fff" />
-          <rect x="50" y="43.33" width="20" height="33.33" fill="#1a1a1a" />
-          <rect x="50" y="76.66" width="20" height="33.33" fill="#C8A97E" />
-          <circle cx="60" cy="10" r="10" fill="#C8A97E" />
-          <circle cx="60" cy="110" r="10" fill="#C8A97E" />
+          <rect x="50" y="43.33" width="20" height="33.33" fill="var(--primary, #1a1a1a)" />
+          <rect x="50" y="76.66" width="20" height="33.33" fill="var(--secondary, #C8A97E)" />
+          <circle cx="60" cy="10" r="10" fill="var(--secondary, #C8A97E)" />
+          <circle cx="60" cy="110" r="10" fill="var(--secondary, #C8A97E)" />
         </svg>
       </div>
 
       {/* Error message */}
       {error && (
         <div style={{
-          background: '#1a1a1a',
+          background: 'var(--primary, #1a1a1a)',
           border: '1px solid #e94560',
           borderRadius: '8px',
           padding: '12px 16px',
@@ -223,21 +223,21 @@ export function Dashboard() {
               <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#999', margin: 0 }}>Servicios hoy</h3>
               <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '32px', color: '#fff', marginTop: '8px' }}>{todayLogs.length}</div>
             </div>
-            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8A97E" strokeWidth="2">
+            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'var(--primary, #1a1a1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--secondary, #C8A97E)" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
           </div>
         </div>
-        <div style={{ background: '#2a2a2a', border: '1px solid #C8A97E', borderRadius: '12px', padding: '20px' }}>
+        <div style={{ background: '#2a2a2a', border: '1px solid var(--secondary, #C8A97E)', borderRadius: '12px', padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#999', margin: 0 }}>Mi ganancia</h3>
-              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '32px', color: '#C8A97E', marginTop: '8px' }}>${totalEarningsToday.toLocaleString()}</div>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '32px', color: 'var(--secondary, #C8A97E)', marginTop: '8px' }}>${totalEarningsToday.toLocaleString()}</div>
             </div>
-            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8A97E" strokeWidth="2">
+            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'var(--primary, #1a1a1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--secondary, #C8A97E)" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -270,11 +270,11 @@ export function Dashboard() {
                   transition: 'border-color 0.2s',
                   minHeight: '60px',
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#C8A97E'}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--secondary, #C8A97E)'}
                 onMouseLeave={(e) => e.currentTarget.style.borderColor = '#383838'}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: 'var(--primary, #1a1a1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-7-7m7 7l-7 7" />
                     </svg>
@@ -282,12 +282,12 @@ export function Dashboard() {
                   <div>
                     <div className="service-name" style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#fff' }}>{service.name}</div>
                     <div className="service-estimated" style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '11px', color: '#999', marginTop: '2px' }}>
-                      Ganancia estimada: <span style={{ color: '#C8A97E' }}>${service.estimatedEarning.toLocaleString()}</span>
+                      Ganancia estimada: <span style={{ color: 'var(--secondary, #C8A97E)' }}>${service.estimatedEarning.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '16px', color: '#C8A97E' }}>${service.base_price.toLocaleString()}</div>
+                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--secondary, #C8A97E)' }}>${service.base_price.toLocaleString()}</div>
                   <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '11px', color: '#999' }}>{service.duration_min} min</div>
                 </div>
               </div>
@@ -303,8 +303,8 @@ export function Dashboard() {
           style={{
             width: '100%',
             height: '52px',
-            background: '#C8A97E',
-            color: '#1a1a1a',
+            background: 'var(--secondary, #C8A97E)',
+            color: 'var(--primary, #1a1a1a)',
             fontFamily: 'Space Grotesk, sans-serif',
             fontWeight: 600,
             fontSize: '16px',
@@ -318,7 +318,7 @@ export function Dashboard() {
             gap: '8px',
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="3">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary, #1a1a1a)" strokeWidth="3">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
           + Registrar servicio
@@ -356,7 +356,7 @@ export function Dashboard() {
             </p>
 
             <div style={{
-              background: '#1a1a1a',
+              background: 'var(--primary, #1a1a1a)',
               border: '1px solid #383838',
               borderRadius: '8px',
               padding: '20px',
@@ -366,7 +366,7 @@ export function Dashboard() {
                 <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#fff' }}>
                   {selectedService.name}
                 </div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 'clamp(18px, 4vw, 24px)', color: '#C8A97E' }}>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 'clamp(18px, 4vw, 24px)', color: 'var(--secondary, #C8A97E)' }}>
                   ${selectedService.base_price.toLocaleString()}
                 </div>
               </div>
@@ -400,8 +400,8 @@ export function Dashboard() {
                 onClick={confirmService}
                 disabled={processing}
                 style={{
-                  background: '#C8A97E',
-                  color: '#1a1a1a',
+                  background: 'var(--secondary, #C8A97E)',
+                  color: 'var(--primary, #1a1a1a)',
                   border: 'none',
                   borderRadius: '6px',
                   padding: '10px 20px',
@@ -465,11 +465,11 @@ export function Dashboard() {
                     cursor: 'pointer',
                     transition: 'border-color 0.2s',
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = '#C8A97E'}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--secondary, #C8A97E)'}
                   onMouseLeave={(e) => e.currentTarget.style.borderColor = '#383838'}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: 'var(--primary, #1a1a1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-7-7m7 7l-7 7" />
                       </svg>
@@ -477,12 +477,12 @@ export function Dashboard() {
                     <div>
                       <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#fff' }}>{service.name}</div>
                       <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '11px', color: '#999', marginTop: '2px' }}>
-                        Ganancia estimada: <span style={{ color: '#C8A97E' }}>${service.estimatedEarning.toLocaleString()}</span>
+                        Ganancia estimada: <span style={{ color: 'var(--secondary, #C8A97E)' }}>${service.estimatedEarning.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '16px', color: '#C8A97E' }}>${service.base_price.toLocaleString()}</div>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--secondary, #C8A97E)' }}>${service.base_price.toLocaleString()}</div>
                     <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '11px', color: '#999' }}>{service.duration_min} min</div>
                   </div>
                 </div>

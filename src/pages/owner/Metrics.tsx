@@ -76,7 +76,7 @@ function calculateWeekVariation(metrics: MetricsData | null) {
 
 // Íconos SVG inline
 const CalendarIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8A97E" strokeWidth="2">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--secondary, #C8A97E)" strokeWidth="2">
     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
     <line x1="16" y1="2" x2="16" y2="6" />
     <line x1="8" y1="2" x2="8" y2="6" />
@@ -85,14 +85,14 @@ const CalendarIcon = () => (
 )
 
 const ClockIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8A97E" strokeWidth="2">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--secondary, #C8A97E)" strokeWidth="2">
     <circle cx="12" cy="12" r="10" />
     <polyline points="12 6 12 12 16 14" />
   </svg>
 )
 
 const ScissorsIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8A97E" strokeWidth="2">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--secondary, #C8A97E)" strokeWidth="2">
     <circle cx="6" cy="6" r="3" />
     <circle cx="6" cy="18" r="3" />
     <line x1="20" y1="4" x2="8.12" y2="15.88" />
@@ -106,11 +106,11 @@ const UserCircleIcon = ({ initial }: { initial: string }) => (
     width: '40px',
     height: '40px',
     borderRadius: '50%',
-    background: '#C8A97E',
+    background: 'var(--secondary, #C8A97E)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#1a1a1a',
+    color: 'var(--primary, #1a1a1a)',
     fontFamily: 'Syne, sans-serif',
     fontWeight: 700,
     fontSize: '16px'
@@ -164,7 +164,7 @@ export function Metrics() {
         maxWidth: '1200px',
         margin: '0 auto',
         padding: '24px',
-        background: '#1a1a1a',
+        background: 'var(--primary, #1a1a1a)',
         color: '#fff',
         minHeight: '100vh'
       }}>
@@ -258,7 +258,7 @@ export function Metrics() {
         maxWidth: '1200px',
         margin: '0 auto',
         padding: '24px',
-        background: '#1a1a1a',
+        background: 'var(--primary, #1a1a1a)',
         color: '#fff',
         minHeight: '100vh'
       }}>
@@ -281,8 +281,8 @@ export function Metrics() {
           <button
             onClick={() => window.location.reload()}
             style={{
-              background: '#C8A97E',
-              color: '#1a1a1a',
+              background: 'var(--secondary, #C8A97E)',
+              color: 'var(--primary, #1a1a1a)',
               border: 'none',
               borderRadius: '8px',
               padding: '12px 24px',
@@ -308,7 +308,7 @@ export function Metrics() {
         maxWidth: '1200px',
         margin: '0 auto',
         padding: '24px',
-        background: '#1a1a1a',
+        background: 'var(--primary, #1a1a1a)',
         color: '#fff',
         minHeight: '100vh',
         display: 'flex',
@@ -348,7 +348,7 @@ export function Metrics() {
       maxWidth: '1200px',
       margin: '0 auto',
       padding: '24px',
-      background: '#1a1a1a',
+      background: 'var(--primary, #1a1a1a)',
       color: '#fff',
       minHeight: '100vh'
     }}>
@@ -377,7 +377,7 @@ export function Metrics() {
         <div style={{
           height: '100px',
           background: '#2a2a2a',
-          borderLeft: '3px solid #C8A97E',
+          borderLeft: '3px solid var(--secondary, #C8A97E)',
           borderRadius: '12px',
           padding: '20px 24px',
           display: 'flex',
@@ -397,7 +397,7 @@ export function Metrics() {
             fontFamily: 'Syne, sans-serif',
             fontWeight: 700,
             fontSize: isMobile ? '24px' : '32px',
-            color: '#C8A97E',
+            color: 'var(--secondary, #C8A97E)',
             lineHeight: 1
           }}>
             {formatCurrency(metrics!.historico.total_facturado)}
@@ -415,7 +415,7 @@ export function Metrics() {
         <div style={{
           height: '100px',
           background: '#2a2a2a',
-          borderLeft: '3px solid #C8A97E',
+          borderLeft: '3px solid var(--secondary, #C8A97E)',
           borderRadius: '12px',
           padding: '20px 24px',
           display: 'flex',
@@ -453,7 +453,7 @@ export function Metrics() {
         <div style={{
           height: '100px',
           background: '#2a2a2a',
-          borderLeft: '3px solid #C8A97E',
+          borderLeft: '3px solid var(--secondary, #C8A97E)',
           borderRadius: '12px',
           padding: '20px 24px',
           display: 'flex',
@@ -595,7 +595,7 @@ export function Metrics() {
               fontFamily: 'Syne, sans-serif',
               fontWeight: 600,
               fontSize: '20px',
-              color: '#C8A97E'
+              color: 'var(--secondary, #C8A97E)'
             }}>
               {formatCurrency(metrics!.semana_actual.facturado)}
             </div>
@@ -821,7 +821,7 @@ export function Metrics() {
           fontFamily: 'Syne, sans-serif',
           fontWeight: 800,
           fontSize: isMobile ? '32px' : '42px',
-          color: '#C8A97E'
+          color: 'var(--secondary, #C8A97E)'
         }}>
           {metrics!.ticket_promedio ? formatCurrency(metrics!.ticket_promedio) : '—'}
         </div>
@@ -860,7 +860,7 @@ export function Metrics() {
             fontFamily: 'Syne, sans-serif',
             fontWeight: 700,
             fontSize: '32px',
-            color: '#C8A97E'
+            color: 'var(--secondary, #C8A97E)'
           }}>
             {formatCurrency(metrics!.mes_top.total)}
           </div>

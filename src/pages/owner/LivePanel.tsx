@@ -164,24 +164,24 @@ export function LivePanel() {
   }
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', position: 'relative', background: '#1a1a1a', color: '#fff', padding: '24px', borderRadius: '12px' }}>
+    <div style={{ maxWidth: '1000px', margin: '0 auto', position: 'relative', background: 'var(--primary, #1a1a1a)', color: '#fff', padding: '24px', borderRadius: '12px' }}>
       {/* Large scissors decoration */}
       <svg width="300" height="300" viewBox="0 0 300 300" fill="none" style={{ position: 'absolute', right: '-50px', top: '-50px', opacity: 0.04, pointerEvents: 'none' }}>
-        <circle cx="150" cy="150" r="120" stroke="#C8A97E" strokeWidth="2" strokeDasharray="8 8" />
-        <circle cx="100" cy="200" r="25" stroke="#C8A97E" strokeWidth="4" />
-        <circle cx="200" cy="200" r="25" stroke="#C8A97E" strokeWidth="4" />
-        <line x1="100" y1="200" x2="200" y2="100" stroke="#C8A97E" strokeWidth="4" strokeLinecap="round" />
+        <circle cx="150" cy="150" r="120" stroke="var(--secondary, #C8A97E)" strokeWidth="2" strokeDasharray="8 8" />
+        <circle cx="100" cy="200" r="25" stroke="var(--secondary, #C8A97E)" strokeWidth="4" />
+        <circle cx="200" cy="200" r="25" stroke="var(--secondary, #C8A97E)" strokeWidth="4" />
+        <line x1="100" y1="200" x2="200" y2="100" stroke="var(--secondary, #C8A97E)" strokeWidth="4" strokeLinecap="round" />
         <line x1="200" y1="200" x2="100" y2="100" stroke="#383838" strokeWidth="4" strokeLinecap="round" />
         <circle cx="100" cy="100" r="25" stroke="#383838" strokeWidth="4" />
         <circle cx="200" cy="100" r="25" stroke="#383838" strokeWidth="4" />
-        <line x1="130" y1="150" x2="170" y2="150" stroke="#C8A97E" strokeWidth="3" />
+        <line x1="130" y1="150" x2="170" y2="150" stroke="var(--secondary, #C8A97E)" strokeWidth="3" />
       </svg>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
         <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#fff', margin: 0 }}>Panel en vivo</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '12px', color: '#C8A97E', border: '1px solid #C8A97E', borderRadius: '20px', padding: '4px 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>EN VIVO</span>
-          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#C8A97E', animation: 'pulse 1s infinite' }} />
+          <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '12px', color: 'var(--secondary, #C8A97E)', border: '1px solid var(--secondary, #C8A97E)', borderRadius: '20px', padding: '4px 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>EN VIVO</span>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--secondary, #C8A97E)', animation: 'pulse 1s infinite' }} />
         </div>
       </div>
       <p style={{ color: '#888', fontSize: '14px', marginBottom: '24px' }}>{tenant?.name || 'Tu barbería'} • Monitoreo en tiempo real</p>
@@ -191,7 +191,7 @@ export function LivePanel() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#888', margin: 0 }}>Total del día</h3>
-            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 'clamp(28px, 7vw, 42px)', color: '#C8A97E', marginTop: '4px' }}>
+            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 'clamp(28px, 7vw, 42px)', color: 'var(--secondary, #C8A97E)', marginTop: '4px' }}>
               ${totalDay.toLocaleString()}
             </div>
             <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '14px', color: '#fff', marginTop: '8px' }}>
@@ -200,7 +200,7 @@ export function LivePanel() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ width: '60px', height: '60px', borderRadius: '12px', background: '#2a2a2a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C8A97E" strokeWidth="2">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--secondary, #C8A97E)" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -211,7 +211,7 @@ export function LivePanel() {
           </div>
         </div>
         <div style={{ height: '4px', background: '#383838', marginTop: '20px', borderRadius: '2px', overflow: 'hidden' }}>
-          <div style={{ width: `${dayProgress}%`, height: '100%', background: '#C8A97E', borderRadius: '2px', transition: 'width 0.5s ease' }} />
+          <div style={{ width: `${dayProgress}%`, height: '100%', background: 'var(--secondary, #C8A97E)', borderRadius: '2px', transition: 'width 0.5s ease' }} />
         </div>
         <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: '#888', marginTop: '8px', textAlign: 'right' }}>
           {statusText}
@@ -240,7 +240,7 @@ export function LivePanel() {
                   padding: '16px',
                   background: '#383838',
                   borderRadius: '8px',
-                  border: `1px solid ${stats.highlight ? '#C8A97E' : '#484848'}`,
+                  border: `1px solid ${stats.highlight ? 'var(--secondary, #C8A97E)' : '#484848'}`,
                   transition: 'border-color 0.3s ease',
                   boxShadow: stats.highlight ? '0 0 12px rgba(200, 169, 126, 0.4)' : 'none'
                 }}
@@ -250,7 +250,7 @@ export function LivePanel() {
                     width: '44px',
                     height: '44px',
                     borderRadius: '10px',
-                    background: 'linear-gradient(135deg, #C8A97E, #8B6200)',
+                    background: 'linear-gradient(135deg, var(--secondary, #C8A97E), #8B6200)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -281,7 +281,7 @@ export function LivePanel() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: '#C8A97E' }}>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--secondary, #C8A97E)' }}>
                       ${stats.ownerCommission.toLocaleString()}
                     </div>
                     <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '11px', color: '#888', letterSpacing: '0.5px' }}>COMISIÓN</div>
@@ -290,7 +290,7 @@ export function LivePanel() {
                     width: '10px',
                     height: '10px',
                     borderRadius: '50%',
-                    background: stats.isActive ? '#C8A97E' : '#888',
+                    background: stats.isActive ? 'var(--secondary, #C8A97E)' : '#888',
                     opacity: stats.isActive ? 1 : 0.5,
                     animation: stats.isActive ? 'pulse 2s infinite' : 'none'
                   }} />

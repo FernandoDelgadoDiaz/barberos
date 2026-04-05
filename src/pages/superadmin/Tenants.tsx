@@ -119,7 +119,7 @@ export function Tenants() {
         <div style={{ background: '#242424', border: '1px solid #383838', borderRadius: '12px', padding: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ padding: '12px', background: 'rgba(200, 169, 126, 0.1)', borderRadius: '8px' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C8A97E" strokeWidth="2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--secondary, #C8A97E)" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
             </div>
@@ -133,7 +133,7 @@ export function Tenants() {
         <div style={{ background: '#242424', border: '1px solid #383838', borderRadius: '12px', padding: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ padding: '12px', background: 'rgba(200, 169, 126, 0.1)', borderRadius: '8px' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C8A97E" strokeWidth="2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--secondary, #C8A97E)" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
@@ -149,7 +149,7 @@ export function Tenants() {
         <div style={{ background: '#242424', border: '1px solid #383838', borderRadius: '12px', padding: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ padding: '12px', background: 'rgba(200, 169, 126, 0.1)', borderRadius: '8px' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C8A97E" strokeWidth="2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--secondary, #C8A97E)" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
@@ -165,7 +165,7 @@ export function Tenants() {
         <div style={{ background: '#242424', border: '1px solid #383838', borderRadius: '12px', padding: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ padding: '12px', background: 'rgba(200, 169, 126, 0.1)', borderRadius: '8px' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C8A97E" strokeWidth="2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--secondary, #C8A97E)" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -188,7 +188,7 @@ export function Tenants() {
 
         {loading ? (
           <div style={{ padding: '48px', textAlign: 'center' }}>
-            <div style={{ display: 'inline-block', width: '40px', height: '40px', border: '3px solid #383838', borderTopColor: '#C8A97E', borderRadius: '9999px', animation: 'spin 1s linear infinite' }} />
+            <div style={{ display: 'inline-block', width: '40px', height: '40px', border: '3px solid #383838', borderTopColor: 'var(--secondary, #C8A97E)', borderRadius: '9999px', animation: 'spin 1s linear infinite' }} />
             <p style={{ marginTop: '16px', color: '#999999' }}>Cargando barberías...</p>
           </div>
         ) : error ? (
@@ -198,7 +198,7 @@ export function Tenants() {
             </div>
             <button
               onClick={loadTenants}
-              style={{ marginTop: '16px', padding: '10px 20px', background: 'transparent', color: '#C8A97E', border: '1px solid #C8A97E', borderRadius: '8px', cursor: 'pointer' }}
+              style={{ marginTop: '16px', padding: '10px 20px', background: 'transparent', color: 'var(--secondary, #C8A97E)', border: '1px solid var(--secondary, #C8A97E)', borderRadius: '8px', cursor: 'pointer' }}
             >
               Reintentar
             </button>
@@ -246,7 +246,7 @@ export function Tenants() {
                       <span style={{ fontSize: '12px', color: '#999999', marginLeft: '4px' }}>registrados</span>
                     </td>
                     <td style={{ padding: '16px 24px', color: '#ffffff' }}>
-                      <span style={{ fontWeight: 600, color: '#C8A97E' }}>{formatCurrency(tenant.total_facturado)}</span>
+                      <span style={{ fontWeight: 600, color: 'var(--secondary, #C8A97E)' }}>{formatCurrency(tenant.total_facturado)}</span>
                     </td>
                     <td style={{ padding: '16px 24px' }}>
                       <button
@@ -254,8 +254,8 @@ export function Tenants() {
                         style={{
                           padding: '6px 12px',
                           background: tenant.is_active ? 'rgba(200, 169, 126, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                          color: tenant.is_active ? '#C8A97E' : '#999999',
-                          border: `1px solid ${tenant.is_active ? '#C8A97E' : '#383838'}`,
+                          color: tenant.is_active ? 'var(--secondary, #C8A97E)' : '#999999',
+                          border: `1px solid ${tenant.is_active ? 'var(--secondary, #C8A97E)' : '#383838'}`,
                           borderRadius: '6px',
                           fontSize: '12px',
                           fontWeight: 500,
@@ -274,8 +274,8 @@ export function Tenants() {
                         style={{
                           padding: '8px 16px',
                           background: 'transparent',
-                          color: '#C8A97E',
-                          border: '1px solid #C8A97E',
+                          color: 'var(--secondary, #C8A97E)',
+                          border: '1px solid var(--secondary, #C8A97E)',
                           borderRadius: '8px',
                           fontSize: '14px',
                           fontWeight: 500,
@@ -319,8 +319,8 @@ export function Tenants() {
             <button
               style={{
                 padding: '10px 20px',
-                background: '#C8A97E',
-                color: '#1a1a1a',
+                background: 'var(--secondary, #C8A97E)',
+                color: 'var(--primary, #1a1a1a)',
                 border: 'none',
                 borderRadius: '8px',
                 fontSize: '14px',

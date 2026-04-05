@@ -15,8 +15,8 @@
 }
 * { box-sizing: border-box; }
 body {
-  background: #1a1a1a;
-  color: #ffffff;
+  background: var(--bg, #1a1a1a);
+  color: var(--text, #ffffff);
   font-family: 'Space Grotesk', sans-serif;
   margin: 0;
 }
