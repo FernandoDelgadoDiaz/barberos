@@ -4,7 +4,7 @@ import { supabase } from '../../config/supabase'
 import type { CommissionRule, CommissionRules, Tenant } from '../../types'
 
 export function Settings() {
-  const { tenant, setTenant } = useTenantStore()
+  const { tenant } = useTenantStore()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
