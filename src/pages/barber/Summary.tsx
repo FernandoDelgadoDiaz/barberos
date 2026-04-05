@@ -10,6 +10,10 @@ interface TodaySummary {
   ownerEarnings: number
 }
 
+interface CloseDayResult {
+  summary: BackendDailySummary
+}
+
 export function Summary() {
   const { tenant, profile } = useTenantStore()
   const [logs, setLogs] = useState<ServiceLog[]>([])
@@ -17,7 +21,7 @@ export function Summary() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [closingDay, setClosingDay] = useState(false)
-  const [closeResult, setCloseResult] = useState<any>(null)
+  const [closeResult, setCloseResult] = useState<CloseDayResult | null>(null)
   const [dayClosed, setDayClosed] = useState(false)
   const [existingSummary, setExistingSummary] = useState<BackendDailySummary | null>(null)
   const [shifts, setShifts] = useState<Shift[]>([])
@@ -34,95 +38,135 @@ export function Summary() {
     }
 
     let isMounted = true
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
 
     const loadTodayLogs = async () => {
       console.log('[Summary] loadTodayLogs start')
       if (isMounted) setLoading(true)
       setError(null)
 
+      // Safety timeout: force loading false after 5 seconds
+      timeoutId = setTimeout(() => {
+        console.log('[Summary] Safety timeout triggered, forcing loading false')
+        if (isMounted) {
+          setLoading(false)
+          setError('La carga está tomando más tiempo de lo esperado. Mostrando datos disponibles.')
+        }
+      }, 5000)
+
       try {
         const today = new Date().toISOString().split('T')[0]
 
-        // Check if day already closed
-        const { data: dailySummary, error: summaryError } = await supabase
-          .from('daily_summaries')
-          .select('*')
-          .eq('tenant_id', tenant.id)
-          .eq('barber_id', profile.id)
-          .eq('summary_date', today)
-          .maybeSingle()
+        // Check if day already closed (optional query, continue even if fails)
+        let dailySummary = null
+        let isDayClosed = false
+        try {
+          const { data, error: summaryError } = await supabase
+            .from('daily_summaries')
+            .select('*')
+            .eq('tenant_id', tenant.id)
+            .eq('barber_id', profile.id)
+            .eq('summary_date', today)
+            .maybeSingle()
 
-        if (summaryError) throw summaryError
-        console.log('[Summary] daily_summaries query result:', { dailySummary, isDayClosed: !!dailySummary })
-
-        const isDayClosed = !!dailySummary
-        if (isMounted) setDayClosed(isDayClosed)
-        if (isMounted) setExistingSummary(dailySummary || null)
-
-        // Load all service logs for today (including closed)
-        const { data: logsData, error: logsError } = await supabase
-          .from('service_logs')
-          .select('*')
-          .eq('tenant_id', tenant.id)
-          .eq('barber_id', profile.id)
-          .gte('started_at', `${today}T00:00:00`)
-          .lte('started_at', `${today}T23:59:59`)
-          .order('started_at', { ascending: false })
-
-        if (logsError) throw logsError
-        console.log('[Summary] service_logs query result count:', logsData?.length || 0)
-
-        if (isMounted) setLogs(logsData || [])
-
-        // Load closed shifts for today
-        const { data: shiftsData, error: shiftsError } = await supabase
-          .from('shifts')
-          .select('*')
-          .eq('tenant_id', tenant.id)
-          .eq('barber_id', profile.id)
-          .eq('status', 'closed')
-          .gte('started_at', `${today}T00:00:00`)
-          .lte('started_at', `${today}T23:59:59`)
-          .order('started_at', { ascending: true })
-
-        if (shiftsError) throw shiftsError
-        console.log('[Summary] shifts query result count:', shiftsData?.length || 0)
-        if (isMounted) setShifts(shiftsData || [])
-
-        // Calculate summary
-        let totalServices, totalRevenue, barberEarnings, ownerEarnings
-        if (isDayClosed && dailySummary) {
-          totalServices = dailySummary.total_services
-          totalRevenue = dailySummary.total_revenue
-          barberEarnings = dailySummary.barber_earnings
-          ownerEarnings = dailySummary.owner_earnings
-        } else {
-          const activeLogs = logsData?.filter(log => log.status === 'completed') || []
-          totalServices = activeLogs.length
-          totalRevenue = activeLogs.reduce((sum, log) => sum + log.price_charged, 0)
-          barberEarnings = activeLogs.reduce((sum, log) => sum + log.barber_earning, 0)
-          ownerEarnings = activeLogs.reduce((sum, log) => sum + log.owner_earning, 0)
+          if (summaryError) {
+            console.warn('[Summary] daily_summaries query error (non‑blocking):', summaryError)
+          } else {
+            dailySummary = data
+            isDayClosed = !!data
+            console.log('[Summary] daily_summaries query result:', { dailySummary, isDayClosed })
+          }
+        } catch (err) {
+          console.warn('[Summary] daily_summaries query exception (non‑blocking):', err)
         }
 
-        if (isMounted) setSummary({
-          totalServices,
-          totalRevenue,
-          barberEarnings,
-          ownerEarnings,
-        })
+        if (isMounted) {
+          setDayClosed(isDayClosed)
+          setExistingSummary(dailySummary || null)
+        }
+
+        // Load all service logs for today (including closed)
+        let logsData: ServiceLog[] = []
+        try {
+          const { data, error: logsError } = await supabase
+            .from('service_logs')
+            .select('*')
+            .eq('tenant_id', tenant.id)
+            .eq('barber_id', profile.id)
+            .gte('started_at', `${today}T00:00:00`)
+            .lte('started_at', `${today}T23:59:59`)
+            .order('started_at', { ascending: false })
+
+          if (logsError) {
+            console.error('[Summary] service_logs query error:', logsError)
+          } else {
+            logsData = data || []
+            console.log('[Summary] service_logs query result count:', logsData.length)
+          }
+        } catch (err) {
+          console.error('[Summary] service_logs query exception:', err)
+        }
+
+        if (isMounted) setLogs(logsData)
+
+        // Load closed shifts for today
+        let shiftsData: Shift[] = []
+        try {
+          const { data, error: shiftsError } = await supabase
+            .from('shifts')
+            .select('*')
+            .eq('tenant_id', tenant.id)
+            .eq('barber_id', profile.id)
+            .eq('status', 'closed')
+            .gte('started_at', `${today}T00:00:00`)
+            .lte('started_at', `${today}T23:59:59`)
+            .order('started_at', { ascending: true })
+
+          if (shiftsError) {
+            console.error('[Summary] shifts query error:', shiftsError)
+          } else {
+            shiftsData = data || []
+            console.log('[Summary] shifts query result count:', shiftsData.length)
+          }
+        } catch (err) {
+          console.error('[Summary] shifts query exception:', err)
+        }
+
+        if (isMounted) setShifts(shiftsData)
+
+        // Calculate summary using only logs and shifts (ignore daily_summaries for calculation)
+        const activeLogs = logsData.filter(log => log.status === 'completed')
+        const totalServices = activeLogs.length
+        const totalRevenue = activeLogs.reduce((sum, log) => sum + log.price_charged, 0)
+        const barberEarnings = activeLogs.reduce((sum, log) => sum + log.barber_earning, 0)
+        const ownerEarnings = activeLogs.reduce((sum, log) => sum + log.owner_earning, 0)
+
+        if (isMounted) {
+          setSummary({
+            totalServices,
+            totalRevenue,
+            barberEarnings,
+            ownerEarnings,
+          })
+        }
         console.log('[Summary] loadTodayLogs completed successfully')
       } catch (err: unknown) {
-        console.error('[Summary] Error loading today logs:', err)
+        console.error('[Summary] Unexpected error in loadTodayLogs:', err)
         const errorMessage = err instanceof Error ? err.message : 'Error al cargar resumen'
         if (isMounted) setError(errorMessage)
       } finally {
+        // Clear safety timeout
+        if (timeoutId) clearTimeout(timeoutId)
         console.log('[Summary] loadTodayLogs finally, isMounted:', isMounted)
         if (isMounted) setLoading(false)
       }
     }
 
     loadTodayLogs()
-    return () => { isMounted = false }
+    return () => {
+      isMounted = false
+      if (timeoutId) clearTimeout(timeoutId)
+    }
   }, [tenant, profile])
 
   const handleCloseDay = async () => {
