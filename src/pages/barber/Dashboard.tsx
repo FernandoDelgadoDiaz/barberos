@@ -84,10 +84,6 @@ export function Dashboard() {
 
   const totalEarningsToday = todayLogs.reduce((sum, log) => sum + log.barber_earning, 0)
 
-  const handleServiceClick = (service: ServiceWithEstimation) => {
-    setSelectedService(service)
-    setShowConfirmModal(true)
-  }
 
   const openConfirmModal = (service: ServiceWithEstimation) => {
     setSelectedService(service)
