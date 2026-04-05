@@ -153,20 +153,23 @@ export const handler = async (event: NetlifyFunctionEvent) => {
 
     const commissionRules = tenant.commission_rules as CommissionRules
 
-    // 4. Calculate service_number_today (count of completed services today)
-    const today = new Date().toISOString().split('T')[0]
+    // 4. Calculate service_number_today
+    // If shift_id provided, count services within that shift (ignore date)
+    // Otherwise, count services today (for backward compatibility)
     let query = supabase
       .from('service_logs')
       .select('*', { count: 'exact', head: true })
       .eq('barber_id', body.barber_id)
       .eq('tenant_id', tenantId)
       .eq('status', 'completed')
-      .gte('started_at', `${today}T00:00:00`)
-      .lte('started_at', `${today}T23:59:59`)
 
-    // If shift_id provided, count only services within that shift
     if (body.shift_id) {
       query = query.eq('shift_id', body.shift_id)
+    } else {
+      const today = new Date().toISOString().split('T')[0]
+      query = query
+        .gte('started_at', `${today}T00:00:00`)
+        .lte('started_at', `${today}T23:59:59`)
     }
 
     const { count, error: countError } = await query

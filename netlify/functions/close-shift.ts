@@ -5,6 +5,17 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+const TIMEOUT_MS = 8000 // 8 seconds timeout for Supabase operations
+
+function timeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error(`Operation timed out after ${ms}ms`)), ms)
+    })
+  ])
+}
+
 interface RequestBody {
   shift_id: string
   tenant_id: string
@@ -69,14 +80,17 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     }
 
     // 1. Verify shift exists, is open, and belongs to the given barber & tenant
-    const { data: shift, error: shiftError } = await supabase
-      .from('shifts')
-      .select('*')
-      .eq('id', body.shift_id)
-      .eq('tenant_id', body.tenant_id)
-      .eq('barber_id', body.barber_id)
-      .eq('status', 'open')
-      .single()
+    const { data: shift, error: shiftError } = await timeout(
+      supabase
+        .from('shifts')
+        .select('*')
+        .eq('id', body.shift_id)
+        .eq('tenant_id', body.tenant_id)
+        .eq('barber_id', body.barber_id)
+        .eq('status', 'open')
+        .single(),
+      TIMEOUT_MS
+    )
 
     if (shiftError || !shift) {
       console.error('Shift validation error:', shiftError)
@@ -88,13 +102,16 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     }
 
     // 2. Aggregate service logs for this shift
-    const { data: logs, error: logsError } = await supabase
-      .from('service_logs')
-      .select('price_charged, barber_earning, owner_earning')
-      .eq('shift_id', body.shift_id)
-      .eq('tenant_id', body.tenant_id)
-      .eq('barber_id', body.barber_id)
-      .eq('status', 'completed')
+    const { data: logs, error: logsError } = await timeout(
+      supabase
+        .from('service_logs')
+        .select('price_charged, barber_earning, owner_earning')
+        .eq('shift_id', body.shift_id)
+        .eq('tenant_id', body.tenant_id)
+        .eq('barber_id', body.barber_id)
+        .eq('status', 'completed'),
+      TIMEOUT_MS
+    )
 
     if (logsError) {
       console.error('Logs aggregation error:', logsError)
@@ -105,11 +122,14 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
+    // Ensure logs is an array
+    const safeLogs = logs || []
+
     // Calculate totals
-    const totalServices = logs.length
-    const totalRevenue = logs.reduce((sum, log) => sum + log.price_charged, 0)
-    const barberEarnings = logs.reduce((sum, log) => sum + log.barber_earning, 0)
-    const ownerEarnings = logs.reduce((sum, log) => sum + log.owner_earning, 0)
+    const totalServices = safeLogs.length
+    const totalRevenue = safeLogs.reduce((sum, log) => sum + log.price_charged, 0)
+    const barberEarnings = safeLogs.reduce((sum, log) => sum + log.barber_earning, 0)
+    const ownerEarnings = safeLogs.reduce((sum, log) => sum + log.owner_earning, 0)
 
     // 3. Update shift with totals and close it
     const updates: Partial<Shift> = {
@@ -121,12 +141,15 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       owner_earnings: ownerEarnings,
     }
 
-    const { data: updatedShift, error: updateError } = await supabase
-      .from('shifts')
-      .update(updates)
-      .eq('id', body.shift_id)
-      .select()
-      .single()
+    const { data: updatedShift, error: updateError } = await timeout(
+      supabase
+        .from('shifts')
+        .update(updates)
+        .eq('id', body.shift_id)
+        .select()
+        .single(),
+      TIMEOUT_MS
+    )
 
     if (updateError) {
       console.error('Shift update error:', updateError)
@@ -143,7 +166,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       headers,
       body: JSON.stringify({
         shift: updatedShift,
-        breakdown: logs.map(log => ({
+        breakdown: safeLogs.map(log => ({
           price_charged: log.price_charged,
           barber_earning: log.barber_earning,
           owner_earning: log.owner_earning,
