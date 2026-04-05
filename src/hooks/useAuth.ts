@@ -3,7 +3,7 @@ import { useTenantStore } from '../stores/tenantStore'
 import { supabase } from '../config/supabase'
 import type { Profile, Tenant } from '../types'
 
-const QUERY_TIMEOUT_MS = 5000 // 5 seconds timeout for profile/tenant queries
+// No timeout for queries to avoid signOut on tab switch
 
 export function useAuth() {
   const { setTenant, setProfile, clearSession } = useTenantStore()
@@ -11,6 +11,8 @@ export function useAuth() {
   const [error, setError] = useState<string | null>(null)
   const { tenant, profile } = useTenantStore()
   const loadingRef = useRef(false) // Prevent multiple simultaneous loads
+  const currentUserIdRef = useRef<string | null>(null) // Track current user ID for retries
+  const transientErrorRef = useRef(false) // Track if we have a transient error
 
   // Validate UUID format (with or without hyphens)
   const isValidUserId = (userId: string): boolean => {
@@ -19,9 +21,9 @@ export function useAuth() {
     return uuidRegex.test(userId) || hexRegex.test(userId)
   }
 
-  const loadUserData = async (userId: string) => {
+  const loadUserData = async (userId: string, isRetry = false) => {
     // Prevent multiple simultaneous loads
-    if (loadingRef.current) {
+    if (loadingRef.current && !isRetry) {
       console.warn('loadUserData already in progress, skipping')
       return
     }
@@ -31,40 +33,37 @@ export function useAuth() {
       console.error('Invalid user ID format:', userId)
       setError(err.message)
       clearSession()
+      currentUserIdRef.current = null
+      transientErrorRef.current = false
       setTimeout(() => {
         supabase.auth.signOut().catch(err => console.error('Error durante signOut:', err))
       }, 0)
       throw err
     }
 
+    currentUserIdRef.current = userId
+
     loadingRef.current = true
     setIsLoading(true)
     setError(null)
 
     try {
-      // 1. Load profile with timeout
-      const profilePromise = supabase
+      // 1. Load profile without timeout (timeouts cause signOut on tab switch)
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
         .single()
 
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout: la consulta de perfil tardó demasiado')), QUERY_TIMEOUT_MS)
-      )
-
-      const { data: profileData, error: profileError } = await Promise.race([profilePromise, timeoutPromise])
-
       if (profileError) {
-        // If profile not found (404), still treat as error but don't sign out immediately
         const status = (profileError as any).status || 0
         const code = (profileError as any).code || ''
         if (status === 404 || code === 'PGRST116') { // No rows returned
           throw new Error('Perfil no encontrado. Contacta al administrador.')
         }
-        // For 500 errors or other server errors
-        console.error('Error del servidor al cargar perfil:', profileError)
-        throw new Error(`Error del servidor: ${profileError.message || 'consulta a profiles falló'}`)
+        // For network errors or server errors (5xx), treat as transient error
+        console.error('Error al cargar perfil (transient):', profileError)
+        throw new Error(`Error de conexión: ${profileError.message || 'no se pudo cargar el perfil'}`)
       }
 
       if (!profileData) {
@@ -73,18 +72,12 @@ export function useAuth() {
 
       setProfile(profileData as Profile)
 
-      // 2. Load tenant with timeout
-      const tenantPromise = supabase
+      // 2. Load tenant without timeout
+      const { data: tenantData, error: tenantError } = await supabase
         .from('tenants')
         .select('*')
         .eq('id', profileData.tenant_id)
         .single()
-
-      const tenantTimeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout: la consulta de tenant tardó demasiado')), QUERY_TIMEOUT_MS)
-      )
-
-      const { data: tenantData, error: tenantError } = await Promise.race([tenantPromise, tenantTimeoutPromise])
 
       if (tenantError) {
         const status = (tenantError as any).status || 0
@@ -92,8 +85,8 @@ export function useAuth() {
         if (status === 404 || code === 'PGRST116') {
           throw new Error('Tenant no encontrado para este perfil.')
         }
-        console.error('Error del servidor al cargar tenant:', tenantError)
-        throw new Error(`Error del servidor: ${tenantError.message || 'consulta a tenants falló'}`)
+        console.error('Error al cargar tenant (transient):', tenantError)
+        throw new Error(`Error de conexión: ${tenantError.message || 'no se pudo cargar el tenant'}`)
       }
 
       if (!tenantData) {
@@ -101,29 +94,40 @@ export function useAuth() {
       }
 
       setTenant(tenantData as Tenant)
+      transientErrorRef.current = false
 
     } catch (err) {
       console.error('Error loading user data:', err)
       const message = err instanceof Error ? err.message : 'Error desconocido al cargar datos'
       setError(message)
 
-      // Always clear local session data
-      clearSession()
+      // Determine error type
+      const isNotFound = message.includes('Perfil no encontrado') ||
+                         message.includes('Tenant no encontrado') ||
+                         message.includes('ID de usuario inválido')
+      const isTransient = message.includes('Error de conexión')
 
-      // Determine if we should also sign out from Supabase auth
-      const shouldSignOut =
-        message.includes('Error del servidor') ||
-        message.includes('Timeout') ||
-        message.includes('Perfil no encontrado') ||
-        message.includes('Tenant no encontrado') ||
-        message.includes('ID de usuario inválido')
-
-      if (shouldSignOut) {
+      if (isNotFound) {
+        // Clear local session and sign out from Supabase auth
+        clearSession()
+        currentUserIdRef.current = null
+        transientErrorRef.current = false
         console.log('Cerrando sesión de Supabase debido a error:', message)
-        // Schedule signOut to avoid interfering with current auth state change listener
         setTimeout(() => {
           supabase.auth.signOut().catch(err => console.error('Error durante signOut:', err))
         }, 0)
+      } else if (isTransient) {
+        // Transient error (network/server) - keep session data, don't sign out
+        // User data remains in store (if already loaded), just show error
+        // No clearSession() call
+        transientErrorRef.current = true
+        console.warn('Error transitorio, manteniendo sesión:', message)
+      } else {
+        // Unknown error type - be conservative: clear session but don't sign out
+        clearSession()
+        currentUserIdRef.current = null
+        transientErrorRef.current = false
+        console.error('Error desconocido, limpiando sesión local:', message)
       }
 
       throw err // Re-throw for caller to handle if needed
@@ -172,14 +176,35 @@ export function useAuth() {
         }
       } else if (event === 'SIGNED_OUT') {
         clearSession()
+        currentUserIdRef.current = null
+        transientErrorRef.current = false
       }
       // Ignore other events like USER_UPDATED to prevent loops
     })
 
     subscription = authSubscription
 
+    // Handle tab visibility changes to retry transient errors
+    const handleVisibilityChange = () => {
+      if (!mounted) return
+      if (document.visibilityState === 'visible' && transientErrorRef.current && currentUserIdRef.current) {
+        console.log('Tab visible again, retrying loadUserData after transient error')
+        // Retry after a short delay to avoid race conditions
+        setTimeout(() => {
+          if (mounted && transientErrorRef.current && currentUserIdRef.current) {
+            loadUserData(currentUserIdRef.current, true).catch(err =>
+              console.error('Retry failed:', err)
+            )
+          }
+        }, 1000)
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
     return () => {
       mounted = false
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
       if (subscription) {
         subscription.unsubscribe()
       }
@@ -206,6 +231,8 @@ export function useAuth() {
   const signOut = async () => {
     await supabase.auth.signOut()
     clearSession()
+    currentUserIdRef.current = null
+    transientErrorRef.current = false
   }
 
   return {
