@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
-import type { ServiceLog } from '../../types'
+import type { ServiceLog, DailySummary as BackendDailySummary } from '../../types'
 
-interface DailySummary {
+interface TodaySummary {
   totalServices: number
   totalRevenue: number
   barberEarnings: number
@@ -13,11 +13,15 @@ interface DailySummary {
 export function Summary() {
   const { tenant, profile } = useTenantStore()
   const [logs, setLogs] = useState<ServiceLog[]>([])
-  const [summary, setSummary] = useState<DailySummary | null>(null)
+  const [summary, setSummary] = useState<TodaySummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [closingDay, setClosingDay] = useState(false)
   const [closeResult, setCloseResult] = useState<any>(null)
+  const [dayClosed, setDayClosed] = useState(false)
+  const [existingSummary, setExistingSummary] = useState<BackendDailySummary | null>(null)
+
+  const activeLogs = logs.filter(log => log.status === 'completed')
 
   // Load today's logs
   useEffect(() => {
@@ -29,7 +33,22 @@ export function Summary() {
 
       try {
         const today = new Date().toISOString().split('T')[0]
-        const { data, error } = await supabase
+
+        // Check if day already closed
+        const { data: dailySummary } = await supabase
+          .from('daily_summaries')
+          .select('*')
+          .eq('tenant_id', tenant.id)
+          .eq('barber_id', profile.id)
+          .eq('summary_date', today)
+          .maybeSingle()
+
+        const dayClosed = !!dailySummary
+        setDayClosed(dayClosed)
+        setExistingSummary(dailySummary || null)
+
+        // Load all service logs for today (including closed)
+        const { data: logsData, error: logsError } = await supabase
           .from('service_logs')
           .select('*')
           .eq('tenant_id', tenant.id)
@@ -38,15 +57,24 @@ export function Summary() {
           .lte('started_at', `${today}T23:59:59`)
           .order('started_at', { ascending: false })
 
-        if (error) throw error
+        if (logsError) throw logsError
 
-        setLogs(data || [])
+        setLogs(logsData || [])
 
         // Calculate summary
-        const totalServices = data.length
-        const totalRevenue = data.reduce((sum, log) => sum + log.price_charged, 0)
-        const barberEarnings = data.reduce((sum, log) => sum + log.barber_earning, 0)
-        const ownerEarnings = data.reduce((sum, log) => sum + log.owner_earning, 0)
+        let totalServices, totalRevenue, barberEarnings, ownerEarnings
+        if (dayClosed && dailySummary) {
+          totalServices = dailySummary.total_services
+          totalRevenue = dailySummary.total_revenue
+          barberEarnings = dailySummary.barber_earnings
+          ownerEarnings = dailySummary.owner_earnings
+        } else {
+          const activeLogs = logsData?.filter(log => log.status === 'completed') || []
+          totalServices = activeLogs.length
+          totalRevenue = activeLogs.reduce((sum, log) => sum + log.price_charged, 0)
+          barberEarnings = activeLogs.reduce((sum, log) => sum + log.barber_earning, 0)
+          ownerEarnings = activeLogs.reduce((sum, log) => sum + log.owner_earning, 0)
+        }
 
         setSummary({
           totalServices,
@@ -90,8 +118,17 @@ export function Summary() {
 
       const result = await response.json()
       setCloseResult(result)
+      setDayClosed(true)
+      setExistingSummary(result.summary)
+      // Update summary state with closed day data
+      setSummary({
+        totalServices: result.summary.total_services,
+        totalRevenue: result.summary.total_revenue,
+        barberEarnings: result.summary.barber_earnings,
+        ownerEarnings: result.summary.owner_earnings,
+      })
 
-      // Reload logs to reflect closure
+      // Reload logs to reflect closure (including closed logs)
       const { data } = await supabase
         .from('service_logs')
         .select('*')
@@ -171,63 +208,101 @@ export function Summary() {
 
       {/* Close day section */}
       <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '32px', marginBottom: '32px' }}>
-        <div className="mobile-stack" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        {dayClosed ? (
           <div>
             <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '8px' }}>
-              Cierre del día
+              Día Cerrado
             </h2>
-            <p style={{ color: '#999', fontSize: '14px', fontFamily: 'Space Grotesk, sans-serif' }}>
-              Genera el resumen final de hoy y registra tus ganancias.
+            <p style={{ color: '#999', fontSize: '14px', fontFamily: 'Space Grotesk, sans-serif', marginBottom: '24px' }}>
+              El día ya fue cerrado. Aquí está el resumen final.
             </p>
+            {(closeResult || existingSummary) && (
+              <div style={{
+                background: '#2a2a2a',
+                border: '1px solid var(--secondary, #C8A97E)',
+                borderRadius: '8px',
+                padding: '20px',
+              }}>
+                <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--secondary, #C8A97E)', marginBottom: '12px' }}>
+                  Resumen del día cerrado
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+                  <div>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#999' }}>Servicios totales</div>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: '#fff' }}>
+                      {closeResult ? closeResult.summary.total_services : existingSummary?.total_services}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#999' }}>Tu ganancia total</div>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--secondary, #C8A97E)' }}>
+                      ${closeResult ? closeResult.summary.barber_earnings.toLocaleString() : existingSummary?.barber_earnings.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          <button
-            onClick={handleCloseDay}
-            disabled={closingDay || logs.length === 0}
-            style={{
-              background: logs.length === 0 ? '#383838' : 'var(--secondary, #C8A97E)',
-              color: logs.length === 0 ? '#999' : 'var(--primary, #1a1a1a)',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '12px 24px',
-              fontFamily: 'Space Grotesk, sans-serif',
-              fontWeight: 600,
-              fontSize: '14px',
-              cursor: logs.length === 0 ? 'not-allowed' : 'pointer',
-              opacity: closingDay ? 0.6 : 1,
-              width: '100%',
-              height: '52px',
-            }}
-          >
-            {closingDay ? 'Procesando...' : 'Cerrar el día'}
-          </button>
-        </div>
-
-        {closeResult && (
-          <div style={{
-            background: '#2a2a2a',
-            border: '1px solid var(--secondary, #C8A97E)',
-            borderRadius: '8px',
-            padding: '20px',
-            marginTop: '20px',
-          }}>
-            <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--secondary, #C8A97E)', marginBottom: '12px' }}>
-              Día cerrado exitosamente
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+        ) : (
+          <>
+            <div className="mobile-stack" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#999' }}>Servicios totales</div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: '#fff' }}>
-                  {closeResult.summary.total_services}
-                </div>
+                <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '8px' }}>
+                  Cierre del día
+                </h2>
+                <p style={{ color: '#999', fontSize: '14px', fontFamily: 'Space Grotesk, sans-serif' }}>
+                  Genera el resumen final de hoy y registra tus ganancias.
+                </p>
               </div>
-              <div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#999' }}>Ganancia total</div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--secondary, #C8A97E)' }}>
-                  ${closeResult.summary.barber_earnings.toLocaleString()}
-                </div>
-              </div>
+              <button
+                onClick={handleCloseDay}
+                disabled={closingDay || activeLogs.length === 0}
+                style={{
+                  background: activeLogs.length === 0 ? '#383838' : 'var(--secondary, #C8A97E)',
+                  color: activeLogs.length === 0 ? '#999' : 'var(--primary, #1a1a1a)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '12px 24px',
+                  fontFamily: 'Space Grotesk, sans-serif',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  cursor: activeLogs.length === 0 ? 'not-allowed' : 'pointer',
+                  opacity: closingDay ? 0.6 : 1,
+                  width: '100%',
+                  height: '52px',
+                }}
+              >
+                {closingDay ? 'Procesando...' : 'Cerrar el día'}
+              </button>
             </div>
-          </div>
+            {closeResult && (
+              <div style={{
+                background: '#2a2a2a',
+                border: '1px solid var(--secondary, #C8A97E)',
+                borderRadius: '8px',
+                padding: '20px',
+                marginTop: '20px',
+              }}>
+                <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--secondary, #C8A97E)', marginBottom: '12px' }}>
+                  Día cerrado exitosamente
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+                  <div>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#999' }}>Servicios totales</div>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: '#fff' }}>
+                      {closeResult.summary.total_services}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#999' }}>Tu ganancia total</div>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--secondary, #C8A97E)' }}>
+                      ${closeResult.summary.barber_earnings.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 

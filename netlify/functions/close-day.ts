@@ -139,7 +139,31 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
-    // 4. Return success with full summary
+    // 4. Mark service logs as closed
+    const { error: updateError } = await supabase
+      .from('service_logs')
+      .update({ status: 'closed' })
+      .eq('barber_id', body.barber_id)
+      .eq('tenant_id', tenantId)
+      .eq('status', 'completed')
+      .gte('started_at', startOfDay)
+      .lte('started_at', endOfDay)
+
+    if (updateError) {
+      console.error('Failed to mark logs as closed:', updateError)
+      // Rollback: delete the newly created summary
+      await supabase
+        .from('daily_summaries')
+        .delete()
+        .eq('id', upsertedSummary.id)
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Failed to close service logs' }),
+      }
+    }
+
+    // 5. Return success with full summary
     return {
       statusCode: 200,
       headers,
