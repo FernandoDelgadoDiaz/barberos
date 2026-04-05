@@ -128,17 +128,32 @@ export function LivePanel() {
   // Subscribe to realtime updates
   useServiceLogsRealtime(tenantId || '', handleNewLog)
 
-  // Progress bar calculation (percentage of day based on current time)
-  const getDayProgress = () => {
-    const now = new Date()
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)
-    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59)
-    const totalDayMs = endOfDay.getTime() - startOfDay.getTime()
-    const elapsedMs = now.getTime() - startOfDay.getTime()
-    return Math.min(100, Math.round((elapsedMs / totalDayMs) * 100))
+  // Parse time string "HH:MM" to minutes since midnight
+  const parseTimeToMinutes = (timeStr: string) => {
+    const [hours, minutes] = timeStr.split(':').map(Number)
+    return hours * 60 + minutes
   }
 
-  const dayProgress = getDayProgress()
+  // Progress bar calculation based on business hours
+  const getBusinessHoursProgress = () => {
+    const opening = parseTimeToMinutes(tenant?.opening_time || '09:00')
+    const closing = parseTimeToMinutes(tenant?.closing_time || '21:00')
+    const now = new Date()
+    const currentHour = now.getHours()
+    const currentMinute = now.getMinutes()
+    const nowMinutes = currentHour * 60 + currentMinute
+
+    if (nowMinutes < opening) {
+      return { progress: 0, statusText: 'El local aún no abrió' }
+    }
+    if (nowMinutes > closing) {
+      return { progress: 100, statusText: 'El local cerró' }
+    }
+    const progress = ((nowMinutes - opening) / (closing - opening)) * 100
+    return { progress, statusText: `${Math.round(progress)}% del día laboral transcurrido` }
+  }
+
+  const { progress: dayProgress, statusText } = getBusinessHoursProgress()
 
   if (loading) {
     return (
@@ -199,7 +214,7 @@ export function LivePanel() {
           <div style={{ width: `${dayProgress}%`, height: '100%', background: '#C8A97E', borderRadius: '2px', transition: 'width 0.5s ease' }} />
         </div>
         <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: '#888', marginTop: '8px', textAlign: 'right' }}>
-          {dayProgress}% del día transcurrido
+          {statusText}
         </div>
       </div>
 

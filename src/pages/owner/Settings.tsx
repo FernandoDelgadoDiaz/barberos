@@ -15,6 +15,8 @@ export function Settings() {
     name: '',
     primary_color: '',
     secondary_color: '',
+    opening_time: '09:00',
+    closing_time: '21:00',
   })
 
   // Commission rules
@@ -38,6 +40,8 @@ export function Settings() {
       name: tenant.name || '',
       primary_color: tenant.primary_color || '#C8A97E',
       secondary_color: tenant.secondary_color || '#1a1a1a',
+      opening_time: tenant.opening_time || '09:00',
+      closing_time: tenant.closing_time || '21:00',
     })
 
     setCommissionRules(tenant.commission_rules || {
@@ -137,6 +141,8 @@ export function Settings() {
         name: tenantForm.name.trim(),
         primary_color: tenantForm.primary_color,
         secondary_color: tenantForm.secondary_color,
+        opening_time: tenantForm.opening_time,
+        closing_time: tenantForm.closing_time,
         commission_rules: commissionRules,
       }
 
@@ -307,6 +313,56 @@ export function Settings() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               Sube tu logo (próximamente)
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+              Horario del local
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+              <div>
+                <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+                  Horario de apertura
+                </label>
+                <input
+                  type="time"
+                  value={tenantForm.opening_time}
+                  onChange={(e) => setTenantForm({ ...tenantForm, opening_time: e.target.value })}
+                  style={{
+                    width: '100%',
+                    background: '#2a2a2a',
+                    border: '1px solid #383838',
+                    borderRadius: '6px',
+                    padding: '12px',
+                    fontFamily: 'Space Grotesk, sans-serif',
+                    fontWeight: 400,
+                    fontSize: '14px',
+                    color: '#fff',
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+                  Horario de cierre
+                </label>
+                <input
+                  type="time"
+                  value={tenantForm.closing_time}
+                  onChange={(e) => setTenantForm({ ...tenantForm, closing_time: e.target.value })}
+                  style={{
+                    width: '100%',
+                    background: '#2a2a2a',
+                    border: '1px solid #383838',
+                    borderRadius: '6px',
+                    padding: '12px',
+                    fontFamily: 'Space Grotesk, sans-serif',
+                    fontWeight: 400,
+                    fontSize: '14px',
+                    color: '#fff',
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>

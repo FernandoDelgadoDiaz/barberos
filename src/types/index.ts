@@ -21,6 +21,8 @@ export type Tenant = {
   secondary_color: string
   commission_rules: CommissionRules
   is_active: boolean
+  opening_time?: string
+  closing_time?: string
   created_at: string
 }
 
