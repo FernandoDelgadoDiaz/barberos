@@ -78,9 +78,12 @@ export type Shift = {
   barber_id: string
   started_at: string
   closed_at: string | null
-  status: 'open' | 'closed'
+  paused_at?: string | null
+  status: 'open' | 'paused' | 'closed'
   total_services: number
   total_revenue: number
   barber_earnings: number
   owner_earnings: number
+  created_at?: string
+  updated_at?: string | null
 }

@@ -16,11 +16,14 @@ interface Shift {
   barber_id: string
   started_at: string
   closed_at: string | null
-  status: 'open' | 'closed'
+  paused_at: string | null
+  status: 'open' | 'paused' | 'closed'
   total_services: number
   total_revenue: number
   barber_earnings: number
   owner_earnings: number
+  created_at?: string
+  updated_at?: string | null
 }
 
 interface NetlifyFunctionEvent {
@@ -94,7 +97,42 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
-    // 2. Check for existing open shift for this barber + tenant
+    // 2. Check for any shift today for this barber + tenant (any status)
+    const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+    const todayStart = `${today}T00:00:00Z`
+    const todayEnd = `${today}T23:59:59Z`
+
+    const { data: todayShift, error: todayShiftError } = await supabase
+      .from('shifts')
+      .select('id, status, started_at')
+      .eq('barber_id', body.barber_id)
+      .eq('tenant_id', tenantId)
+      .gte('started_at', todayStart)
+      .lte('started_at', todayEnd)
+      .maybeSingle()
+
+    if (todayShiftError) {
+      console.error('Today shift query error:', todayShiftError)
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Failed to query today shifts' }),
+      }
+    }
+
+    // If any shift exists today (open, paused, or closed), reject new shift creation
+    if (todayShift) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'Ya existe un turno hoy. Solo se permite un turno por día por barbero.',
+          existing_shift: todayShift
+        }),
+      }
+    }
+
+    // 3. Check for existing open shift for this barber + tenant (legacy duplicate protection)
     const { data: existingShift, error: shiftError } = await supabase
       .from('shifts')
       .select('*')
@@ -124,7 +162,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
-    // 3. Create new shift
+    // 4. Create new shift
     const newShift: Omit<Shift, 'id'> = {
       tenant_id: tenantId,
       barber_id: body.barber_id,

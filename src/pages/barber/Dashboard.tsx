@@ -22,7 +22,7 @@ export function Dashboard() {
   const [todayLogs, setTodayLogs] = useState<ServiceLog[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [shiftStatus, setShiftStatus] = useState<'loading' | 'no_shift' | 'open' | 'closed'>('loading')
+  const [shiftStatus, setShiftStatus] = useState<'loading' | 'no_shift' | 'open' | 'paused' | 'closed'>('loading')
   const [currentShift, setCurrentShift] = useState<Shift | null>(null)
   const [selectedService, setSelectedService] = useState<ServiceWithEstimation | null>(null)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
@@ -50,29 +50,29 @@ export function Dashboard() {
         const today = new Date().toISOString().split('T')[0]
 
 
-        // Check for open shift
-        const { data: openShift, error: shiftError } = await supabase
+        // Check for active shift (open or paused)
+        const { data: activeShift, error: shiftError } = await supabase
           .from('shifts')
           .select('*')
           .eq('tenant_id', tenant.id)
           .eq('barber_id', profile.id)
-          .eq('status', 'open')
+          .in('status', ['open', 'paused'])
           .maybeSingle()
 
         if (shiftError) {
-          console.error('Error fetching open shift:', shiftError)
+          console.error('Error fetching active shift:', shiftError)
           // Continue without shift
         }
 
-        if (openShift) {
-          console.log('[Dashboard] open shift found:', openShift.id)
+        if (activeShift) {
+          console.log('[Dashboard] active shift found:', activeShift.id, 'status:', activeShift.status)
           if (isMounted) {
-            setShiftStatus('open')
-            setCurrentShift(openShift)
-            setActiveShiftId(openShift.id)
+            setShiftStatus(activeShift.status) // 'open' or 'paused'
+            setCurrentShift(activeShift)
+            setActiveShiftId(activeShift.id)
           }
         } else {
-          console.log('[Dashboard] no open shift, shiftError:', shiftError)
+          console.log('[Dashboard] no active shift, shiftError:', shiftError)
           if (isMounted) {
             setShiftStatus(prev => {
               console.log('[Dashboard] previous shiftStatus:', prev)
@@ -104,8 +104,8 @@ export function Dashboard() {
           .gte('started_at', `${today}T00:00:00`)
           .lte('started_at', `${today}T23:59:59`)
 
-        if (openShift) {
-          query = query.eq('shift_id', openShift.id)
+        if (activeShift) {
+          query = query.eq('shift_id', activeShift.id)
         }
 
         const { data: logsDataQuery, error: logsError } = await query.order('started_at', { ascending: false })
@@ -208,6 +208,42 @@ export function Dashboard() {
     } catch (err: unknown) {
       console.error('Error closing shift:', err)
       const errorMessage = err instanceof Error ? err.message : 'Error al cerrar turno'
+      setError(errorMessage)
+    } finally {
+      setShiftLoading(false)
+    }
+  }
+
+  const handlePauseResumeShift = async () => {
+    console.log('[Dashboard] handlePauseResumeShift called', { currentShiftId: currentShift?.id, tenantId: tenant?.id, profileId: profile?.id })
+    if (!tenant || !profile || !currentShift) return
+    setShiftLoading(true)
+    setError(null)
+    try {
+      const response = await fetch('/api/pause-shift', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shift_id: currentShift.id,
+          tenant_id: tenant.id,
+          barber_id: profile.id,
+        }),
+      })
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error al pausar/reanudar turno')
+      }
+      const result = await response.json()
+      console.log('[Dashboard] pause-shift API success:', result)
+      // Update local state
+      setShiftStatus(result.shift.status) // 'open' or 'paused'
+      setCurrentShift(result.shift)
+      setRefreshTrigger(prev => prev + 1) // Trigger reload of logs/services
+      setSuccessMessage(result.message || 'Turno pausado/reanudado correctamente')
+      setTimeout(() => setSuccessMessage(null), 5000)
+    } catch (err: unknown) {
+      console.error('Error pausing/resuming shift:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Error al pausar/reanudar turno'
       setError(errorMessage)
     } finally {
       setShiftLoading(false)
@@ -403,24 +439,94 @@ export function Dashboard() {
                 {currentShift.total_services > 0 && ` • ${currentShift.total_services} servicios • $${currentShift.barber_earnings.toLocaleString()} ganados`}
               </div>
             </div>
-            <button
-              onClick={handleCloseShift}
-              disabled={shiftLoading}
-              style={{
-                background: '#e94560',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '6px',
-                padding: '10px 20px',
-                fontFamily: 'Space Grotesk, sans-serif',
-                fontWeight: 600,
-                fontSize: '14px',
-                cursor: 'pointer',
-                opacity: shiftLoading ? 0.6 : 1,
-              }}
-            >
-              {shiftLoading ? 'Procesando...' : 'Cerrar turno'}
-            </button>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={handlePauseResumeShift}
+                disabled={shiftLoading}
+                style={{
+                  background: '#555',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '10px 20px',
+                  fontFamily: 'Space Grotesk, sans-serif',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  opacity: shiftLoading ? 0.6 : 1,
+                }}
+              >
+                {shiftLoading ? 'Procesando...' : 'Pausar'}
+              </button>
+              <button
+                onClick={handleCloseShift}
+                disabled={shiftLoading}
+                style={{
+                  background: '#e94560',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '10px 20px',
+                  fontFamily: 'Space Grotesk, sans-serif',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  opacity: shiftLoading ? 0.6 : 1,
+                }}
+              >
+                {shiftLoading ? 'Procesando...' : 'Cerrar turno'}
+              </button>
+            </div>
+          </div>
+        )}
+        {shiftStatus === 'paused' && currentShift && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#fff' }}>Turno pausado</div>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#999', marginTop: '4px' }}>
+                Iniciado a las {new Date(currentShift.started_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                {currentShift.paused_at && ` • Pausado a las ${new Date(currentShift.paused_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`}
+                {currentShift.total_services > 0 && ` • ${currentShift.total_services} servicios • $${currentShift.barber_earnings.toLocaleString()} ganados`}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={handlePauseResumeShift}
+                disabled={shiftLoading}
+                style={{
+                  background: 'var(--secondary, #C8A97E)',
+                  color: 'var(--primary, #1a1a1a)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '10px 20px',
+                  fontFamily: 'Space Grotesk, sans-serif',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  opacity: shiftLoading ? 0.6 : 1,
+                }}
+              >
+                {shiftLoading ? 'Procesando...' : 'Reanudar'}
+              </button>
+              <button
+                onClick={handleCloseShift}
+                disabled={shiftLoading}
+                style={{
+                  background: '#e94560',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '10px 20px',
+                  fontFamily: 'Space Grotesk, sans-serif',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  opacity: shiftLoading ? 0.6 : 1,
+                }}
+              >
+                {shiftLoading ? 'Procesando...' : 'Cerrar turno'}
+              </button>
+            </div>
           </div>
         )}
         {shiftStatus === 'closed' && (
@@ -498,6 +604,7 @@ export function Dashboard() {
       </div>
 
       {/* Services list */}
+      {shiftStatus === 'open' && (
       <div className="services-catalog" style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
         <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#555', margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '1px' }}>Catálogo de servicios</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -548,6 +655,7 @@ export function Dashboard() {
           )}
         </div>
       </div>
+      )}
 
       {/* Register service button (hidden when no services or day closed) */}
       {services.length > 0 && shiftStatus === 'open' && (
