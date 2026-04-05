@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
-import type { ServiceCatalog, ServiceLog, CommissionRules } from '../../types'
+import type { ServiceCatalog, ServiceLog, CommissionRules, Shift } from '../../types'
 
 interface ServiceWithEstimation extends ServiceCatalog {
   estimatedEarning: number
@@ -17,19 +17,22 @@ function applyCommission(rules: CommissionRules['rules'], serviceNumber: number,
 }
 
 export function Dashboard() {
-  const { tenant, profile } = useTenantStore()
+  const { tenant, profile, activeShiftId, setActiveShiftId } = useTenantStore()
   const [services, setServices] = useState<ServiceWithEstimation[]>([])
   const [todayLogs, setTodayLogs] = useState<ServiceLog[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [dayClosed, setDayClosed] = useState(false)
+  const [shiftStatus, setShiftStatus] = useState<'loading' | 'no_shift' | 'open' | 'closed'>('loading')
+  const [currentShift, setCurrentShift] = useState<Shift | null>(null)
   const [selectedService, setSelectedService] = useState<ServiceWithEstimation | null>(null)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [showSelectionModal, setShowSelectionModal] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [shiftLoading, setShiftLoading] = useState(false)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
-  // Load services and today's logs
+
   useEffect(() => {
     let isMounted = true
 
@@ -45,17 +48,34 @@ export function Dashboard() {
       try {
         const today = new Date().toISOString().split('T')[0]
 
-        // Check if day already closed
-        const { data: dailySummary } = await supabase
-          .from('daily_summaries')
+
+        // Check for open shift
+        const { data: openShift, error: shiftError } = await supabase
+          .from('shifts')
           .select('*')
           .eq('tenant_id', tenant.id)
           .eq('barber_id', profile.id)
-          .eq('summary_date', today)
+          .eq('status', 'open')
           .maybeSingle()
 
-        const dayClosed = !!dailySummary
-        if (isMounted) setDayClosed(dayClosed)
+        if (shiftError) {
+          console.error('Error fetching open shift:', shiftError)
+          // Continue without shift
+        }
+
+        if (openShift) {
+          if (isMounted) {
+            setShiftStatus('open')
+            setCurrentShift(openShift)
+            setActiveShiftId(openShift.id)
+          }
+        } else {
+          if (isMounted) {
+            setShiftStatus('no_shift')
+            setCurrentShift(null)
+            setActiveShiftId(null)
+          }
+        }
 
         // Load services catalog
         const { data: servicesData, error: servicesError } = await supabase
@@ -67,25 +87,28 @@ export function Dashboard() {
 
         if (servicesError) throw servicesError
 
-        // Load today's service logs only if day not closed
+        // Load service logs based on shift or day
         let logsData: any[] = []
-        if (!dayClosed) {
-          const { data: logsDataQuery, error: logsError } = await supabase
-            .from('service_logs')
-            .select('*')
-            .eq('tenant_id', tenant.id)
-            .eq('barber_id', profile.id)
-            .eq('status', 'completed')
-            .gte('started_at', `${today}T00:00:00`)
-            .lte('started_at', `${today}T23:59:59`)
-            .order('started_at', { ascending: false })
+        let query = supabase
+          .from('service_logs')
+          .select('*')
+          .eq('tenant_id', tenant.id)
+          .eq('barber_id', profile.id)
+          .eq('status', 'completed')
+          .gte('started_at', `${today}T00:00:00`)
+          .lte('started_at', `${today}T23:59:59`)
 
-          if (logsError) throw logsError
-          logsData = logsDataQuery || []
+        if (openShift) {
+          query = query.eq('shift_id', openShift.id)
         }
 
+        const { data: logsDataQuery, error: logsError } = await query.order('started_at', { ascending: false })
+
+        if (logsError) throw logsError
+        logsData = logsDataQuery || []
+
         // Calculate estimated earnings for each service based on next service number
-        const nextServiceNumber = dayClosed ? 1 : (logsData?.length || 0) + 1
+        const nextServiceNumber = (logsData?.length || 0) + 1
         const commissionRules = tenant.commission_rules?.rules || []
         const servicesWithEstimation: ServiceWithEstimation[] = (servicesData || []).map(service => ({
           ...service,
@@ -107,14 +130,87 @@ export function Dashboard() {
 
     loadData()
     return () => { isMounted = false }
-  }, [tenant, profile])
+  }, [tenant, profile, setActiveShiftId, refreshTrigger])
 
   const totalEarningsToday = todayLogs.reduce((sum, log) => sum + log.barber_earning, 0)
 
+  const handleOpenShift = async () => {
+    if (!tenant || !profile) return
+    setShiftLoading(true)
+    setError(null)
+    try {
+      const response = await fetch('/api/open-shift', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          barber_id: profile.id,
+          tenant_id: tenant.id,
+        }),
+      })
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error al abrir turno')
+      }
+      const result = await response.json()
+      // Update local state
+      setShiftStatus('open')
+      setCurrentShift(result.shift)
+      setActiveShiftId(result.shift.id)
+      setRefreshTrigger(prev => prev + 1) // Trigger reload of logs/services
+      setSuccessMessage('Turno iniciado correctamente')
+      setTimeout(() => setSuccessMessage(null), 5000)
+    } catch (err: unknown) {
+      console.error('Error opening shift:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Error al abrir turno'
+      setError(errorMessage)
+    } finally {
+      setShiftLoading(false)
+    }
+  }
+
+  const handleCloseShift = async () => {
+    if (!tenant || !profile || !currentShift) return
+    setShiftLoading(true)
+    setError(null)
+    try {
+      const response = await fetch('/api/close-shift', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shift_id: currentShift.id,
+          tenant_id: tenant.id,
+          barber_id: profile.id,
+        }),
+      })
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error al cerrar turno')
+      }
+      const result = await response.json()
+      // Update local state
+      setShiftStatus('closed')
+      setCurrentShift(null)
+      setActiveShiftId(null)
+      setRefreshTrigger(prev => prev + 1) // Trigger reload of logs/services
+      setSuccessMessage('Turno cerrado correctamente')
+      setTimeout(() => setSuccessMessage(null), 5000)
+    } catch (err: unknown) {
+      console.error('Error closing shift:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Error al cerrar turno'
+      setError(errorMessage)
+    } finally {
+      setShiftLoading(false)
+    }
+  }
+
+  const handleNewShift = async () => {
+    // Same as open shift but reset any closed shift state
+    await handleOpenShift()
+  }
 
   const openConfirmModal = (service: ServiceWithEstimation) => {
-    if (dayClosed) {
-      setError('El día ya ha sido cerrado. No se pueden registrar más servicios.')
+    if (shiftStatus !== 'open') {
+      setError('No hay un turno abierto. Inicia un turno para registrar servicios.')
       return
     }
     setSelectedService(service)
@@ -124,8 +220,8 @@ export function Dashboard() {
 
   const confirmService = async () => {
     if (!selectedService || !tenant || !profile) return
-    if (dayClosed) {
-      setError('El día ya ha sido cerrado. No se pueden registrar más servicios.')
+    if (shiftStatus !== 'open') {
+      setError('No hay un turno abierto. Inicia un turno para registrar servicios.')
       return
     }
 
@@ -141,6 +237,7 @@ export function Dashboard() {
           service_id: selectedService.id,
           price_charged: selectedService.base_price,
           started_at: new Date().toISOString(),
+          shift_id: activeShiftId,
         }),
       })
 
@@ -166,7 +263,7 @@ export function Dashboard() {
       setTodayLogs(logsData || [])
 
       // Update services with new estimation (next service number increased)
-      const nextServiceNumber = dayClosed ? 1 : (logsData?.length || 0) + 1
+      const nextServiceNumber = (logsData?.length || 0) + 1
       const commissionRules = tenant.commission_rules?.rules || []
       const updatedServices = services.map(service => ({
         ...service,
@@ -233,6 +330,114 @@ export function Dashboard() {
           <circle cx="60" cy="10" r="10" fill="var(--secondary, #C8A97E)" />
           <circle cx="60" cy="110" r="10" fill="var(--secondary, #C8A97E)" />
         </svg>
+      </div>
+
+      {/* Shift control card */}
+      <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
+        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#555', margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '1px' }}>Control de turno</h2>
+        {shiftStatus === 'loading' && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#fff' }}>Cargando estado de turno...</div>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#999', marginTop: '4px' }}>Verificando si hay un turno activo.</div>
+            </div>
+            <button disabled style={{
+                background: '#555',
+                color: '#999',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '10px 20px',
+                fontFamily: 'Space Grotesk, sans-serif',
+                fontWeight: 600,
+                fontSize: '14px',
+                cursor: 'not-allowed',
+                opacity: 0.6,
+              }}>
+              Cargando...
+            </button>
+          </div>
+        )}
+        {shiftStatus === 'no_shift' && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#fff' }}>No hay un turno activo</div>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#999', marginTop: '4px' }}>Inicia un turno para comenzar a registrar servicios.</div>
+            </div>
+            <button
+              onClick={handleOpenShift}
+              disabled={shiftLoading}
+              style={{
+                background: 'var(--secondary, #C8A97E)',
+                color: 'var(--primary, #1a1a1a)',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '10px 20px',
+                fontFamily: 'Space Grotesk, sans-serif',
+                fontWeight: 600,
+                fontSize: '14px',
+                cursor: 'pointer',
+                opacity: shiftLoading ? 0.6 : 1,
+              }}
+            >
+              {shiftLoading ? 'Procesando...' : 'Iniciar turno'}
+            </button>
+          </div>
+        )}
+        {shiftStatus === 'open' && currentShift && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#fff' }}>Turno abierto</div>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#999', marginTop: '4px' }}>
+                Iniciado a las {new Date(currentShift.started_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                {currentShift.total_services > 0 && ` • ${currentShift.total_services} servicios • $${currentShift.barber_earnings.toLocaleString()} ganados`}
+              </div>
+            </div>
+            <button
+              onClick={handleCloseShift}
+              disabled={shiftLoading}
+              style={{
+                background: '#e94560',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '10px 20px',
+                fontFamily: 'Space Grotesk, sans-serif',
+                fontWeight: 600,
+                fontSize: '14px',
+                cursor: 'pointer',
+                opacity: shiftLoading ? 0.6 : 1,
+              }}
+            >
+              {shiftLoading ? 'Procesando...' : 'Cerrar turno'}
+            </button>
+          </div>
+        )}
+        {shiftStatus === 'closed' && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#fff' }}>Turno cerrado</div>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#999', marginTop: '4px' }}>El turno anterior ha sido cerrado. Puedes iniciar uno nuevo.</div>
+            </div>
+            <button
+              onClick={handleNewShift}
+              disabled={shiftLoading}
+              style={{
+                background: 'var(--secondary, #C8A97E)',
+                color: 'var(--primary, #1a1a1a)',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '10px 20px',
+                fontFamily: 'Space Grotesk, sans-serif',
+                fontWeight: 600,
+                fontSize: '14px',
+                cursor: 'pointer',
+                opacity: shiftLoading ? 0.6 : 1,
+              }}
+            >
+              {shiftLoading ? 'Procesando...' : 'Iniciar nuevo turno'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Error message */}
@@ -302,13 +507,13 @@ export function Dashboard() {
                   padding: '12px',
                   background: '#2a2a2a',
                   borderBottom: '1px solid #383838',
-                  cursor: dayClosed ? 'not-allowed' : 'pointer',
+                  cursor: shiftStatus !== 'open' ? 'not-allowed' : 'pointer',
                   transition: 'border-color 0.2s',
                   minHeight: '60px',
-                  opacity: dayClosed ? 0.5 : 1,
+                  opacity: shiftStatus !== 'open' ? 0.5 : 1,
                 }}
-                onMouseEnter={!dayClosed ? (e) => e.currentTarget.style.borderColor = 'var(--secondary, #C8A97E)' : undefined}
-                onMouseLeave={!dayClosed ? (e) => e.currentTarget.style.borderColor = '#383838' : undefined}
+                onMouseEnter={shiftStatus === 'open' ? (e) => e.currentTarget.style.borderColor = 'var(--secondary, #C8A97E)' : undefined}
+                onMouseLeave={shiftStatus === 'open' ? (e) => e.currentTarget.style.borderColor = '#383838' : undefined}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: 'var(--primary, #1a1a1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -334,7 +539,7 @@ export function Dashboard() {
       </div>
 
       {/* Register service button (hidden when no services or day closed) */}
-      {services.length > 0 && !dayClosed && (
+      {services.length > 0 && shiftStatus === 'open' && (
         <button
           onClick={() => setShowSelectionModal(true)}
           style={{
@@ -499,12 +704,12 @@ export function Dashboard() {
                     background: '#2a2a2a',
                     border: '1px solid #383838',
                     borderRadius: '8px',
-                    cursor: dayClosed ? 'not-allowed' : 'pointer',
+                    cursor: shiftStatus !== 'open' ? 'not-allowed' : 'pointer',
                     transition: 'border-color 0.2s',
-                    opacity: dayClosed ? 0.5 : 1,
+                    opacity: shiftStatus !== 'open' ? 0.5 : 1,
                   }}
-                  onMouseEnter={!dayClosed ? (e) => e.currentTarget.style.borderColor = 'var(--secondary, #C8A97E)' : undefined}
-                  onMouseLeave={!dayClosed ? (e) => e.currentTarget.style.borderColor = '#383838' : undefined}
+                  onMouseEnter={shiftStatus === 'open' ? (e) => e.currentTarget.style.borderColor = 'var(--secondary, #C8A97E)' : undefined}
+                  onMouseLeave={shiftStatus === 'open' ? (e) => e.currentTarget.style.borderColor = '#383838' : undefined}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: 'var(--primary, #1a1a1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

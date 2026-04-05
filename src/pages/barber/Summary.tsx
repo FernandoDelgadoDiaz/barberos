@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
-import type { ServiceLog, DailySummary as BackendDailySummary } from '../../types'
+import type { ServiceLog, DailySummary as BackendDailySummary, Shift } from '../../types'
 
 interface TodaySummary {
   totalServices: number
@@ -20,6 +20,7 @@ export function Summary() {
   const [closeResult, setCloseResult] = useState<any>(null)
   const [dayClosed, setDayClosed] = useState(false)
   const [existingSummary, setExistingSummary] = useState<BackendDailySummary | null>(null)
+  const [shifts, setShifts] = useState<Shift[]>([])
 
   const activeLogs = logs.filter(log => log.status === 'completed')
 
@@ -65,6 +66,20 @@ export function Summary() {
         if (logsError) throw logsError
 
         if (isMounted) setLogs(logsData || [])
+
+        // Load closed shifts for today
+        const { data: shiftsData, error: shiftsError } = await supabase
+          .from('shifts')
+          .select('*')
+          .eq('tenant_id', tenant.id)
+          .eq('barber_id', profile.id)
+          .eq('status', 'closed')
+          .gte('started_at', `${today}T00:00:00`)
+          .lte('started_at', `${today}T23:59:59`)
+          .order('started_at', { ascending: true })
+
+        if (shiftsError) throw shiftsError
+        if (isMounted) setShifts(shiftsData || [])
 
         // Calculate summary
         let totalServices, totalRevenue, barberEarnings, ownerEarnings
@@ -355,6 +370,81 @@ export function Summary() {
               </div>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* Shifts history */}
+      <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '32px', marginTop: '32px' }}>
+        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '24px' }}>
+          Historial de turnos hoy
+        </h2>
+
+        {shifts.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#999', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px' }}>
+            No hay turnos cerrados hoy.
+          </div>
+        ) : (
+          <>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {shifts.map((shift) => (
+                <div
+                  key={shift.id}
+                  style={{
+                    background: '#2a2a2a',
+                    borderBottom: '1px solid #383838',
+                    padding: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#fff', marginBottom: '4px' }}>
+                      Turno {formatTime(shift.started_at)} - {shift.closed_at ? formatTime(shift.closed_at) : 'No cerrado'}
+                    </div>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#999' }}>
+                      {shift.total_services} servicios • ${shift.total_revenue.toLocaleString()}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--secondary, #C8A97E)' }}>
+                      +${shift.barber_earnings.toLocaleString()}
+                    </div>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#999', marginTop: '2px' }}>
+                      Ganancia del turno
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{
+              marginTop: '24px',
+              padding: '20px',
+              background: '#2a2a2a',
+              border: '1px solid var(--secondary, #C8A97E)',
+              borderRadius: '8px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <div>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#fff' }}>
+                  Total acumulado del día
+                </div>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#999' }}>
+                  Suma de ganancias de todos los turnos cerrados hoy
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '24px', color: 'var(--secondary, #C8A97E)' }}>
+                  ${shifts.reduce((sum, shift) => sum + shift.barber_earnings, 0).toLocaleString()}
+                </div>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#999', marginTop: '2px' }}>
+                  {shifts.reduce((sum, shift) => sum + shift.total_services, 0)} servicios totales
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>

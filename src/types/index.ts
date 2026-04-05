@@ -57,6 +57,7 @@ export type ServiceLog = {
   started_at: string
   ended_at: string | null
   status: string
+  shift_id?: string | null
   created_at: string
 }
 
@@ -65,6 +66,19 @@ export type DailySummary = {
   tenant_id: string
   barber_id: string
   summary_date: string
+  total_services: number
+  total_revenue: number
+  barber_earnings: number
+  owner_earnings: number
+}
+
+export type Shift = {
+  id: string
+  tenant_id: string
+  barber_id: string
+  started_at: string
+  closed_at: string | null
+  status: 'open' | 'closed'
   total_services: number
   total_revenue: number
   barber_earnings: number
