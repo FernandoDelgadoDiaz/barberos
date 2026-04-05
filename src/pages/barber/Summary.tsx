@@ -41,7 +41,7 @@ export function Summary() {
         const today = new Date().toISOString().split('T')[0]
 
         // Check if day already closed
-        const { data: dailySummary } = await supabase
+        const { data: dailySummary, error: summaryError } = await supabase
           .from('daily_summaries')
           .select('*')
           .eq('tenant_id', tenant.id)
@@ -49,8 +49,10 @@ export function Summary() {
           .eq('summary_date', today)
           .maybeSingle()
 
-        const dayClosed = !!dailySummary
-        if (isMounted) setDayClosed(dayClosed)
+        if (summaryError) throw summaryError
+
+        const isDayClosed = !!dailySummary
+        if (isMounted) setDayClosed(isDayClosed)
         if (isMounted) setExistingSummary(dailySummary || null)
 
         // Load all service logs for today (including closed)
@@ -83,7 +85,7 @@ export function Summary() {
 
         // Calculate summary
         let totalServices, totalRevenue, barberEarnings, ownerEarnings
-        if (dayClosed && dailySummary) {
+        if (isDayClosed && dailySummary) {
           totalServices = dailySummary.total_services
           totalRevenue = dailySummary.total_revenue
           barberEarnings = dailySummary.barber_earnings
