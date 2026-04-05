@@ -25,10 +25,15 @@ export function Summary() {
 
   // Load today's logs
   useEffect(() => {
-    if (!tenant?.id || !profile?.id) return
+    if (!tenant?.id || !profile?.id) {
+      setLoading(false)
+      return
+    }
+
+    let isMounted = true
 
     const loadTodayLogs = async () => {
-      setLoading(true)
+      if (isMounted) setLoading(true)
       setError(null)
 
       try {
@@ -44,8 +49,8 @@ export function Summary() {
           .maybeSingle()
 
         const dayClosed = !!dailySummary
-        setDayClosed(dayClosed)
-        setExistingSummary(dailySummary || null)
+        if (isMounted) setDayClosed(dayClosed)
+        if (isMounted) setExistingSummary(dailySummary || null)
 
         // Load all service logs for today (including closed)
         const { data: logsData, error: logsError } = await supabase
@@ -59,7 +64,7 @@ export function Summary() {
 
         if (logsError) throw logsError
 
-        setLogs(logsData || [])
+        if (isMounted) setLogs(logsData || [])
 
         // Calculate summary
         let totalServices, totalRevenue, barberEarnings, ownerEarnings
@@ -76,7 +81,7 @@ export function Summary() {
           ownerEarnings = activeLogs.reduce((sum, log) => sum + log.owner_earning, 0)
         }
 
-        setSummary({
+        if (isMounted) setSummary({
           totalServices,
           totalRevenue,
           barberEarnings,
@@ -85,13 +90,14 @@ export function Summary() {
       } catch (err: unknown) {
         console.error('Error loading today logs:', err)
         const errorMessage = err instanceof Error ? err.message : 'Error al cargar resumen'
-        setError(errorMessage)
+        if (isMounted) setError(errorMessage)
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
 
     loadTodayLogs()
+    return () => { isMounted = false }
   }, [tenant, profile])
 
   const handleCloseDay = async () => {

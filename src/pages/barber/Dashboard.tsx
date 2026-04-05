@@ -22,6 +22,7 @@ export function Dashboard() {
   const [todayLogs, setTodayLogs] = useState<ServiceLog[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [dayClosed, setDayClosed] = useState(false)
   const [selectedService, setSelectedService] = useState<ServiceWithEstimation | null>(null)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [showSelectionModal, setShowSelectionModal] = useState(false)
@@ -37,6 +38,20 @@ export function Dashboard() {
       setError(null)
 
       try {
+        const today = new Date().toISOString().split('T')[0]
+
+        // Check if day already closed
+        const { data: dailySummary } = await supabase
+          .from('daily_summaries')
+          .select('*')
+          .eq('tenant_id', tenant.id)
+          .eq('barber_id', profile.id)
+          .eq('summary_date', today)
+          .maybeSingle()
+
+        const dayClosed = !!dailySummary
+        setDayClosed(dayClosed)
+
         // Load services catalog
         const { data: servicesData, error: servicesError } = await supabase
           .from('services_catalog')
@@ -48,7 +63,6 @@ export function Dashboard() {
         if (servicesError) throw servicesError
 
         // Load today's service logs
-        const today = new Date().toISOString().split('T')[0]
         const { data: logsData, error: logsError } = await supabase
           .from('service_logs')
           .select('*')
@@ -62,7 +76,7 @@ export function Dashboard() {
         if (logsError) throw logsError
 
         // Calculate estimated earnings for each service based on next service number
-        const nextServiceNumber = (logsData?.length || 0) + 1
+        const nextServiceNumber = dayClosed ? 1 : (logsData?.length || 0) + 1
         const commissionRules = tenant.commission_rules?.rules || []
         const servicesWithEstimation: ServiceWithEstimation[] = (servicesData || []).map(service => ({
           ...service,
@@ -132,7 +146,7 @@ export function Dashboard() {
       setTodayLogs(logsData || [])
 
       // Update services with new estimation (next service number increased)
-      const nextServiceNumber = (logsData?.length || 0) + 1
+      const nextServiceNumber = dayClosed ? 1 : (logsData?.length || 0) + 1
       const commissionRules = tenant.commission_rules?.rules || []
       const updatedServices = services.map(service => ({
         ...service,
