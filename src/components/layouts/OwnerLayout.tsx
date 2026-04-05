@@ -15,7 +15,7 @@ const ScissorsIcon = () => (
 )
 
 export function OwnerLayout() {
-  const { profile } = useTenantStore()
+  const { profile, tenant } = useTenantStore()
   const { signOut } = useAuth()
   const navigate = useNavigate()
 
@@ -38,10 +38,15 @@ export function OwnerLayout() {
   return (
     <div style={{ minHeight: '100vh', background: '#1a1a1a' }}>
       <header className="owner-header" style={{ background: '#1a1a1a', borderBottom: '1px solid #383838', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <ScissorsIcon />
-          <span className="owner-logo" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', letterSpacing: '2px', color: '#fff' }}>
-            BARBER<span style={{ color: '#C8A97E' }}>OS</span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <ScissorsIcon />
+            <span className="owner-logo" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', letterSpacing: '2px', color: '#fff' }}>
+              BARBER<span style={{ color: '#C8A97E' }}>OS</span>
+            </span>
+          </div>
+          <span style={{ fontSize: '11px', color: '#888', letterSpacing: '1px' }}>
+            {tenant?.name}
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

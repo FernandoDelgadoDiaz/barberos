@@ -220,7 +220,7 @@ export function LivePanel() {
 
       {/* Barbers list */}
       <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '24px' }}>
-        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#fff', margin: '0 0 20px 0' }}>Barberos</h2>
+        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#fff', margin: '0 0 20px 0' }}>Tu equipo</h2>
 
         {barberStats.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>

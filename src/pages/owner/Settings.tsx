@@ -156,7 +156,8 @@ export function Settings() {
       if (error) throw error
 
       // Update tenant store
-      setTenant(data as Tenant)
+      const store = useTenantStore.getState()
+      store.setTenant(data as Tenant)
       setSuccess('Configuración guardada exitosamente')
       setTimeout(() => setSuccess(null), 5000)
     } catch (err: unknown) {
