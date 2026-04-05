@@ -23,6 +23,7 @@ interface RequestBody {
   price_charged: number
   started_at: string
   ended_at?: string
+  shift_id?: string
 }
 
 interface ServiceLog {
@@ -36,6 +37,7 @@ interface ServiceLog {
   started_at: string
   ended_at: string | null
   status: 'completed'
+  shift_id?: string | null
 }
 
 function applyCommission(rules: CommissionRule[], serviceNumber: number, price: number) {
@@ -112,7 +114,28 @@ export const handler = async (event: NetlifyFunctionEvent) => {
 
     const tenantId = barberProfile.tenant_id
 
-    // 2. Get tenant commission rules
+    // 2. Validate shift if provided
+    if (body.shift_id) {
+      const { data: shift, error: shiftError } = await supabase
+        .from('shifts')
+        .select('id, status')
+        .eq('id', body.shift_id)
+        .eq('tenant_id', tenantId)
+        .eq('barber_id', body.barber_id)
+        .eq('status', 'open')
+        .single()
+
+      if (shiftError || !shift) {
+        console.error('Shift validation error:', shiftError)
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Invalid shift: shift not found, already closed, or does not belong to barber/tenant' }),
+        }
+      }
+    }
+
+    // 3. Get tenant commission rules
     const { data: tenant, error: tenantError } = await supabase
       .from('tenants')
       .select('commission_rules')
@@ -130,9 +153,9 @@ export const handler = async (event: NetlifyFunctionEvent) => {
 
     const commissionRules = tenant.commission_rules as CommissionRules
 
-    // 3. Calculate service_number_today (count of completed services today)
+    // 4. Calculate service_number_today (count of completed services today)
     const today = new Date().toISOString().split('T')[0]
-    const { count, error: countError } = await supabase
+    let query = supabase
       .from('service_logs')
       .select('*', { count: 'exact', head: true })
       .eq('barber_id', body.barber_id)
@@ -140,6 +163,13 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       .eq('status', 'completed')
       .gte('started_at', `${today}T00:00:00`)
       .lte('started_at', `${today}T23:59:59`)
+
+    // If shift_id provided, count only services within that shift
+    if (body.shift_id) {
+      query = query.eq('shift_id', body.shift_id)
+    }
+
+    const { count, error: countError } = await query
 
     if (countError) {
       console.error('Count error:', countError)
@@ -152,14 +182,14 @@ export const handler = async (event: NetlifyFunctionEvent) => {
 
     const serviceNumberToday = (count || 0) + 1 // +1 for this new service
 
-    // 4. Apply commission rule
+    // 5. Apply commission rule
     const { barber, owner } = applyCommission(
       commissionRules.rules,
       serviceNumberToday,
       body.price_charged
     )
 
-    // 5. Insert service log
+    // 6. Insert service log
     const serviceLog: Omit<ServiceLog, 'id' | 'created_at'> = {
       tenant_id: tenantId,
       barber_id: body.barber_id,
@@ -171,6 +201,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       started_at: body.started_at,
       ended_at: body.ended_at || null,
       status: 'completed',
+      shift_id: body.shift_id ?? null,
     }
 
     const { data: insertedLog, error: insertError } = await supabase
@@ -188,7 +219,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
-    // 6. Return success
+    // 7. Return success
     return {
       statusCode: 200,
       headers,
