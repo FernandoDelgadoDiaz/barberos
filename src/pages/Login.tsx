@@ -205,6 +205,16 @@ export function Login() {
           </div>
         </div>
 
+        {/* Registration link */}
+        <div style={{ marginTop: '24px', textAlign: 'center' }}>
+          <p style={{ color: '#555555', fontSize: '14px' }}>
+            ¿Sos dueño de una barbería? →{' '}
+            <a href="/register" style={{ color: '#C8A97E', textDecoration: 'none', fontWeight: 600 }}>
+              Registrá tu local gratis
+            </a>
+          </p>
+        </div>
+
         {/* Footer note */}
         <div style={{ marginTop: '24px', textAlign: 'center' }}>
           <p style={{ color: '#555555', fontSize: '14px' }}>

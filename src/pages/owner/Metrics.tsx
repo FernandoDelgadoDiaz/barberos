@@ -820,7 +820,7 @@ export function Metrics() {
         <div style={{
           fontFamily: 'Syne, sans-serif',
           fontWeight: 800,
-          fontSize: '42px',
+          fontSize: isMobile ? '32px' : '42px',
           color: '#C8A97E'
         }}>
           {metrics!.ticket_promedio ? formatCurrency(metrics!.ticket_promedio) : '—'}
