@@ -46,6 +46,7 @@ export function Dashboard() {
       setError(null)
 
       try {
+        console.log('[Dashboard] loadData start', { tenantId: tenant?.id, profileId: profile?.id, activeShiftId })
         const today = new Date().toISOString().split('T')[0]
 
 
@@ -64,14 +65,19 @@ export function Dashboard() {
         }
 
         if (openShift) {
+          console.log('[Dashboard] open shift found:', openShift.id)
           if (isMounted) {
             setShiftStatus('open')
             setCurrentShift(openShift)
             setActiveShiftId(openShift.id)
           }
         } else {
+          console.log('[Dashboard] no open shift, shiftError:', shiftError)
           if (isMounted) {
-            setShiftStatus('no_shift')
+            setShiftStatus(prev => {
+              console.log('[Dashboard] previous shiftStatus:', prev)
+              return prev === 'closed' ? 'closed' : 'no_shift'
+            })
             setCurrentShift(null)
             setActiveShiftId(null)
           }
@@ -169,6 +175,7 @@ export function Dashboard() {
   }
 
   const handleCloseShift = async () => {
+    console.log('[Dashboard] handleCloseShift called', { currentShiftId: currentShift?.id, tenantId: tenant?.id, profileId: profile?.id })
     if (!tenant || !profile || !currentShift) return
     setShiftLoading(true)
     setError(null)
@@ -186,12 +193,16 @@ export function Dashboard() {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Error al cerrar turno')
       }
-      await response.json()
+      const result = await response.json()
+      console.log('[Dashboard] close-shift API success:', result)
       // Update local state
       setShiftStatus('closed')
       setCurrentShift(null)
       setActiveShiftId(null)
-      setRefreshTrigger(prev => prev + 1) // Trigger reload of logs/services
+      setRefreshTrigger(prev => {
+        console.log('[Dashboard] refreshTrigger increment')
+        return prev + 1
+      }) // Trigger reload of logs/services
       setSuccessMessage('Turno cerrado correctamente')
       setTimeout(() => setSuccessMessage(null), 5000)
     } catch (err: unknown) {

@@ -26,7 +26,9 @@ export function Summary() {
 
   // Load today's logs
   useEffect(() => {
+    console.log('[Summary] useEffect triggered', { tenantId: tenant?.id, profileId: profile?.id })
     if (!tenant?.id || !profile?.id) {
+      console.log('[Summary] missing tenant or profile, skipping load')
       setLoading(false)
       return
     }
@@ -34,6 +36,7 @@ export function Summary() {
     let isMounted = true
 
     const loadTodayLogs = async () => {
+      console.log('[Summary] loadTodayLogs start')
       if (isMounted) setLoading(true)
       setError(null)
 
@@ -50,6 +53,7 @@ export function Summary() {
           .maybeSingle()
 
         if (summaryError) throw summaryError
+        console.log('[Summary] daily_summaries query result:', { dailySummary, isDayClosed: !!dailySummary })
 
         const isDayClosed = !!dailySummary
         if (isMounted) setDayClosed(isDayClosed)
@@ -66,6 +70,7 @@ export function Summary() {
           .order('started_at', { ascending: false })
 
         if (logsError) throw logsError
+        console.log('[Summary] service_logs query result count:', logsData?.length || 0)
 
         if (isMounted) setLogs(logsData || [])
 
@@ -81,6 +86,7 @@ export function Summary() {
           .order('started_at', { ascending: true })
 
         if (shiftsError) throw shiftsError
+        console.log('[Summary] shifts query result count:', shiftsData?.length || 0)
         if (isMounted) setShifts(shiftsData || [])
 
         // Calculate summary
@@ -104,11 +110,13 @@ export function Summary() {
           barberEarnings,
           ownerEarnings,
         })
+        console.log('[Summary] loadTodayLogs completed successfully')
       } catch (err: unknown) {
-        console.error('Error loading today logs:', err)
+        console.error('[Summary] Error loading today logs:', err)
         const errorMessage = err instanceof Error ? err.message : 'Error al cargar resumen'
         if (isMounted) setError(errorMessage)
       } finally {
+        console.log('[Summary] loadTodayLogs finally, isMounted:', isMounted)
         if (isMounted) setLoading(false)
       }
     }
