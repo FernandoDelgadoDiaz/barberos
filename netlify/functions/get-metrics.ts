@@ -5,6 +5,85 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+// Timezone configuration for Argentina (UTC-3)
+const ARGENTINA_OFFSET_MS = -3 * 60 * 60 * 1000 // Argentina is 3 hours behind UTC
+
+/**
+ * Convert a UTC Date to Argentina local time
+ */
+function toArgentinaDate(utcDate: Date): Date {
+  return new Date(utcDate.getTime() + ARGENTINA_OFFSET_MS)
+}
+
+/**
+ * Convert an Argentina local Date to UTC
+ */
+function toUTCDate(argDate: Date): Date {
+  return new Date(argDate.getTime() - ARGENTINA_OFFSET_MS)
+}
+
+/**
+ * Get current date/time in Argentina timezone
+ */
+function getArgentinaNow(): Date {
+  return toArgentinaDate(new Date())
+}
+
+/**
+ * Get the start (Monday 00:00) and end (Sunday 23:59) of the week containing the given date (in Argentina time).
+ * Returns ISO strings in UTC for filtering Supabase timestamps.
+ */
+function getArgentinaWeekRange(dateInArgentina: Date): { start: string; end: string } {
+  // Clone the date to avoid mutation
+  const date = new Date(dateInArgentina.getTime())
+
+  // Get day of week (0 = Sunday, 1 = Monday, ...)
+  const day = date.getDay()
+
+  // Calculate Monday of this week (if Sunday, go back 6 days; otherwise go to Monday)
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1)
+  const monday = new Date(date)
+  monday.setDate(diff)
+  monday.setHours(0, 0, 0, 0)
+
+  // Sunday is 6 days after Monday
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+  sunday.setHours(23, 59, 59, 999)
+
+  // Convert Argentina times to UTC for Supabase filtering
+  const mondayUTC = toUTCDate(monday)
+  const sundayUTC = toUTCDate(sunday)
+
+  return {
+    start: mondayUTC.toISOString(),
+    end: sundayUTC.toISOString()
+  }
+}
+
+/**
+ * Get the previous week's range in Argentina timezone
+ */
+function getPreviousArgentinaWeekRange(dateInArgentina: Date): { start: string; end: string } {
+  const previousWeek = new Date(dateInArgentina.getTime())
+  previousWeek.setDate(dateInArgentina.getDate() - 7)
+  return getArgentinaWeekRange(previousWeek)
+}
+
+/**
+ * Extract Argentina local date parts from a UTC ISO string
+ */
+function getArgentinaDateParts(utcISOString: string): { year: number; month: number; day: number; hour: number } {
+  const utcDate = new Date(utcISOString)
+  const argDate = toArgentinaDate(utcDate)
+  return {
+    year: argDate.getFullYear(),
+    month: argDate.getMonth() + 1,
+    day: argDate.getDate(),
+    hour: argDate.getHours()
+  }
+}
+
 interface MetricsResponse {
   dia_mas_cortes: { fecha: string; total: number } | null
   hora_pico: { hora: number; total: number } | null
@@ -26,28 +105,6 @@ interface NetlifyFunctionEvent {
   }
 }
 
-function getWeekRange(date: Date): { start: string; end: string } {
-  const day = date.getDay() // 0 = Sunday, 1 = Monday, ...
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1) // Adjust to Monday start
-  const monday = new Date(date)
-  monday.setDate(diff)
-  const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
-
-  monday.setHours(0, 0, 0, 0)
-  sunday.setHours(23, 59, 59, 999)
-
-  return {
-    start: monday.toISOString(),
-    end: sunday.toISOString()
-  }
-}
-
-function getPreviousWeekRange(date: Date): { start: string; end: string } {
-  const previousWeek = new Date(date)
-  previousWeek.setDate(date.getDate() - 7)
-  return getWeekRange(previousWeek)
-}
 
 function addDateFilters(query: any, from?: string, to?: string) {
   let q = query
@@ -168,7 +225,8 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     let diaMasCortes: { fecha: string; total: number } | null = null
     const countsByDay: Record<string, number> = {}
     allLogs.forEach(log => {
-      const date = log.started_at.split('T')[0] // YYYY-MM-DD
+      const { year, month, day } = getArgentinaDateParts(log.started_at)
+      const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}` // YYYY-MM-DD Argentina
       countsByDay[date] = (countsByDay[date] || 0) + 1
     })
     let maxDate = ''
@@ -187,7 +245,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     let horaPico: { hora: number; total: number } | null = null
     const countsByHour: Record<number, number> = {}
     allLogs.forEach(log => {
-      const hour = new Date(log.started_at).getHours()
+      const { hour } = getArgentinaDateParts(log.started_at)
       countsByHour[hour] = (countsByHour[hour] || 0) + 1
     })
     let maxHour = 0
@@ -207,8 +265,8 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     let mesTop: { mes: string; total: number } | null = null
     const revenueByMonth: Record<string, number> = {}
     allLogs.forEach(log => {
-      const date = new Date(log.started_at)
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}` // YYYY-MM
+      const { year, month } = getArgentinaDateParts(log.started_at)
+      const monthKey = `${year}-${String(month).padStart(2, '0')}` // YYYY-MM Argentina
       revenueByMonth[monthKey] = (revenueByMonth[monthKey] || 0) + log.price_charged
     })
     let maxMonth = ''
@@ -296,10 +354,10 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       total_owner: totalOwnerEarnings
     }
 
-    // h. Comparación semana actual vs anterior
-    const now = new Date()
-    const currentWeek = getWeekRange(now)
-    const previousWeek = getPreviousWeekRange(now)
+    // h. Comparación semana actual vs anterior (Argentina timezone)
+    const nowArgentina = getArgentinaNow()
+    const currentWeek = getArgentinaWeekRange(nowArgentina)
+    const previousWeek = getPreviousArgentinaWeekRange(nowArgentina)
 
     const currentWeekLogs = allLogs.filter(log => {
       const logDate = new Date(log.started_at)
