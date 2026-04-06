@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import { GlassCard } from './GlassCard'
 
@@ -32,7 +32,7 @@ export function GlassTable<T extends Record<string, any>>({
     return String(row[rowKey])
   }
 
-  const renderCell = (column: Column<T>, row: T, rowIndex: number, cellIndex: number) => {
+  const renderCell = (column: Column<T>, row: T, rowIndex: number, _cellIndex: number) => {
     if (column.render) {
       return column.render(row[column.key as keyof T] ?? null, row, rowIndex)
     }
@@ -133,7 +133,7 @@ export function GlassTable<T extends Record<string, any>>({
           borderBottom: '1px solid rgba(255,255,255,0.08)',
         }}
       >
-        {columns.map((col, idx) => (
+        {columns.map((col, _idx) => (
           <div
             key={String(col.key)}
             style={{

@@ -4,7 +4,7 @@ import { supabase } from '../../config/supabase'
 import type { Tenant, Profile, ServiceCatalog } from '../../types'
 import { GlassCard } from '../../components/ui/GlassCard'
 import { GlassStatCard } from '../../components/ui/GlassStatCard'
-import { GlassTable, Column } from '../../components/ui/GlassTable'
+import { GlassTable, type Column } from '../../components/ui/GlassTable'
 
 async function getAuthHeader(): Promise<string> {
   const { data: { session } } = await supabase.auth.getSession()
@@ -107,26 +107,13 @@ function CountUp({ value, duration = 1.5, format }: CountUpProps) {
   })
 
   useEffect(() => {
-    const controls = motionValue.animate(0, value, {
-      duration,
-      ease: "easeOut"
-    })
-    return () => controls.stop()
+    motionValue.set(value, { duration, ease: "easeOut" })
+    return () => motionValue.stop()
   }, [value, duration, motionValue])
 
   return <motion.span ref={nodeRef}>{displayValue}</motion.span>
 }
 
-// CountUp for currency values
-function CountUpCurrency({ value, duration = 1.5 }: { value: number, duration?: number }) {
-  return (
-    <CountUp
-      value={value}
-      duration={duration}
-      format={(val) => formatCurrency(val)}
-    />
-  )
-}
 
 type TenantWithStats = Tenant & {
   total_barberos: number
