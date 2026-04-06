@@ -1220,6 +1220,6 @@ export function Tenants() {
           to { transform: rotate(360deg); }
         }
       `}</style>
-    </div></motion.div>
+    </motion.div>
   )
 }
