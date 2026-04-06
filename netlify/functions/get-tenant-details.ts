@@ -178,7 +178,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     }
 
     // Calcular métricas
-    const serviciosCompletados = metricas?.length || 0
+    const servicios_completados = metricas?.length || 0
     const facturacionTotal = metricas?.reduce((sum, item) => sum + item.price_charged, 0) || 0
     const turnosActivosCount = turnosActivos?.length || 0
 
