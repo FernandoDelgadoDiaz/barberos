@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../config/supabase'
 import type { Tenant } from '../../types'
 
+async function getAuthHeader(): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) {
+    throw new Error('No authenticated session')
+  }
+  return `Bearer ${session.access_token}`
+}
+
 type TenantWithStats = Tenant & {
   total_barberos: number
   total_servicios: number
@@ -20,52 +28,20 @@ export function Tenants() {
   const loadTenants = async () => {
     try {
       setLoading(true)
-      // 1. Obtener todos los tenants
-      const { data: tenantsData, error: tenantsError } = await supabase
-        .from('tenants')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (tenantsError) throw tenantsError
-
-      // 2. Obtener conteo de barberos por tenant (solo role='barber')
-      const { data: barberCounts, error: barberError } = await supabase
-        .from('profiles')
-        .select('tenant_id')
-        .eq('role', 'barber')
-
-      if (barberError) throw barberError
-
-      // 3. Obtener estadísticas de service_logs por tenant
-      const { data: serviceLogs, error: logsError } = await supabase
-        .from('service_logs')
-        .select('tenant_id, price_charged')
-
-      if (logsError) throw logsError
-
-      // Calcular agregados
-      const barberCountsMap = barberCounts.reduce((acc, item) => {
-        acc[item.tenant_id] = (acc[item.tenant_id] || 0) + 1
-        return acc
-      }, {} as Record<string, number>)
-
-      const serviceStatsMap = serviceLogs.reduce((acc, item) => {
-        if (!acc[item.tenant_id]) {
-          acc[item.tenant_id] = { count: 0, sum: 0 }
+      const authHeader = await getAuthHeader()
+      const response = await fetch('/api/get-tenants', {
+        headers: {
+          'Authorization': authHeader,
+        },
+      })
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('Acceso denegado: se requiere rol superadmin')
         }
-        acc[item.tenant_id].count += 1
-        acc[item.tenant_id].sum += item.price_charged
-        return acc
-      }, {} as Record<string, { count: number, sum: number }>)
-
-      const transformed = tenantsData.map((tenant) => ({
-        ...tenant,
-        total_barberos: barberCountsMap[tenant.id] || 0,
-        total_servicios: serviceStatsMap[tenant.id]?.count || 0,
-        total_facturado: serviceStatsMap[tenant.id]?.sum || 0,
-      }))
-
-      setTenants(transformed)
+        throw new Error(`Error ${response.status}: ${response.statusText}`)
+      }
+      const tenantsData = await response.json()
+      setTenants(tenantsData)
     } catch (err) {
       console.error('Error loading tenants:', err)
       setError(err instanceof Error ? err.message : 'Error al cargar barberías')
@@ -76,17 +52,29 @@ export function Tenants() {
 
   const toggleTenantStatus = async (tenantId: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from('tenants')
-        .update({ is_active: !currentStatus })
-        .eq('id', tenantId)
-
-      if (error) throw error
-
+      const authHeader = await getAuthHeader()
+      const response = await fetch('/api/toggle-tenant', {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          is_active: !currentStatus,
+        }),
+      })
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('Acceso denegado: se requiere rol superadmin')
+        }
+        throw new Error(`Error ${response.status}: ${response.statusText}`)
+      }
+      const updatedTenant = await response.json()
       // Actualizar estado local
       setTenants(prev =>
         prev.map(tenant =>
-          tenant.id === tenantId ? { ...tenant, is_active: !currentStatus } : tenant
+          tenant.id === tenantId ? { ...tenant, is_active: updatedTenant.is_active } : tenant
         )
       )
     } catch (err) {
