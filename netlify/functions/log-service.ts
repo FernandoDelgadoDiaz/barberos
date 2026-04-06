@@ -110,6 +110,15 @@ export const handler = async (event: NetlifyFunctionEvent) => {
   }
 
   try {
+    console.log('log-service invoked, checking env vars...')
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing Supabase environment variables')
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Server configuration error' }),
+      }
+    }
     const body: RequestBody = JSON.parse(event.body)
 
     // Validar required fields
@@ -238,6 +247,29 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       totalPrice
     )
 
+    // Validate numeric values
+    if (isNaN(totalPrice) || totalPrice <= 0) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Invalid total price calculation' }),
+      }
+    }
+    if (isNaN(totalBarberEarning) || totalBarberEarning < 0) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Invalid barber earning calculation' }),
+      }
+    }
+    if (isNaN(totalOwnerEarning) || totalOwnerEarning < 0) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Invalid owner earning calculation' }),
+      }
+    }
+
     // 7. Crear appointment
     const appointmentData = {
       tenant_id: tenantId,
@@ -260,10 +292,18 @@ export const handler = async (event: NetlifyFunctionEvent) => {
 
     if (appointmentError) {
       console.error('Appointment insert error:', appointmentError)
+      console.error('Appointment data:', appointmentData)
+      console.error('Supabase URL:', supabaseUrl)
+      console.error('Tenant ID:', tenantId)
       return {
         statusCode: 500,
         headers,
-        body: JSON.stringify({ error: 'Failed to create appointment' }),
+        body: JSON.stringify({
+          error: 'Failed to create appointment',
+          details: appointmentError.message,
+          hint: appointmentError.hint,
+          code: appointmentError.code
+        }),
       }
     }
 
