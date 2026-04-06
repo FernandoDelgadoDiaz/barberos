@@ -1,6 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion'
 import { supabase } from '../../config/supabase'
 import type { Tenant, Profile, ServiceCatalog } from '../../types'
+import { GlassCard } from '../../components/ui/GlassCard'
+import { GlassStatCard } from '../../components/ui/GlassStatCard'
+import { GlassTable, Column } from '../../components/ui/GlassTable'
 
 async function getAuthHeader(): Promise<string> {
   const { data: { session } } = await supabase.auth.getSession()
@@ -8,6 +12,120 @@ async function getAuthHeader(): Promise<string> {
     throw new Error('No authenticated session')
   }
   return `Bearer ${session.access_token}`
+}
+
+// SVG Icons (using existing inline icons)
+const BuildingIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+  </svg>
+)
+
+const UsersIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+  </svg>
+)
+
+const ScissorsIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+  </svg>
+)
+
+const DollarIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+)
+
+// Background blur circles component
+const BackgroundCircles = () => (
+  <>
+    <div
+      style={{
+        position: 'fixed',
+        top: '-300px',
+        left: '-300px',
+        width: '800px',
+        height: '800px',
+        borderRadius: '50%',
+        background: 'rgba(200,169,126,0.12)',
+        filter: 'blur(120px)',
+        pointerEvents: 'none',
+        zIndex: -1,
+      }}
+    />
+    <div
+      style={{
+        position: 'fixed',
+        top: '-300px',
+        right: '-300px',
+        width: '700px',
+        height: '700px',
+        borderRadius: '50%',
+        background: 'rgba(59,130,246,0.08)',
+        filter: 'blur(120px)',
+        pointerEvents: 'none',
+        zIndex: -1,
+      }}
+    />
+    <div
+      style={{
+        position: 'fixed',
+        bottom: '-300px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: '600px',
+        height: '600px',
+        borderRadius: '50%',
+        background: 'rgba(139,92,246,0.06)',
+        filter: 'blur(120px)',
+        pointerEvents: 'none',
+        zIndex: -1,
+      }}
+    />
+  </>
+)
+
+// CountUp component for animated numbers
+interface CountUpProps {
+  value: number
+  duration?: number
+  format?: (value: number) => string
+}
+
+function CountUp({ value, duration = 1.5, format }: CountUpProps) {
+  const nodeRef = useRef<HTMLSpanElement>(null)
+  const motionValue = useMotionValue(0)
+  const springValue = useSpring(motionValue, {
+    stiffness: 100,
+    damping: 30
+  })
+  const displayValue = useTransform(springValue, (latest) => {
+    return format ? format(Math.floor(latest)) : Math.floor(latest).toString()
+  })
+
+  useEffect(() => {
+    const controls = motionValue.animate(0, value, {
+      duration,
+      ease: "easeOut"
+    })
+    return () => controls.stop()
+  }, [value, duration, motionValue])
+
+  return <motion.span ref={nodeRef}>{displayValue}</motion.span>
+}
+
+// CountUp for currency values
+function CountUpCurrency({ value, duration = 1.5 }: { value: number, duration?: number }) {
+  return (
+    <CountUp
+      value={value}
+      duration={duration}
+      format={(val) => formatCurrency(val)}
+    />
+  )
 }
 
 type TenantWithStats = Tenant & {
@@ -180,749 +298,920 @@ export function Tenants() {
     }).format(amount)
   }
 
-  return (
-    <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '32px', fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>
-          Gestión de Barberías
-        </h1>
-        <p style={{ color: '#999999' }}>Administrador del sistema • Superadmin</p>
-      </div>
-
-      {/* Stats summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px', marginBottom: '32px' }}>
-        <div style={{ background: '#242424', border: '1px solid #383838', borderRadius: '12px', padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ padding: '12px', background: 'rgba(200, 169, 126, 0.1)', borderRadius: '8px' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--secondary, #C8A97E)" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
-            <div>
-              <div style={{ fontSize: '14px', color: '#999999' }}>Total barberías</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: '#ffffff' }}>{tenants.length}</div>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ background: '#242424', border: '1px solid #383838', borderRadius: '12px', padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ padding: '12px', background: 'rgba(200, 169, 126, 0.1)', borderRadius: '8px' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--secondary, #C8A97E)" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <div>
-              <div style={{ fontSize: '14px', color: '#999999' }}>Total barberos</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: '#ffffff' }}>
-                {tenants.reduce((sum, tenant) => sum + tenant.total_barberos, 0)}
-              </div>
+  // Define columns for glass table
+  const columns: Column<TenantWithStats>[] = [
+    {
+      key: 'name',
+      label: 'Nombre',
+      width: '1.5fr',
+      render: (_, row) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              background: row.primary_color,
+              border: '1px solid rgba(255,255,255,0.1)',
+            }}
+          />
+          <div>
+            <div style={{ fontWeight: 600, color: '#ffffff', fontSize: '14px' }}>{row.name}</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>
+              ID: {row.id.slice(0, 8)}...
             </div>
           </div>
         </div>
-
-        <div style={{ background: '#242424', border: '1px solid #383838', borderRadius: '12px', padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ padding: '12px', background: 'rgba(200, 169, 126, 0.1)', borderRadius: '8px' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--secondary, #C8A97E)" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-            </div>
-            <div>
-              <div style={{ fontSize: '14px', color: '#999999' }}>Total servicios</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: '#ffffff' }}>
-                {tenants.reduce((sum, tenant) => sum + tenant.total_servicios, 0)}
-              </div>
-            </div>
+      ),
+    },
+    {
+      key: 'slug',
+      label: 'Slug',
+      width: '1fr',
+      render: (slug) => (
+        <div style={{ fontFamily: 'monospace', fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>
+          {slug}
+        </div>
+      ),
+    },
+    {
+      key: 'total_barberos',
+      label: 'Barberos',
+      width: '0.8fr',
+      align: 'center',
+      render: (value) => (
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontWeight: 700, color: '#ffffff', fontSize: '16px' }}>{value}</div>
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
+            activos
           </div>
         </div>
-
-        <div style={{ background: '#242424', border: '1px solid #383838', borderRadius: '12px', padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ padding: '12px', background: 'rgba(200, 169, 126, 0.1)', borderRadius: '8px' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--secondary, #C8A97E)" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <div style={{ fontSize: '14px', color: '#999999' }}>Total facturado</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: '#ffffff' }}>
-                {formatCurrency(tenants.reduce((sum, tenant) => sum + tenant.total_facturado, 0))}
-              </div>
-            </div>
+      ),
+    },
+    {
+      key: 'total_servicios',
+      label: 'Servicios',
+      width: '0.8fr',
+      align: 'center',
+      render: (value) => (
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontWeight: 700, color: '#ffffff', fontSize: '16px' }}>{value}</div>
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
+            registrados
           </div>
         </div>
-      </div>
-
-      {/* Main table */}
-      <div style={{ background: '#242424', border: '1px solid #383838', borderRadius: '16px', overflow: 'hidden' }}>
-        <div style={{ padding: '24px', borderBottom: '1px solid #383838' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#ffffff' }}>Todas las barberías</h2>
-          <p style={{ color: '#999999', fontSize: '14px' }}>Listado completo con estadísticas</p>
+      ),
+    },
+    {
+      key: 'total_facturado',
+      label: 'Facturado',
+      width: '1fr',
+      align: 'right',
+      render: (value) => (
+        <div style={{ fontWeight: 700, color: '#C8A97E', fontSize: '15px', textAlign: 'right' }}>
+          {formatCurrency(value)}
         </div>
-
-        {loading ? (
-          <div style={{ padding: '48px', textAlign: 'center' }}>
-            <div style={{ display: 'inline-block', width: '40px', height: '40px', border: '3px solid #383838', borderTopColor: 'var(--secondary, #C8A97E)', borderRadius: '9999px', animation: 'spin 1s linear infinite' }} />
-            <p style={{ marginTop: '16px', color: '#999999' }}>Cargando barberías...</p>
-          </div>
-        ) : error ? (
-          <div style={{ padding: '48px', textAlign: 'center' }}>
-            <div style={{ padding: '16px', background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', display: 'inline-block' }}>
-              <p style={{ color: '#e94560', fontSize: '14px' }}>{error}</p>
-            </div>
+      ),
+    },
+    {
+      key: 'is_active',
+      label: 'Estado',
+      width: '0.8fr',
+      align: 'center',
+      render: (value, row) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            toggleTenantStatus(row.id, row.is_active)
+          }}
+          style={{
+            padding: '6px 12px',
+            background: value ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+            color: value ? 'rgba(34,197,94,0.9)' : 'rgba(239,68,68,0.9)',
+            border: `1px solid ${value ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
+            borderRadius: '9999px',
+            fontSize: '12px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+          {value ? 'Activo' : 'Inactivo'}
+        </button>
+      ),
+    },
+    {
+      key: 'created_at',
+      label: 'Creado',
+      width: '0.9fr',
+      render: (value) => (
+        <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
+          {new Date(value).toLocaleDateString('es-AR')}
+        </div>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Acciones',
+      width: '1.2fr',
+      align: 'center',
+      render: (_, row) => (
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handleViewDetails(row)
+            }}
+            style={{
+              padding: '8px 16px',
+              background: 'transparent',
+              color: '#C8A97E',
+              border: '1px solid #C8A97E',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(200,169,126,0.1)';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            Ver detalles
+          </button>
+          {!row.is_active && (
             <button
-              onClick={loadTenants}
-              style={{ marginTop: '16px', padding: '10px 20px', background: 'transparent', color: 'var(--secondary, #C8A97E)', border: '1px solid var(--secondary, #C8A97E)', borderRadius: '8px', cursor: 'pointer' }}
-            >
-              Reintentar
-            </button>
-          </div>
-        ) : tenants.length === 0 ? (
-          <div style={{ padding: '48px', textAlign: 'center' }}>
-            <p style={{ color: '#999999' }}>No hay barberías registradas</p>
-          </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#2a2a2a' }}>
-                  <th style={{ textAlign: 'left', padding: '16px 24px', color: '#999999', fontSize: '14px', fontWeight: 500, borderBottom: '1px solid #383838' }}>Nombre</th>
-                  <th style={{ textAlign: 'left', padding: '16px 24px', color: '#999999', fontSize: '14px', fontWeight: 500, borderBottom: '1px solid #383838' }}>Slug</th>
-                  <th style={{ textAlign: 'left', padding: '16px 24px', color: '#999999', fontSize: '14px', fontWeight: 500, borderBottom: '1px solid #383838' }}>Barberos</th>
-                  <th style={{ textAlign: 'left', padding: '16px 24px', color: '#999999', fontSize: '14px', fontWeight: 500, borderBottom: '1px solid #383838' }}>Servicios</th>
-                  <th style={{ textAlign: 'left', padding: '16px 24px', color: '#999999', fontSize: '14px', fontWeight: 500, borderBottom: '1px solid #383838' }}>Facturado</th>
-                  <th style={{ textAlign: 'left', padding: '16px 24px', color: '#999999', fontSize: '14px', fontWeight: 500, borderBottom: '1px solid #383838' }}>Estado</th>
-                  <th style={{ textAlign: 'left', padding: '16px 24px', color: '#999999', fontSize: '14px', fontWeight: 500, borderBottom: '1px solid #383838' }}>Creado</th>
-                  <th style={{ textAlign: 'left', padding: '16px 24px', color: '#999999', fontSize: '14px', fontWeight: 500, borderBottom: '1px solid #383838' }}>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tenants.map((tenant) => (
-                  <tr key={tenant.id} style={{ borderBottom: '1px solid #383838' }}>
-                    <td style={{ padding: '16px 24px', color: '#ffffff' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: tenant.primary_color }} />
-                        <div>
-                          <div style={{ fontWeight: 600 }}>{tenant.name}</div>
-                          <div style={{ fontSize: '12px', color: '#999999' }}>ID: {tenant.id.slice(0, 8)}...</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ padding: '16px 24px', color: '#ffffff', fontFamily: 'monospace', fontSize: '14px' }}>
-                      {tenant.slug}
-                    </td>
-                    <td style={{ padding: '16px 24px', color: '#ffffff' }}>
-                      <span style={{ fontWeight: 600 }}>{tenant.total_barberos}</span>
-                      <span style={{ fontSize: '12px', color: '#999999', marginLeft: '4px' }}>activos</span>
-                    </td>
-                    <td style={{ padding: '16px 24px', color: '#ffffff' }}>
-                      <span style={{ fontWeight: 600 }}>{tenant.total_servicios}</span>
-                      <span style={{ fontSize: '12px', color: '#999999', marginLeft: '4px' }}>registrados</span>
-                    </td>
-                    <td style={{ padding: '16px 24px', color: '#ffffff' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--secondary, #C8A97E)' }}>{formatCurrency(tenant.total_facturado)}</span>
-                    </td>
-                    <td style={{ padding: '16px 24px' }}>
-                      <button
-                        onClick={() => toggleTenantStatus(tenant.id, tenant.is_active)}
-                        style={{
-                          padding: '6px 12px',
-                          background: tenant.is_active ? 'rgba(200, 169, 126, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                          color: tenant.is_active ? 'var(--secondary, #C8A97E)' : '#999999',
-                          border: `1px solid ${tenant.is_active ? 'var(--secondary, #C8A97E)' : '#383838'}`,
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          fontWeight: 500,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                        }}
-                      >
-                        {tenant.is_active ? 'Activo' : 'Inactivo'}
-                      </button>
-                    </td>
-                    <td style={{ padding: '16px 24px', color: '#999999', fontSize: '14px' }}>
-                      {new Date(tenant.created_at).toLocaleDateString('es-AR')}
-                    </td>
-                    <td style={{ padding: '16px 24px' }}>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <button
-                          onClick={() => handleViewDetails(tenant)}
-                          style={{
-                            padding: '8px 16px',
-                            background: 'transparent',
-                            color: 'var(--secondary, #C8A97E)',
-                            border: '1px solid var(--secondary, #C8A97E)',
-                            borderRadius: '8px',
-                            fontSize: '14px',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(200, 169, 126, 0.1)'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                        >
-                          Ver detalles
-                        </button>
-                        {!tenant.is_active && (
-                          <button
-                            onClick={() => handleDeleteTenant(tenant)}
-                            style={{
-                              padding: '8px 16px',
-                              background: 'transparent',
-                              color: '#e94560',
-                              border: '1px solid #e94560',
-                              borderRadius: '8px',
-                              fontSize: '14px',
-                              fontWeight: 500,
-                              cursor: 'pointer',
-                              transition: 'all 0.2s',
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(233, 69, 96, 0.1)'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                          >
-                            Eliminar
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Table footer */}
-        <div style={{ padding: '24px', borderTop: '1px solid #383838', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ color: '#999999', fontSize: '14px' }}>
-            Mostrando {tenants.length} barberías
-          </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button
-              onClick={loadTenants}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleDeleteTenant(row)
+              }}
               style={{
-                padding: '10px 20px',
+                padding: '8px 16px',
                 background: 'transparent',
-                color: '#999999',
-                border: '1px solid #383838',
+                color: '#e94560',
+                border: '1px solid #e94560',
                 borderRadius: '8px',
-                fontSize: '14px',
+                fontSize: '13px',
                 fontWeight: 500,
                 cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(233,69,96,0.1)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
-              Refrescar
+              Eliminar
             </button>
-            <button
-              style={{
-                padding: '10px 20px',
-                background: 'var(--secondary, #C8A97E)',
-                color: 'var(--primary, #1a1a1a)',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-              onClick={() => window.open('/register', '_blank')}
-            >
-              + Nueva barbería
-            </button>
-          </div>
+          )}
         </div>
-      </div>
+      ),
+    },
+  ]
 
-      {/* Modal de detalles del tenant */}
-      {showDetailsModal && selectedTenant && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '20px',
-        }}>
-          <div style={{
-            backgroundColor: '#1a1a1a',
-            borderRadius: '16px',
-            border: '1px solid #383838',
-            maxWidth: '900px',
-            width: '100%',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            position: 'relative',
-          }}>
-            {/* Header */}
-            <div style={{
-              padding: '24px',
-              borderBottom: '1px solid #383838',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <div>
-                <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>
-                  {selectedTenant.name}
-                </h2>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{
-                    width: '20px',
-                    height: '20px',
-                    borderRadius: '4px',
-                    backgroundColor: selectedTenant.primary_color,
-                  }} />
-                  <div style={{
-                    width: '20px',
-                    height: '20px',
-                    borderRadius: '4px',
-                    backgroundColor: selectedTenant.secondary_color,
-                  }} />
-                  <span style={{ color: '#999999', fontSize: '14px' }}>
-                    {selectedTenant.slug}
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setShowDetailsModal(false)
-                  setSelectedTenant(null)
-                  setTenantDetails(null)
-                  setErrorDetails(null)
-                }}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#999999',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  padding: '8px',
-                }}
-              >
-                ×
-              </button>
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      style={{
+        minHeight: '100vh',
+        background: '#0A0A0F',
+        position: 'relative',
+        overflowX: 'hidden',
+        padding: '40px',
+        fontFamily: "'Inter', sans-serif",
+      }}
+    >
+      {/* Background blur circles */}
+      <BackgroundCircles />
+
+      <div style={{ maxWidth: '1400px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
+        {/* Header */}
+        <motion.div
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.6 }}
+          style={{ marginBottom: '40px' }}
+        >
+          <h1
+            style={{
+              fontSize: '32px',
+              fontWeight: 800,
+              color: '#ffffff',
+              marginBottom: '8px',
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
+            Gestión de Barberías
+          </h1>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: "'Inter', sans-serif" }}>
+            Administrador del sistema • Superadmin
+          </p>
+        </motion.div>
+
+        {/* Stats summary with GlassStatCard */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8 }}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '24px',
+            marginBottom: '32px'
+          }}
+        >
+          <GlassStatCard
+            icon={<BuildingIcon />}
+            value={tenants.length}
+            label="Total barberías"
+            delay={0.1}
+            color="#C8A97E"
+          />
+          <GlassStatCard
+            icon={<UsersIcon />}
+            value={tenants.reduce((sum, tenant) => sum + tenant.total_barberos, 0)}
+            label="Total barberos"
+            sublabel="activos"
+            delay={0.2}
+            color="#3B82F6"
+          />
+          <GlassStatCard
+            icon={<ScissorsIcon />}
+            value={tenants.reduce((sum, tenant) => sum + tenant.total_servicios, 0)}
+            label="Total servicios"
+            sublabel="registrados"
+            delay={0.3}
+            color="#8B5CF6"
+          />
+          <GlassStatCard
+            icon={<DollarIcon />}
+            value={formatCurrency(tenants.reduce((sum, tenant) => sum + tenant.total_facturado, 0))}
+            label="Total facturado"
+            delay={0.4}
+            color="#10B981"
+          />
+        </motion.div>
+
+        {/* Main table with GlassTable */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+        >
+          <GlassCard className="p-6 mb-6">
+            <div style={{ marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#ffffff', marginBottom: '8px' }}>
+                Todas las barberías
+              </h2>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px' }}>
+                Listado completo con estadísticas
+              </p>
             </div>
 
-            {/* Contenido */}
-            <div style={{ padding: '24px' }}>
-              {loadingDetails ? (
-                <div style={{ padding: '48px', textAlign: 'center' }}>
-                  <div style={{
-                    display: 'inline-block',
-                    width: '40px',
-                    height: '40px',
-                    border: '3px solid #383838',
-                    borderTopColor: 'var(--secondary, #C8A97E)',
-                    borderRadius: '9999px',
-                    animation: 'spin 1s linear infinite',
-                  }} />
-                  <p style={{ marginTop: '16px', color: '#999999' }}>
-                    Cargando detalles...
-                  </p>
-                </div>
-              ) : errorDetails ? (
-                <div style={{ padding: '24px', textAlign: 'center' }}>
-                  <p style={{ color: '#e94560', marginBottom: '16px' }}>{errorDetails}</p>
-                  <button
-                    onClick={() => handleViewDetails(selectedTenant)}
-                    style={{
-                      padding: '8px 16px',
-                      background: 'transparent',
-                      color: 'var(--secondary, #C8A97E)',
-                      border: '1px solid var(--secondary, #C8A97E)',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Reintentar
-                  </button>
-                </div>
-              ) : tenantDetails ? (
-                <div>
-                  {/* Información básica */}
-                  <div style={{ marginBottom: '32px' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#ffffff', marginBottom: '16px' }}>
-                      Información básica
-                    </h3>
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                      gap: '16px',
-                    }}>
-                      <div style={{ background: '#242424', padding: '16px', borderRadius: '8px' }}>
-                        <div style={{ color: '#999999', fontSize: '14px', marginBottom: '4px' }}>Slug</div>
-                        <div style={{ color: '#ffffff', fontFamily: 'monospace' }}>{tenantDetails.slug}</div>
-                      </div>
-                      <div style={{ background: '#242424', padding: '16px', borderRadius: '8px' }}>
-                        <div style={{ color: '#999999', fontSize: '14px', marginBottom: '4px' }}>Estado</div>
-                        <div style={{ color: tenantDetails.is_active ? 'var(--secondary, #C8A97E)' : '#999999' }}>
-                          {tenantDetails.is_active ? 'Activo' : 'Inactivo'}
-                        </div>
-                      </div>
-                      <div style={{ background: '#242424', padding: '16px', borderRadius: '8px' }}>
-                        <div style={{ color: '#999999', fontSize: '14px', marginBottom: '4px' }}>Creado</div>
-                        <div style={{ color: '#ffffff' }}>
-                          {new Date(tenantDetails.created_at).toLocaleDateString('es-AR')}
-                        </div>
-                      </div>
-                      {tenantDetails.opening_time && tenantDetails.closing_time && (
-                        <div style={{ background: '#242424', padding: '16px', borderRadius: '8px' }}>
-                          <div style={{ color: '#999999', fontSize: '14px', marginBottom: '4px' }}>Horario</div>
-                          <div style={{ color: '#ffffff' }}>
-                            {tenantDetails.opening_time} - {tenantDetails.closing_time}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+            <GlassTable
+              columns={columns}
+              data={tenants}
+              rowKey="id"
+              loading={loading}
+              emptyMessage="No hay barberías registradas"
+              onRowClick={(tenant) => handleViewDetails(tenant)}
+            />
 
-                  {/* Métricas recientes */}
-                  <div style={{ marginBottom: '32px' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#ffffff', marginBottom: '16px' }}>
-                      Métricas (últimos 30 días)
-                    </h3>
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                      gap: '16px',
-                    }}>
-                      <div style={{ background: '#242424', padding: '16px', borderRadius: '8px' }}>
-                        <div style={{ color: '#999999', fontSize: '14px', marginBottom: '4px' }}>Servicios completados</div>
-                        <div style={{ fontSize: '24px', fontWeight: 700, color: '#ffffff' }}>
-                          {tenantDetails.metricas_recientes.servicios_completados}
-                        </div>
-                      </div>
-                      <div style={{ background: '#242424', padding: '16px', borderRadius: '8px' }}>
-                        <div style={{ color: '#999999', fontSize: '14px', marginBottom: '4px' }}>Facturación total</div>
-                        <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--secondary, #C8A97E)' }}>
-                          {formatCurrency(tenantDetails.metricas_recientes.facturacion_total)}
-                        </div>
-                      </div>
-                      <div style={{ background: '#242424', padding: '16px', borderRadius: '8px' }}>
-                        <div style={{ color: '#999999', fontSize: '14px', marginBottom: '4px' }}>Turnos activos</div>
-                        <div style={{ fontSize: '24px', fontWeight: 700, color: '#ffffff' }}>
-                          {tenantDetails.metricas_recientes.turnos_activos}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Barberos */}
-                  <div style={{ marginBottom: '32px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                      <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#ffffff' }}>
-                        Barberos ({tenantDetails.barberos.length})
-                      </h3>
-                      <div style={{ color: '#999999', fontSize: '14px' }}>
-                        {tenantDetails.barberos.filter(b => b.is_active).length} activos
-                      </div>
-                    </div>
-                    {tenantDetails.barberos.length === 0 ? (
-                      <p style={{ color: '#999999', textAlign: 'center', padding: '24px' }}>
-                        No hay barberos registrados
-                      </p>
-                    ) : (
-                      <div style={{
-                        background: '#242424',
-                        border: '1px solid #383838',
-                        borderRadius: '8px',
-                        overflow: 'hidden',
-                      }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                          <thead>
-                            <tr style={{ background: '#2a2a2a' }}>
-                              <th style={{ textAlign: 'left', padding: '12px 16px', color: '#999999', fontSize: '14px', fontWeight: 500 }}>Nombre</th>
-                              <th style={{ textAlign: 'left', padding: '12px 16px', color: '#999999', fontSize: '14px', fontWeight: 500 }}>Estado</th>
-                              <th style={{ textAlign: 'left', padding: '12px 16px', color: '#999999', fontSize: '14px', fontWeight: 500 }}>Registrado</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {tenantDetails.barberos.map((barbero) => (
-                              <tr key={barbero.id} style={{ borderTop: '1px solid #383838' }}>
-                                <td style={{ padding: '12px 16px', color: '#ffffff' }}>{barbero.display_name}</td>
-                                <td style={{ padding: '12px 16px' }}>
-                                  <span style={{
-                                    display: 'inline-block',
-                                    padding: '4px 8px',
-                                    borderRadius: '4px',
-                                    fontSize: '12px',
-                                    fontWeight: 500,
-                                    backgroundColor: barbero.is_active ? 'rgba(200, 169, 126, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                                    color: barbero.is_active ? 'var(--secondary, #C8A97E)' : '#999999',
-                                    border: `1px solid ${barbero.is_active ? 'var(--secondary, #C8A97E)' : '#383838'}`,
-                                  }}>
-                                    {barbero.is_active ? 'Activo' : 'Inactivo'}
-                                  </span>
-                                </td>
-                                <td style={{ padding: '12px 16px', color: '#999999', fontSize: '14px' }}>
-                                  {new Date(barbero.created_at).toLocaleDateString('es-AR')}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Servicios */}
-                  <div style={{ marginBottom: '32px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                      <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#ffffff' }}>
-                        Servicios ({tenantDetails.servicios.length})
-                      </h3>
-                      <div style={{ color: '#999999', fontSize: '14px' }}>
-                        {tenantDetails.servicios.filter(s => s.is_active).length} activos
-                      </div>
-                    </div>
-                    {tenantDetails.servicios.length === 0 ? (
-                      <p style={{ color: '#999999', textAlign: 'center', padding: '24px' }}>
-                        No hay servicios configurados
-                      </p>
-                    ) : (
-                      <div style={{
-                        background: '#242424',
-                        border: '1px solid #383838',
-                        borderRadius: '8px',
-                        overflow: 'hidden',
-                      }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                          <thead>
-                            <tr style={{ background: '#2a2a2a' }}>
-                              <th style={{ textAlign: 'left', padding: '12px 16px', color: '#999999', fontSize: '14px', fontWeight: 500 }}>Servicio</th>
-                              <th style={{ textAlign: 'left', padding: '12px 16px', color: '#999999', fontSize: '14px', fontWeight: 500 }}>Precio base</th>
-                              <th style={{ textAlign: 'left', padding: '12px 16px', color: '#999999', fontSize: '14px', fontWeight: 500 }}>Duración</th>
-                              <th style={{ textAlign: 'left', padding: '12px 16px', color: '#999999', fontSize: '14px', fontWeight: 500 }}>Estado</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {tenantDetails.servicios.map((servicio) => (
-                              <tr key={servicio.id} style={{ borderTop: '1px solid #383838' }}>
-                                <td style={{ padding: '12px 16px', color: '#ffffff' }}>{servicio.name}</td>
-                                <td style={{ padding: '12px 16px', color: 'var(--secondary, #C8A97E)' }}>
-                                  {formatCurrency(servicio.base_price)}
-                                </td>
-                                <td style={{ padding: '12px 16px', color: '#ffffff' }}>{servicio.duration_min} min</td>
-                                <td style={{ padding: '12px 16px' }}>
-                                  <span style={{
-                                    display: 'inline-block',
-                                    padding: '4px 8px',
-                                    borderRadius: '4px',
-                                    fontSize: '12px',
-                                    fontWeight: 500,
-                                    backgroundColor: servicio.is_active ? 'rgba(200, 169, 126, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                                    color: servicio.is_active ? 'var(--secondary, #C8A97E)' : '#999999',
-                                    border: `1px solid ${servicio.is_active ? 'var(--secondary, #C8A97E)' : '#383838'}`,
-                                  }}>
-                                    {servicio.is_active ? 'Activo' : 'Inactivo'}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
-            {/* Footer */}
-            <div style={{
-              padding: '24px',
-              borderTop: '1px solid #383838',
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '12px',
-            }}>
-              <button
-                onClick={() => {
-                  setShowDetailsModal(false)
-                  setSelectedTenant(null)
-                  setTenantDetails(null)
-                  setErrorDetails(null)
-                }}
+            {/* Table footer */}
+            {!loading && !error && tenants.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8 }}
                 style={{
-                  padding: '10px 20px',
-                  background: 'transparent',
-                  color: '#999999',
-                  border: '1px solid #383838',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: '24px',
+                  paddingTop: '24px',
+                  borderTop: '1px solid rgba(255,255,255,0.08)'
                 }}
               >
-                Cerrar
-              </button>
-              {tenantDetails && (
-                <>
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px' }}>
+                  Mostrando {tenants.length} barberías
+                </div>
+                <div style={{ display: 'flex', gap: '12px' }}>
                   <button
-                    onClick={() => toggleTenantStatus(tenantDetails.id, tenantDetails.is_active)}
+                    onClick={loadTenants}
                     style={{
                       padding: '10px 20px',
-                      background: tenantDetails.is_active ? 'rgba(200, 169, 126, 0.1)' : 'transparent',
-                      color: tenantDetails.is_active ? 'var(--secondary, #C8A97E)' : '#999999',
-                      border: `1px solid ${tenantDetails.is_active ? 'var(--secondary, #C8A97E)' : '#383838'}`,
+                      background: 'transparent',
+                      color: 'rgba(255,255,255,0.7)',
+                      border: '1px solid rgba(255,255,255,0.2)',
                       borderRadius: '8px',
                       fontSize: '14px',
                       fontWeight: 500,
                       cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
                     }}
                   >
-                    {tenantDetails.is_active ? 'Desactivar' : 'Activar'}
+                    Refrescar
                   </button>
-                  {!tenantDetails.is_active && (
+                  <button
+                    style={{
+                      padding: '10px 20px',
+                      background: '#C8A97E',
+                      color: '#0A0A0F',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#D4B686'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = '#C8A97E'}
+                    onClick={() => window.open('/register', '_blank')}
+                  >
+                    + Nueva barbería
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Error state */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                style={{ textAlign: 'center', padding: '40px 0' }}
+              >
+                <GlassCard className="p-6 inline-block">
+                  <p style={{ color: '#e94560', fontSize: '14px', marginBottom: '16px' }}>{error}</p>
+                  <button
+                    onClick={loadTenants}
+                    style={{
+                      padding: '10px 20px',
+                      background: 'transparent',
+                      color: '#C8A97E',
+                      border: '1px solid #C8A97E',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(200,169,126,0.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    Reintentar
+                  </button>
+                </GlassCard>
+              </motion.div>
+            )}
+          </GlassCard>
+        </motion.div>
+      </div>
+
+      {/* Modal de detalles del tenant - Glassmorphism version */}
+      {showDetailsModal && selectedTenant && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+            backdropFilter: 'blur(10px)',
+          }}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', damping: 25 }}
+            style={{
+              maxWidth: '900px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              position: 'relative',
+            }}
+          >
+            <GlassCard className="overflow-hidden">
+              {/* Header */}
+              <div style={{
+                padding: '24px',
+                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <div>
+                  <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>
+                    {selectedTenant.name}
+                  </h2>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '4px',
+                      backgroundColor: selectedTenant.primary_color,
+                    }} />
+                    <div style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '4px',
+                      backgroundColor: selectedTenant.secondary_color,
+                    }} />
+                    <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', fontFamily: 'monospace' }}>
+                      {selectedTenant.slug}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowDetailsModal(false);
+                    setSelectedTenant(null);
+                    setTenantDetails(null);
+                    setErrorDetails(null);
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'rgba(255,255,255,0.5)',
+                    fontSize: '24px',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    borderRadius: '50%',
+                    width: '40px',
+                    height: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                    e.currentTarget.style.color = '#ffffff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Content */}
+              <div style={{ padding: '24px' }}>
+                {loadingDetails ? (
+                  <div style={{ padding: '48px', textAlign: 'center' }}>
+                    <div style={{
+                      display: 'inline-block',
+                      width: '40px',
+                      height: '40px',
+                      border: '3px solid rgba(255,255,255,0.1)',
+                      borderTopColor: '#C8A97E',
+                      borderRadius: '9999px',
+                      animation: 'spin 1s linear infinite',
+                    }} />
+                    <p style={{ marginTop: '16px', color: 'rgba(255,255,255,0.5)' }}>
+                      Cargando detalles...
+                    </p>
+                  </div>
+                ) : errorDetails ? (
+                  <div style={{ padding: '24px', textAlign: 'center' }}>
+                    <p style={{ color: '#e94560', marginBottom: '16px' }}>{errorDetails}</p>
                     <button
-                      onClick={() => {
-                        setShowDetailsModal(false)
-                        handleDeleteTenant(selectedTenant)
+                      onClick={() => handleViewDetails(selectedTenant)}
+                      style={{
+                        padding: '8px 16px',
+                        background: 'transparent',
+                        color: '#C8A97E',
+                        border: '1px solid #C8A97E',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
                       }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(200,169,126,0.1)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      Reintentar
+                    </button>
+                  </div>
+                ) : tenantDetails ? (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    {/* Información básica */}
+                    <div style={{ marginBottom: '32px' }}>
+                      <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#ffffff', marginBottom: '16px' }}>
+                        Información básica
+                      </h3>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                        gap: '16px',
+                      }}>
+                        <GlassCard className="p-4">
+                          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '4px' }}>Slug</div>
+                          <div style={{ color: '#ffffff', fontFamily: 'monospace' }}>{tenantDetails.slug}</div>
+                        </GlassCard>
+                        <GlassCard className="p-4">
+                          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '4px' }}>Estado</div>
+                          <div style={{ color: tenantDetails.is_active ? '#C8A97E' : 'rgba(255,255,255,0.5)' }}>
+                            {tenantDetails.is_active ? 'Activo' : 'Inactivo'}
+                          </div>
+                        </GlassCard>
+                        <GlassCard className="p-4">
+                          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '4px' }}>Creado</div>
+                          <div style={{ color: '#ffffff' }}>
+                            {new Date(tenantDetails.created_at).toLocaleDateString('es-AR')}
+                          </div>
+                        </GlassCard>
+                        {tenantDetails.opening_time && tenantDetails.closing_time && (
+                          <GlassCard className="p-4">
+                            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '4px' }}>Horario</div>
+                            <div style={{ color: '#ffffff' }}>
+                              {tenantDetails.opening_time} - {tenantDetails.closing_time}
+                            </div>
+                          </GlassCard>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Métricas recientes */}
+                    <div style={{ marginBottom: '32px' }}>
+                      <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#ffffff', marginBottom: '16px' }}>
+                        Métricas (últimos 30 días)
+                      </h3>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                        gap: '16px',
+                      }}>
+                        <GlassStatCard
+                          icon={<ScissorsIcon />}
+                          value={tenantDetails.metricas_recientes.servicios_completados}
+                          label="Servicios completados"
+                          color="#C8A97E"
+                        />
+                        <GlassStatCard
+                          icon={<DollarIcon />}
+                          value={formatCurrency(tenantDetails.metricas_recientes.facturacion_total)}
+                          label="Facturación total"
+                          color="#10B981"
+                        />
+                        <GlassStatCard
+                          icon={<UsersIcon />}
+                          value={tenantDetails.metricas_recientes.turnos_activos}
+                          label="Turnos activos"
+                          color="#3B82F6"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Barberos */}
+                    <div style={{ marginBottom: '32px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#ffffff' }}>
+                          Barberos ({tenantDetails.barberos.length})
+                        </h3>
+                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px' }}>
+                          {tenantDetails.barberos.filter(b => b.is_active).length} activos
+                        </div>
+                      </div>
+                      {tenantDetails.barberos.length === 0 ? (
+                        <GlassCard className="p-6">
+                          <p style={{ color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
+                            No hay barberos registrados
+                          </p>
+                        </GlassCard>
+                      ) : (
+                        <GlassTable
+                          columns={[
+                            { key: 'display_name', label: 'Nombre', width: '1fr' },
+                            { key: 'is_active', label: 'Estado', width: '100px' },
+                            { key: 'created_at', label: 'Registrado', width: '120px' },
+                          ]}
+                          data={tenantDetails.barberos}
+                          rowKey="id"
+                        />
+                      )}
+                    </div>
+
+                    {/* Servicios */}
+                    <div style={{ marginBottom: '32px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#ffffff' }}>
+                          Servicios ({tenantDetails.servicios.length})
+                        </h3>
+                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px' }}>
+                          {tenantDetails.servicios.filter(s => s.is_active).length} activos
+                        </div>
+                      </div>
+                      {tenantDetails.servicios.length === 0 ? (
+                        <GlassCard className="p-6">
+                          <p style={{ color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
+                            No hay servicios configurados
+                          </p>
+                        </GlassCard>
+                      ) : (
+                        <GlassTable
+                          columns={[
+                            { key: 'name', label: 'Servicio', width: '1fr' },
+                            { key: 'base_price', label: 'Precio base', width: '120px' },
+                            { key: 'duration_min', label: 'Duración', width: '100px' },
+                            { key: 'is_active', label: 'Estado', width: '100px' },
+                          ]}
+                          data={tenantDetails.servicios}
+                          rowKey="id"
+                        />
+                      )}
+                    </div>
+                  </motion.div>
+                ) : null}
+              </div>
+
+              {/* Footer */}
+              <div style={{
+                padding: '24px',
+                borderTop: '1px solid rgba(255,255,255,0.08)',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '12px',
+              }}>
+                <button
+                  onClick={() => {
+                    setShowDetailsModal(false);
+                    setSelectedTenant(null);
+                    setTenantDetails(null);
+                    setErrorDetails(null);
+                  }}
+                  style={{
+                    padding: '10px 20px',
+                    background: 'transparent',
+                    color: 'rgba(255,255,255,0.7)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+                  }}
+                >
+                  Cerrar
+                </button>
+                {tenantDetails && (
+                  <>
+                    <button
+                      onClick={() => toggleTenantStatus(tenantDetails.id, tenantDetails.is_active)}
                       style={{
                         padding: '10px 20px',
-                        background: 'transparent',
-                        color: '#e94560',
-                        border: '1px solid #e94560',
+                        background: tenantDetails.is_active ? 'rgba(200,169,126,0.1)' : 'transparent',
+                        color: tenantDetails.is_active ? '#C8A97E' : 'rgba(255,255,255,0.7)',
+                        border: `1px solid ${tenantDetails.is_active ? '#C8A97E' : 'rgba(255,255,255,0.2)'}`,
                         borderRadius: '8px',
                         fontSize: '14px',
                         fontWeight: 500,
                         cursor: 'pointer',
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = tenantDetails.is_active
+                          ? 'rgba(200,169,126,0.2)'
+                          : 'rgba(255,255,255,0.05)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = tenantDetails.is_active
+                          ? 'rgba(200,169,126,0.1)'
+                          : 'transparent';
                       }}
                     >
-                      Eliminar barbería
+                      {tenantDetails.is_active ? 'Desactivar' : 'Activar'}
                     </button>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+                    {!tenantDetails.is_active && (
+                      <button
+                        onClick={() => {
+                          setShowDetailsModal(false);
+                          handleDeleteTenant(selectedTenant);
+                        }}
+                        style={{
+                          padding: '10px 20px',
+                          background: 'transparent',
+                          color: '#e94560',
+                          border: '1px solid #e94560',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          fontWeight: 500,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(233,69,96,0.1)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        Eliminar barbería
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            </GlassCard>
+          </motion.div>
+        </motion.div>
       )}
 
-      {/* Modal de confirmación de eliminación */}
+      {/* Modal de confirmación de eliminación - Glassmorphism version */}
       {showDeleteModal && selectedTenant && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1001,
-          padding: '20px',
-        }}>
-          <div style={{
-            backgroundColor: '#1a1a1a',
-            borderRadius: '16px',
-            border: '1px solid #383838',
-            maxWidth: '500px',
-            width: '100%',
-            padding: '24px',
-          }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#ffffff', marginBottom: '16px' }}>
-              ⚠️ Eliminar barbería "{selectedTenant.name}"
-            </h2>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1001,
+            padding: '20px',
+            backdropFilter: 'blur(10px)',
+          }}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', damping: 25 }}
+            style={{
+              maxWidth: '500px',
+              width: '100%',
+            }}
+          >
+            <GlassCard className="p-6">
+              <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#ffffff', marginBottom: '16px' }}>
+                ⚠️ Eliminar barbería "{selectedTenant.name}"
+              </h2>
 
-            <div style={{ marginBottom: '24px' }}>
-              <p style={{ color: '#ffffff', marginBottom: '12px' }}>
-                <strong>Esta acción no se puede deshacer.</strong>
-              </p>
-              <p style={{ color: '#999999', fontSize: '14px', marginBottom: '12px' }}>
-                Se eliminarán permanentemente todos los datos asociados a esta barbería:
-              </p>
-              <ul style={{ color: '#999999', fontSize: '14px', paddingLeft: '20px', marginBottom: '16px' }}>
-                <li>Perfiles de barberos y dueños</li>
-                <li>Catálogo completo de servicios</li>
-                <li>Historial de turnos y atenciones</li>
-                <li>Registros de facturación</li>
-              </ul>
-              <p style={{ color: '#e94560', fontSize: '14px' }}>
-                Asegúrate de que la barbería esté inactiva y no tenga turnos abiertos antes de continuar.
-              </p>
-            </div>
-
-            <div style={{ marginBottom: '24px' }}>
-              <p style={{ color: '#ffffff', marginBottom: '8px' }}>
-                Para confirmar, escribe el slug de la barbería:
-              </p>
-              <p style={{ color: 'var(--secondary, #C8A97E)', fontFamily: 'monospace', fontSize: '14px', marginBottom: '12px' }}>
-                {selectedTenant.slug}
-              </p>
-              <input
-                type="text"
-                value={deleteConfirmationText}
-                onChange={(e) => setDeleteConfirmationText(e.target.value)}
-                placeholder={`Escribe "${selectedTenant.slug}"`}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  backgroundColor: '#242424',
-                  border: `1px solid ${deleteConfirmationText === selectedTenant.slug ? 'var(--secondary, #C8A97E)' : '#383838'}`,
-                  borderRadius: '8px',
-                  color: '#ffffff',
-                  fontSize: '14px',
-                  outline: 'none',
-                }}
-                disabled={deleting}
-              />
-              {deleteConfirmationText && deleteConfirmationText !== selectedTenant.slug && (
-                <p style={{ color: '#e94560', fontSize: '14px', marginTop: '8px' }}>
-                  El texto no coincide con el slug
+              <div style={{ marginBottom: '24px' }}>
+                <p style={{ color: '#ffffff', marginBottom: '12px' }}>
+                  <strong>Esta acción no se puede deshacer.</strong>
                 </p>
-              )}
-            </div>
+                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '12px' }}>
+                  Se eliminarán permanentemente todos los datos asociados a esta barbería:
+                </p>
+                <ul style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', paddingLeft: '20px', marginBottom: '16px' }}>
+                  <li>Perfiles de barberos y dueños</li>
+                  <li>Catálogo completo de servicios</li>
+                  <li>Historial de turnos y atenciones</li>
+                  <li>Registros de facturación</li>
+                </ul>
+                <p style={{ color: '#e94560', fontSize: '14px' }}>
+                  Asegúrate de que la barbería esté inactiva y no tenga turnos abiertos antes de continuar.
+                </p>
+              </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <button
-                onClick={() => {
-                  setShowDeleteModal(false)
-                  setDeleteConfirmationText('')
-                }}
-                disabled={deleting}
-                style={{
-                  padding: '10px 20px',
-                  background: 'transparent',
-                  color: '#999999',
-                  border: '1px solid #383838',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  opacity: deleting ? 0.5 : 1,
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={confirmDelete}
-                disabled={deleteConfirmationText !== selectedTenant.slug || deleting}
-                style={{
-                  padding: '10px 20px',
-                  background: '#e94560',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: deleteConfirmationText === selectedTenant.slug && !deleting ? 'pointer' : 'not-allowed',
-                  opacity: deleteConfirmationText === selectedTenant.slug && !deleting ? 1 : 0.5,
-                }}
-              >
-                {deleting ? 'Eliminando...' : 'Eliminar permanentemente'}
-              </button>
-            </div>
-          </div>
-        </div>
+              <div style={{ marginBottom: '24px' }}>
+                <p style={{ color: '#ffffff', marginBottom: '8px' }}>
+                  Para confirmar, escribe el slug de la barbería:
+                </p>
+                <p style={{ color: '#C8A97E', fontFamily: 'monospace', fontSize: '14px', marginBottom: '12px' }}>
+                  {selectedTenant.slug}
+                </p>
+                <input
+                  type="text"
+                  value={deleteConfirmationText}
+                  onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                  placeholder={`Escribe "${selectedTenant.slug}"`}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    border: `1px solid ${deleteConfirmationText === selectedTenant.slug ? '#C8A97E' : 'rgba(255,255,255,0.2)'}`,
+                    borderRadius: '8px',
+                    color: '#ffffff',
+                    fontSize: '14px',
+                    outline: 'none',
+                    transition: 'border-color 0.2s',
+                  }}
+                  disabled={deleting}
+                />
+                {deleteConfirmationText && deleteConfirmationText !== selectedTenant.slug && (
+                  <p style={{ color: '#e94560', fontSize: '14px', marginTop: '8px' }}>
+                    El texto no coincide con el slug
+                  </p>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeleteConfirmationText('');
+                  }}
+                  disabled={deleting}
+                  style={{
+                    padding: '10px 20px',
+                    background: 'transparent',
+                    color: 'rgba(255,255,255,0.7)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    opacity: deleting ? 0.5 : 1,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!deleting) {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!deleting) {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+                    }
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={deleteConfirmationText !== selectedTenant.slug || deleting}
+                  style={{
+                    padding: '10px 20px',
+                    background: '#e94560',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    cursor: deleteConfirmationText === selectedTenant.slug && !deleting ? 'pointer' : 'not-allowed',
+                    opacity: deleteConfirmationText === selectedTenant.slug && !deleting ? 1 : 0.5,
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (deleteConfirmationText === selectedTenant.slug && !deleting) {
+                      e.currentTarget.style.background = '#ff5773';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (deleteConfirmationText === selectedTenant.slug && !deleting) {
+                      e.currentTarget.style.background = '#e94560';
+                    }
+                  }}
+                >
+                  {deleting ? 'Eliminando...' : 'Eliminar permanentemente'}
+                </button>
+              </div>
+            </GlassCard>
+          </motion.div>
+        </motion.div>
       )}
 
       {/* Global styles for spinner animation */}
