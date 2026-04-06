@@ -5,6 +5,50 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+/**
+ * Convert a timestamp to UTC, assuming Argentina local time (UTC-3) if no timezone offset is provided.
+ * If the timestamp already ends with 'Z', it's already UTC.
+ */
+function convertToUTC(timestamp: string): string {
+  if (timestamp.endsWith('Z')) {
+    return timestamp
+  }
+  // If timestamp already contains a timezone offset (e.g., +/-HH:mm), let Date handle it
+  if (timestamp.includes('+') || timestamp.includes('-') && timestamp.lastIndexOf('-') > 10) {
+    // Has offset, let Date parse it
+    return new Date(timestamp).toISOString()
+  }
+  // No offset, assume Argentina local time (UTC-3)
+  // Append '-03:00' to indicate Argentina offset
+  const withOffset = timestamp + '-03:00'
+  return new Date(withOffset).toISOString()
+}
+
+/**
+ * Get UTC start and end of the current Argentina day.
+ * Returns ISO strings in UTC for filtering Supabase timestamps.
+ */
+function getArgentinaDayRange(): { start: string; end: string } {
+  const nowUTC = new Date()
+  const argentinaTime = new Date(nowUTC.getTime() - (3 * 60 * 60 * 1000))
+  const year = argentinaTime.getUTCFullYear()
+  const month = argentinaTime.getUTCMonth()
+  const day = argentinaTime.getUTCDate()
+
+  // Start of Argentina day (00:00 Argentina) in UTC
+  const startArgentina = new Date(Date.UTC(year, month, day, 0, 0, 0, 0))
+  const startUTC = new Date(startArgentina.getTime() + (3 * 60 * 60 * 1000))
+
+  // End of Argentina day (23:59:59.999 Argentina) in UTC
+  const endArgentina = new Date(Date.UTC(year, month, day, 23, 59, 59, 999))
+  const endUTC = new Date(endArgentina.getTime() + (3 * 60 * 60 * 1000))
+
+  return {
+    start: startUTC.toISOString(),
+    end: endUTC.toISOString()
+  }
+}
+
 interface CommissionRule {
   from_service: number
   to_service: number | null
@@ -150,6 +194,9 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
+    // Convertir started_at a UTC (asume hora Argentina si no tiene offset)
+    const startedAtUTC = convertToUTC(body.started_at)
+
     // 1. Get barber profile to obtain tenant_id
     const { data: barberProfile, error: barberError } = await supabase
       .from('profiles')
@@ -218,10 +265,10 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       attentionQuery = attentionQuery.eq('shift_id', body.shift_id)
     } else {
       // Si no hay shift_id, contar por día (backward compatibility)
-      const today = new Date().toISOString().split('T')[0]
+      const { start, end } = getArgentinaDayRange()
       attentionQuery = attentionQuery
-        .gte('started_at', `${today}T00:00:00`)
-        .lte('started_at', `${today}T23:59:59`)
+        .gte('started_at', start)
+        .lte('started_at', end)
     }
 
     const { count: attentionCount, error: attentionError } = await attentionQuery
@@ -279,7 +326,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       total_price: totalPrice,
       total_barber_earning: totalBarberEarning,
       total_owner_earning: totalOwnerEarning,
-      started_at: body.started_at,
+      started_at: startedAtUTC,
       ended_at: null, // según decisión del usuario
       status: 'completed',
     }
@@ -319,10 +366,10 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     if (body.shift_id) {
       serviceCountQuery = serviceCountQuery.eq('shift_id', body.shift_id)
     } else {
-      const today = new Date().toISOString().split('T')[0]
+      const { start, end } = getArgentinaDayRange()
       serviceCountQuery = serviceCountQuery
-        .gte('started_at', `${today}T00:00:00`)
-        .lte('started_at', `${today}T23:59:59`)
+        .gte('started_at', start)
+        .lte('started_at', end)
     }
 
     const { count: serviceCount, error: serviceCountError } = await serviceCountQuery
@@ -356,7 +403,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
         owner_earning: totalOwnerEarning * (service.price_charged / totalPrice),
         service_number_today: serviceNumberToday,
         appointment_id: appointment.id,
-        started_at: body.started_at,
+        started_at: startedAtUTC,
         ended_at: null,
         status: 'completed',
         shift_id: body.shift_id ?? null,

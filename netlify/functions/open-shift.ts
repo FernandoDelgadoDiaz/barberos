@@ -5,6 +5,43 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+/**
+ * Get current UTC time adjusted for Argentina timezone (UTC-3).
+ * Returns ISO string in UTC representing the current Argentina local time.
+ */
+function getArgentinaUTCNow(): string {
+  // Argentina is UTC-3, so subtract 3 hours from UTC to get Argentina time,
+  // then convert to UTC ISO string (which will be the UTC representation of that Argentina time).
+  const nowUTC = new Date()
+  const argentinaTime = new Date(nowUTC.getTime() - (3 * 60 * 60 * 1000))
+  return argentinaTime.toISOString()
+}
+
+/**
+ * Get UTC start and end of the current Argentina day.
+ * Returns ISO strings in UTC for filtering Supabase timestamps.
+ */
+function getArgentinaDayRange(): { start: string; end: string } {
+  const nowUTC = new Date()
+  const argentinaTime = new Date(nowUTC.getTime() - (3 * 60 * 60 * 1000))
+  const year = argentinaTime.getUTCFullYear()
+  const month = argentinaTime.getUTCMonth()
+  const day = argentinaTime.getUTCDate()
+
+  // Start of Argentina day (00:00 Argentina) in UTC
+  const startArgentina = new Date(Date.UTC(year, month, day, 0, 0, 0, 0))
+  const startUTC = new Date(startArgentina.getTime() + (3 * 60 * 60 * 1000))
+
+  // End of Argentina day (23:59:59.999 Argentina) in UTC
+  const endArgentina = new Date(Date.UTC(year, month, day, 23, 59, 59, 999))
+  const endUTC = new Date(endArgentina.getTime() + (3 * 60 * 60 * 1000))
+
+  return {
+    start: startUTC.toISOString(),
+    end: endUTC.toISOString()
+  }
+}
+
 interface RequestBody {
   barber_id: string
   tenant_id?: string // optional, will be validated against barber's tenant
@@ -98,9 +135,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     }
 
     // 2. Check for any shift today for this barber + tenant (any status)
-    const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
-    const todayStart = `${today}T00:00:00Z`
-    const todayEnd = `${today}T23:59:59Z`
+    const { start: todayStart, end: todayEnd } = getArgentinaDayRange()
 
     const { data: todayShift, error: todayShiftError } = await supabase
       .from('shifts')
@@ -166,8 +201,9 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     const newShift: Omit<Shift, 'id'> = {
       tenant_id: tenantId,
       barber_id: body.barber_id,
-      started_at: new Date().toISOString(),
+      started_at: getArgentinaUTCNow(),
       closed_at: null,
+      paused_at: null,
       status: 'open',
       total_services: 0,
       total_revenue: 0,
