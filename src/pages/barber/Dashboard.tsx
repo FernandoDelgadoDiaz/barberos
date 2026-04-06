@@ -24,13 +24,13 @@ export function Dashboard() {
   const [error, setError] = useState<string | null>(null)
   const [shiftStatus, setShiftStatus] = useState<'loading' | 'no_shift' | 'open' | 'paused' | 'closed'>('loading')
   const [currentShift, setCurrentShift] = useState<Shift | null>(null)
-  const [selectedService, setSelectedService] = useState<ServiceWithEstimation | null>(null)
+  const [selectedServices, setSelectedServices] = useState<ServiceWithEstimation[]>([])
   const [showConfirmModal, setShowConfirmModal] = useState(false)
-  const [showSelectionModal, setShowSelectionModal] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [shiftLoading, setShiftLoading] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [appointmentsCount, setAppointmentsCount] = useState<number>(0)
 
 
   useEffect(() => {
@@ -121,9 +121,34 @@ export function Dashboard() {
           estimatedEarning: applyCommission(commissionRules, nextServiceNumber, service.base_price),
         }))
 
+        // Count appointments for current shift (or today)
+        let appointmentsCount = 0
+        let appointmentsQuery = supabase
+          .from('appointments')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenant.id)
+          .eq('barber_id', profile.id)
+
+        if (activeShift) {
+          appointmentsQuery = appointmentsQuery.eq('shift_id', activeShift.id)
+        } else {
+          const today = new Date().toISOString().split('T')[0]
+          appointmentsQuery = appointmentsQuery
+            .gte('started_at', `${today}T00:00:00`)
+            .lte('started_at', `${today}T23:59:59`)
+        }
+
+        const { count, error: appointmentsError } = await appointmentsQuery
+        if (appointmentsError) {
+          console.error('Error counting appointments:', appointmentsError)
+        } else {
+          appointmentsCount = count || 0
+        }
+
         if (isMounted) {
           setServices(servicesWithEstimation)
           setTodayLogs(logsData || [])
+          setAppointmentsCount(appointmentsCount)
         }
       } catch (err: unknown) {
         console.error('Error loading dashboard data:', err)
@@ -255,18 +280,37 @@ export function Dashboard() {
     await handleOpenShift()
   }
 
-  const openConfirmModal = (service: ServiceWithEstimation) => {
+  const toggleServiceSelection = (service: ServiceWithEstimation) => {
     if (shiftStatus !== 'open') {
       setError('No hay un turno abierto. Inicia un turno para registrar servicios.')
       return
     }
-    setSelectedService(service)
-    setShowSelectionModal(false)
+    setSelectedServices(prev => {
+      const existing = prev.find(s => s.id === service.id)
+      if (existing) {
+        // Remove
+        return prev.filter(s => s.id !== service.id)
+      } else {
+        // Add
+        return [...prev, service]
+      }
+    })
+  }
+
+  const handleRegisterAttention = () => {
+    if (shiftStatus !== 'open') {
+      setError('No hay un turno abierto. Inicia un turno para registrar servicios.')
+      return
+    }
+    if (selectedServices.length === 0) {
+      setError('Selecciona al menos un servicio para registrar la atención.')
+      return
+    }
     setShowConfirmModal(true)
   }
 
-  const confirmService = async () => {
-    if (!selectedService || !tenant || !profile) return
+  const confirmAttention = async () => {
+    if (!tenant || !profile || selectedServices.length === 0) return
     if (shiftStatus !== 'open') {
       setError('No hay un turno abierto. Inicia un turno para registrar servicios.')
       return
@@ -276,13 +320,18 @@ export function Dashboard() {
     setError(null)
 
     try {
-      const response = await fetch('/api/log-service', {
+      const servicesPayload = selectedServices.map(s => ({
+        service_id: s.id,
+        price_charged: s.base_price,
+      }))
+
+      const response = await fetch('/.netlify/functions/log-service', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           barber_id: profile.id,
-          service_id: selectedService.id,
-          price_charged: selectedService.base_price,
+          tenant_id: tenant.id,
+          services: servicesPayload,
           started_at: new Date().toISOString(),
           shift_id: activeShiftId,
         }),
@@ -290,46 +339,30 @@ export function Dashboard() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Error al registrar servicio')
+        throw new Error(errorData.error || 'Error al registrar atención')
       }
 
       const result = await response.json()
 
       // Refresh data
-      const today = new Date().toISOString().split('T')[0]
-      const { data: logsData } = await supabase
-        .from('service_logs')
-        .select('*')
-        .eq('tenant_id', tenant.id)
-        .eq('barber_id', profile.id)
-        .eq('status', 'completed')
-        .gte('started_at', `${today}T00:00:00`)
-        .lte('started_at', `${today}T23:59:59`)
-        .order('started_at', { ascending: false })
-
-      setTodayLogs(logsData || [])
-
-      // Update services with new estimation (next service number increased)
-      const nextServiceNumber = (logsData?.length || 0) + 1
-      const commissionRules = tenant.commission_rules?.rules || []
-      const updatedServices = services.map(service => ({
-        ...service,
-        estimatedEarning: applyCommission(commissionRules, nextServiceNumber, service.base_price),
-      }))
-      setServices(updatedServices)
-
-      setSuccessMessage(`¡Servicio registrado! Ganancia: $${result.barber_earning.toLocaleString()}`)
-      setTimeout(() => setSuccessMessage(null), 5000)
+      setRefreshTrigger(prev => prev + 1)
+      // Clear selection
+      setSelectedServices([])
       setShowConfirmModal(false)
-      setSelectedService(null)
+
+      setSuccessMessage(`¡Atención registrada! ${result.message || ''}`)
+      setTimeout(() => setSuccessMessage(null), 5000)
     } catch (err: unknown) {
-      console.error('Error confirming service:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Error al registrar servicio'
+      console.error('Error confirming attention:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Error al registrar atención'
       setError(errorMessage)
     } finally {
       setProcessing(false)
     }
   }
+
+  const totalSelected = selectedServices.reduce((sum, s) => sum + s.base_price, 0)
+  const selectedCount = selectedServices.length
 
   if (loading) {
     return (
@@ -601,93 +634,133 @@ export function Dashboard() {
             </div>
           </div>
         </div>
+        <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#999', margin: 0 }}>Atenciones</h3>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '32px', color: '#fff', marginTop: '8px' }}>{appointmentsCount}</div>
+            </div>
+            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'var(--primary, #1a1a1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--secondary, #C8A97E)" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Services list */}
       {shiftStatus === 'open' && (
       <div className="services-catalog" style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
-        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#555', margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '1px' }}>Catálogo de servicios</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#555', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>Catálogo de servicios</h2>
+          {selectedCount > 0 && (
+            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', color: 'var(--secondary, #C8A97E)' }}>
+              {selectedCount} servicio{selectedCount !== 1 ? 's' : ''} seleccionado{selectedCount !== 1 ? 's' : ''} • Total: ${totalSelected.toLocaleString()}
+            </div>
+          )}
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {services.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '24px', color: '#999', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px' }}>
               No hay servicios configurados
             </div>
           ) : (
-            services.map((service) => (
-              <div
-                key={service.id}
-                className="service-item"
-                onClick={() => openConfirmModal(service)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px',
-                  background: '#2a2a2a',
-                  borderBottom: '1px solid #383838',
-                  cursor: shiftStatus !== 'open' ? 'not-allowed' : 'pointer',
-                  transition: 'border-color 0.2s',
-                  minHeight: '60px',
-                  opacity: shiftStatus !== 'open' ? 0.5 : 1,
-                }}
-                onMouseEnter={shiftStatus === 'open' ? (e) => e.currentTarget.style.borderColor = 'var(--secondary, #C8A97E)' : undefined}
-                onMouseLeave={shiftStatus === 'open' ? (e) => e.currentTarget.style.borderColor = '#383838' : undefined}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: 'var(--primary, #1a1a1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-7-7m7 7l-7 7" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="service-name" style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#fff' }}>{service.name}</div>
-                    <div className="service-estimated" style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '11px', color: '#999', marginTop: '2px' }}>
-                      Ganancia estimada: <span style={{ color: 'var(--secondary, #C8A97E)' }}>${service.estimatedEarning.toLocaleString()}</span>
+            services.map((service) => {
+              const isSelected = selectedServices.some(s => s.id === service.id)
+              return (
+                <div
+                  key={service.id}
+                  className="service-item"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px',
+                    background: '#2a2a2a',
+                    border: `1px solid ${isSelected ? 'var(--secondary, #C8A97E)' : '#383838'}`,
+                    borderRadius: '8px',
+                    minHeight: '60px',
+                    opacity: shiftStatus !== 'open' ? 0.5 : 1,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '4px',
+                        border: `2px solid ${isSelected ? 'var(--secondary, #C8A97E)' : '#555'}`,
+                        background: isSelected ? 'var(--secondary, #C8A97E)' : 'transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: shiftStatus === 'open' ? 'pointer' : 'not-allowed',
+                      }}
+                      onClick={() => shiftStatus === 'open' && toggleServiceSelection(service)}
+                    >
+                      {isSelected && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary, #1a1a1a)" strokeWidth="3">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: 'var(--primary, #1a1a1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-7-7m7 7l-7 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="service-name" style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#fff' }}>{service.name}</div>
+                      <div className="service-estimated" style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '11px', color: '#999', marginTop: '2px' }}>
+                        Ganancia estimada: <span style={{ color: 'var(--secondary, #C8A97E)' }}>${service.estimatedEarning.toLocaleString()}</span>
+                      </div>
                     </div>
                   </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--secondary, #C8A97E)' }}>${service.base_price.toLocaleString()}</div>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '11px', color: '#999' }}>{service.duration_min} min</div>
+                  </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--secondary, #C8A97E)' }}>${service.base_price.toLocaleString()}</div>
-                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '11px', color: '#999' }}>{service.duration_min} min</div>
-                </div>
-              </div>
-            ))
+              )
+            })
           )}
         </div>
       </div>
       )}
 
-      {/* Register service button (hidden when no services or day closed) */}
+      {/* Register attention button (hidden when no services or day closed) */}
       {services.length > 0 && shiftStatus === 'open' && (
         <button
-          onClick={() => setShowSelectionModal(true)}
+          onClick={handleRegisterAttention}
+          disabled={selectedCount === 0}
           style={{
             width: '100%',
             height: '52px',
-            background: 'var(--secondary, #C8A97E)',
-            color: 'var(--primary, #1a1a1a)',
+            background: selectedCount > 0 ? 'var(--secondary, #C8A97E)' : '#555',
+            color: selectedCount > 0 ? 'var(--primary, #1a1a1a)' : '#999',
             fontFamily: 'Space Grotesk, sans-serif',
             fontWeight: 600,
             fontSize: '16px',
             border: 'none',
             borderRadius: '12px',
             padding: '16px',
-            cursor: 'pointer',
+            cursor: selectedCount > 0 ? 'pointer' : 'not-allowed',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '8px',
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary, #1a1a1a)" strokeWidth="3">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selectedCount > 0 ? 'var(--primary, #1a1a1a)' : '#999'} strokeWidth="3">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
-          + Registrar servicio
+          {selectedCount > 0 ? `Registrar atención (${selectedCount} servicio${selectedCount !== 1 ? 's' : ''}) - Total: $${totalSelected.toLocaleString()}` : 'Selecciona servicios para registrar atención'}
         </button>
       )}
 
       {/* Confirmation Modal */}
-      {showConfirmModal && selectedService && (
+      {showConfirmModal && selectedServices.length > 0 && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -710,10 +783,10 @@ export function Dashboard() {
             alignSelf: 'center',
           }}>
             <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '16px' }}>
-              ¿Confirmar servicio?
+              ¿Registrar atención?
             </h2>
             <p style={{ color: '#999', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', marginBottom: '24px' }}>
-              Estás a punto de registrar el siguiente servicio:
+              Estás a punto de registrar {selectedCount} servicio{selectedCount !== 1 ? 's' : ''} para este cliente:
             </p>
 
             <div style={{
@@ -722,20 +795,18 @@ export function Dashboard() {
               borderRadius: '8px',
               padding: '20px',
               marginBottom: '24px',
+              maxHeight: '300px',
+              overflowY: 'auto',
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#fff' }}>
-                  {selectedService.name}
+              {selectedServices.map(service => (
+                <div key={service.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #383838' }}>
+                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#fff' }}>{service.name}</div>
+                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', color: 'var(--secondary, #C8A97E)' }}>${service.base_price.toLocaleString()}</div>
                 </div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 'clamp(18px, 4vw, 24px)', color: 'var(--secondary, #C8A97E)' }}>
-                  ${selectedService.base_price.toLocaleString()}
-                </div>
-              </div>
-              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#999' }}>
-                Duración: {selectedService.duration_min} min
-              </div>
-              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#999', marginTop: '8px' }}>
-                Tu ganancia estimada: <span style={{ fontSize: 'clamp(16px, 3vw, 20px)', fontWeight: 700 }}>${selectedService.estimatedEarning.toLocaleString()}</span>
+              ))}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px', marginTop: '8px', borderTop: '2px solid #383838' }}>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '16px', color: '#fff' }}>Total</div>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '20px', color: 'var(--secondary, #C8A97E)' }}>${totalSelected.toLocaleString()}</div>
               </div>
             </div>
 
@@ -758,7 +829,7 @@ export function Dashboard() {
                 Cancelar
               </button>
               <button
-                onClick={confirmService}
+                onClick={confirmAttention}
                 disabled={processing}
                 style={{
                   background: 'var(--secondary, #C8A97E)',
@@ -773,104 +844,13 @@ export function Dashboard() {
                   opacity: processing ? 0.6 : 1,
                 }}
               >
-                {processing ? 'Procesando...' : 'Confirmar servicio'}
+                {processing ? 'Procesando...' : 'Registrar atención'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Service Selection Modal */}
-      {showSelectionModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.7)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            background: '#242424',
-            border: '1px solid #383838',
-            borderRadius: '16px',
-            padding: '24px',
-            width: '90vw',
-            maxWidth: '480px',
-            maxHeight: '80vh',
-            overflowY: 'auto',
-          }}>
-            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '16px' }}>
-              Seleccionar servicio
-            </h2>
-            <p style={{ color: '#999', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', marginBottom: '20px' }}>
-              Elige el servicio que deseas registrar:
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {services.map((service) => (
-                <div
-                  key={service.id}
-                  onClick={() => openConfirmModal(service)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '12px 16px',
-                    background: '#2a2a2a',
-                    border: '1px solid #383838',
-                    borderRadius: '8px',
-                    cursor: shiftStatus !== 'open' ? 'not-allowed' : 'pointer',
-                    transition: 'border-color 0.2s',
-                    opacity: shiftStatus !== 'open' ? 0.5 : 1,
-                  }}
-                  onMouseEnter={shiftStatus === 'open' ? (e) => e.currentTarget.style.borderColor = 'var(--secondary, #C8A97E)' : undefined}
-                  onMouseLeave={shiftStatus === 'open' ? (e) => e.currentTarget.style.borderColor = '#383838' : undefined}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: 'var(--primary, #1a1a1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-7-7m7 7l-7 7" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#fff' }}>{service.name}</div>
-                      <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '11px', color: '#999', marginTop: '2px' }}>
-                        Ganancia estimada: <span style={{ color: 'var(--secondary, #C8A97E)' }}>${service.estimatedEarning.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--secondary, #C8A97E)' }}>${service.base_price.toLocaleString()}</div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '11px', color: '#999' }}>{service.duration_min} min</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
-              <button
-                onClick={() => setShowSelectionModal(false)}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid #383838',
-                  borderRadius: '6px',
-                  padding: '10px 20px',
-                  fontFamily: 'Space Grotesk, sans-serif',
-                  fontWeight: 500,
-                  fontSize: '14px',
-                  color: '#999',
-                  cursor: 'pointer',
-                }}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -17,15 +17,39 @@ interface CommissionRules {
   resets_daily: boolean
 }
 
-interface RequestBody {
-  barber_id: string
+// Interfaz para cada servicio en el array
+interface ServiceItem {
   service_id: string
   price_charged: number
+}
+
+// Request body actualizado: array de servicios
+interface RequestBody {
+  barber_id: string
+  services: ServiceItem[]  // Array requerido
   started_at: string
-  ended_at?: string
+  ended_at?: string        // Opcional, se ignora (ended_at será null)
   shift_id?: string
 }
 
+// Interfaz para appointment (local)
+interface Appointment {
+  id: string
+  tenant_id: string
+  barber_id: string
+  shift_id: string | null
+  attention_number: number
+  total_price: number
+  total_barber_earning: number
+  total_owner_earning: number
+  started_at: string
+  ended_at: string | null
+  status: string
+  created_at: string
+  updated_at: string | null
+}
+
+// Interfaz para service_log (local, con appointment_id)
 interface ServiceLog {
   tenant_id: string
   barber_id: string
@@ -34,6 +58,7 @@ interface ServiceLog {
   barber_earning: number
   owner_earning: number
   service_number_today: number
+  appointment_id: string | null
   started_at: string
   ended_at: string | null
   status: 'completed'
@@ -87,12 +112,32 @@ export const handler = async (event: NetlifyFunctionEvent) => {
   try {
     const body: RequestBody = JSON.parse(event.body)
 
-    // Validate required fields
-    if (!body.barber_id || !body.service_id || !body.price_charged || !body.started_at) {
+    // Validar required fields
+    if (!body.barber_id || !body.services || !body.started_at) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Missing required fields' }),
+        body: JSON.stringify({ error: 'Missing required fields: barber_id, services, started_at' }),
+      }
+    }
+
+    // Validar que services no esté vacío
+    if (body.services.length === 0) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Services array cannot be empty' }),
+      }
+    }
+
+    // Validar cada servicio
+    for (const service of body.services) {
+      if (!service.service_id || service.price_charged <= 0) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Each service must have service_id and positive price_charged' }),
+        }
       }
     }
 
@@ -153,10 +198,78 @@ export const handler = async (event: NetlifyFunctionEvent) => {
 
     const commissionRules = tenant.commission_rules as CommissionRules
 
-    // 4. Calculate service_number_today
-    // If shift_id provided, count services within that shift (ignore date)
-    // Otherwise, count services today (for backward compatibility)
-    let query = supabase
+    // 4. Calculate attention_number (número de atención en el turno o día)
+    let attentionQuery = supabase
+      .from('appointments')
+      .select('*', { count: 'exact', head: true })
+      .eq('barber_id', body.barber_id)
+      .eq('tenant_id', tenantId)
+
+    if (body.shift_id) {
+      attentionQuery = attentionQuery.eq('shift_id', body.shift_id)
+    } else {
+      // Si no hay shift_id, contar por día (backward compatibility)
+      const today = new Date().toISOString().split('T')[0]
+      attentionQuery = attentionQuery
+        .gte('started_at', `${today}T00:00:00`)
+        .lte('started_at', `${today}T23:59:59`)
+    }
+
+    const { count: attentionCount, error: attentionError } = await attentionQuery
+
+    if (attentionError) {
+      console.error('Attention count error:', attentionError)
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Failed to count appointments' }),
+      }
+    }
+
+    const attentionNumber = (attentionCount || 0) + 1 // +1 para esta nueva atención
+
+    // 5. Calcular total_price sumando todos los servicios
+    const totalPrice = body.services.reduce((sum, service) => sum + service.price_charged, 0)
+
+    // 6. Aplicar comisión sobre el TOTAL de la atención
+    const { barber: totalBarberEarning, owner: totalOwnerEarning } = applyCommission(
+      commissionRules.rules,
+      attentionNumber,
+      totalPrice
+    )
+
+    // 7. Crear appointment
+    const appointmentData = {
+      tenant_id: tenantId,
+      barber_id: body.barber_id,
+      shift_id: body.shift_id ?? null,
+      attention_number: attentionNumber,
+      total_price: totalPrice,
+      total_barber_earning: totalBarberEarning,
+      total_owner_earning: totalOwnerEarning,
+      started_at: body.started_at,
+      ended_at: null, // según decisión del usuario
+      status: 'completed',
+    }
+
+    const { data: appointment, error: appointmentError } = await supabase
+      .from('appointments')
+      .insert(appointmentData)
+      .select()
+      .single()
+
+    if (appointmentError) {
+      console.error('Appointment insert error:', appointmentError)
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Failed to create appointment' }),
+      }
+    }
+
+    // 8. Calcular service_number_today para cada servicio (individual)
+    // Contar servicios existentes para determinar el número base
+    let serviceCountQuery = supabase
       .from('service_logs')
       .select('*', { count: 'exact', head: true })
       .eq('barber_id', body.barber_id)
@@ -164,18 +277,20 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       .eq('status', 'completed')
 
     if (body.shift_id) {
-      query = query.eq('shift_id', body.shift_id)
+      serviceCountQuery = serviceCountQuery.eq('shift_id', body.shift_id)
     } else {
       const today = new Date().toISOString().split('T')[0]
-      query = query
+      serviceCountQuery = serviceCountQuery
         .gte('started_at', `${today}T00:00:00`)
         .lte('started_at', `${today}T23:59:59`)
     }
 
-    const { count, error: countError } = await query
+    const { count: serviceCount, error: serviceCountError } = await serviceCountQuery
 
-    if (countError) {
-      console.error('Count error:', countError)
+    if (serviceCountError) {
+      console.error('Service count error:', serviceCountError)
+      // Rollback: eliminar appointment recién creado
+      await supabase.from('appointments').delete().eq('id', appointment.id)
       return {
         statusCode: 500,
         headers,
@@ -183,58 +298,65 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
-    const serviceNumberToday = (count || 0) + 1 // +1 for this new service
+    let currentServiceNumber = serviceCount || 0
+    const serviceLogs: Omit<ServiceLog, 'id'>[] = []
+    const insertedServiceLogIds: string[] = []
 
-    // 5. Apply commission rule
-    const { barber, owner } = applyCommission(
-      commissionRules.rules,
-      serviceNumberToday,
-      body.price_charged
-    )
+    // 9. Insertar service_logs para cada servicio
+    for (let i = 0; i < body.services.length; i++) {
+      const service = body.services[i]
+      const serviceNumberToday = currentServiceNumber + i + 1
 
-    // 6. Insert service log
-    const serviceLog: Omit<ServiceLog, 'id' | 'created_at'> = {
-      tenant_id: tenantId,
-      barber_id: body.barber_id,
-      service_id: body.service_id,
-      price_charged: body.price_charged,
-      barber_earning: barber,
-      owner_earning: owner,
-      service_number_today: serviceNumberToday,
-      started_at: body.started_at,
-      ended_at: body.ended_at || null,
-      status: 'completed',
-      shift_id: body.shift_id ?? null,
-    }
-
-    const { data: insertedLog, error: insertError } = await supabase
-      .from('service_logs')
-      .insert(serviceLog)
-      .select()
-      .single()
-
-    if (insertError) {
-      console.error('Insert error:', insertError)
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ error: 'Failed to log service' }),
+      const serviceLog: Omit<ServiceLog, 'id'> = {
+        tenant_id: tenantId,
+        barber_id: body.barber_id,
+        service_id: service.service_id,
+        price_charged: service.price_charged,
+        barber_earning: totalBarberEarning * (service.price_charged / totalPrice),
+        owner_earning: totalOwnerEarning * (service.price_charged / totalPrice),
+        service_number_today: serviceNumberToday,
+        appointment_id: appointment.id,
+        started_at: body.started_at,
+        ended_at: null,
+        status: 'completed',
+        shift_id: body.shift_id ?? null,
       }
+
+      const { data: insertedLog, error: logError } = await supabase
+        .from('service_logs')
+        .insert(serviceLog)
+        .select()
+        .single()
+
+      if (logError) {
+        console.error('Service log insert error:', logError)
+        // Rollback: eliminar todos los service_logs insertados y el appointment
+        for (const logId of insertedServiceLogIds) {
+          await supabase.from('service_logs').delete().eq('id', logId)
+        }
+        await supabase.from('appointments').delete().eq('id', appointment.id)
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: `Failed to insert service log for service ${service.service_id}` }),
+        }
+      }
+
+      insertedServiceLogIds.push(insertedLog.id)
+      serviceLogs.push(insertedLog as ServiceLog)
     }
 
-    // 7. Return success
+    // 10. Return success
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        service_log_id: insertedLog.id,
-        barber_earning: barber,
-        owner_earning: owner,
-        service_number_today: serviceNumberToday,
-        rule_applied: commissionRules.rules.find(r =>
-          serviceNumberToday >= r.from_service &&
-          (r.to_service === null || serviceNumberToday <= r.to_service)
-        ),
+        appointment: appointment,
+        service_logs: serviceLogs,
+        message: `Attention #${attentionNumber} registered with ${body.services.length} services`,
+        total_price: totalPrice,
+        total_barber_earning: totalBarberEarning,
+        total_owner_earning: totalOwnerEarning,
       }),
     }
   } catch (error: unknown) {

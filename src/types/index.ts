@@ -54,6 +54,7 @@ export type ServiceLog = {
   barber_earning: number
   owner_earning: number
   service_number_today: number
+  appointment_id?: string | null  // Nueva referencia a appointment
   started_at: string
   ended_at: string | null
   status: string
@@ -86,4 +87,38 @@ export type Shift = {
   owner_earnings: number
   created_at?: string
   updated_at?: string | null
+}
+
+export type Appointment = {
+  id: string
+  tenant_id: string
+  barber_id: string
+  shift_id: string | null
+  attention_number: number
+  total_price: number
+  total_barber_earning: number
+  total_owner_earning: number
+  started_at: string
+  ended_at: string | null
+  status: string
+  created_at: string
+  updated_at: string | null
+}
+
+export interface ServiceItem {
+  service_id: string
+  price_charged: number
+}
+
+export interface LogServiceRequest {
+  barber_id: string
+  services: ServiceItem[]
+  started_at: string
+  ended_at?: string
+  shift_id?: string
+}
+
+export interface LogServiceResponse {
+  appointment: Appointment
+  service_logs: ServiceLog[]
 }
