@@ -37,19 +37,19 @@ function getArgentinaWeekRange(dateInArgentina: Date): { start: string; end: str
   // Clone the date to avoid mutation
   const date = new Date(dateInArgentina.getTime())
 
-  // Get day of week (0 = Sunday, 1 = Monday, ...)
-  const day = date.getDay()
+  // Get day of week in Argentina time (0 = Sunday, 1 = Monday, ...) using UTC methods
+  const day = date.getUTCDay()
 
   // Calculate Monday of this week (if Sunday, go back 6 days; otherwise go to Monday)
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1)
+  const diff = date.getUTCDate() - day + (day === 0 ? -6 : 1)
   const monday = new Date(date)
-  monday.setDate(diff)
-  monday.setHours(0, 0, 0, 0)
+  monday.setUTCDate(diff)
+  monday.setUTCHours(0, 0, 0, 0)
 
   // Sunday is 6 days after Monday
   const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
-  sunday.setHours(23, 59, 59, 999)
+  sunday.setUTCDate(monday.getUTCDate() + 6)
+  sunday.setUTCHours(23, 59, 59, 999)
 
   // Convert Argentina times to UTC for Supabase filtering
   const mondayUTC = toUTCDate(monday)
@@ -66,7 +66,7 @@ function getArgentinaWeekRange(dateInArgentina: Date): { start: string; end: str
  */
 function getPreviousArgentinaWeekRange(dateInArgentina: Date): { start: string; end: string } {
   const previousWeek = new Date(dateInArgentina.getTime())
-  previousWeek.setDate(dateInArgentina.getDate() - 7)
+  previousWeek.setUTCDate(dateInArgentina.getUTCDate() - 7)
   return getArgentinaWeekRange(previousWeek)
 }
 
@@ -76,11 +76,12 @@ function getPreviousArgentinaWeekRange(dateInArgentina: Date): { start: string; 
 function getArgentinaDateParts(utcISOString: string): { year: number; month: number; day: number; hour: number } {
   const utcDate = new Date(utcISOString)
   const argDate = toArgentinaDate(utcDate)
+  // Use UTC methods because argDate's internal time is already Argentina time
   return {
-    year: argDate.getFullYear(),
-    month: argDate.getMonth() + 1,
-    day: argDate.getDate(),
-    hour: argDate.getHours()
+    year: argDate.getUTCFullYear(),
+    month: argDate.getUTCMonth() + 1,
+    day: argDate.getUTCDate(),
+    hour: argDate.getUTCHours()
   }
 }
 
@@ -358,6 +359,27 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     const nowArgentina = getArgentinaNow()
     const currentWeek = getArgentinaWeekRange(nowArgentina)
     const previousWeek = getPreviousArgentinaWeekRange(nowArgentina)
+
+    // Debug logs for timezone verification
+    console.log('Timezone debug:', {
+      serverUTC: new Date().toISOString(),
+      argentinaNow: nowArgentina.toISOString(),
+      argentinaNowUTCHours: nowArgentina.getUTCHours(),
+      argentinaNowHours: nowArgentina.getHours(),
+      offsetMs: ARGENTINA_OFFSET_MS,
+      offsetHours: ARGENTINA_OFFSET_MS / (60 * 60 * 1000)
+    })
+    if (allLogs.length > 0) {
+      const sample = allLogs[0]
+      const parts = getArgentinaDateParts(sample.started_at)
+      console.log('Sample log conversion:', {
+        started_at: sample.started_at,
+        argentinaHour: parts.hour,
+        argentinaDay: parts.day,
+        argentinaMonth: parts.month,
+        argentinaYear: parts.year
+      })
+    }
 
     const currentWeekLogs = allLogs.filter(log => {
       const logDate = new Date(log.started_at)
