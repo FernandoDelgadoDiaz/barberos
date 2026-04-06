@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { supabase } from '../../config/supabase'
 import type { Tenant, Profile, ServiceCatalog } from '../../types'
 import { GlassCard } from '../../components/ui/GlassCard'
@@ -88,31 +88,6 @@ const BackgroundCircles = () => (
   </>
 )
 
-// CountUp component for animated numbers
-interface CountUpProps {
-  value: number
-  duration?: number
-  format?: (value: number) => string
-}
-
-function CountUp({ value, duration = 1.5, format }: CountUpProps) {
-  const nodeRef = useRef<HTMLSpanElement>(null)
-  const motionValue = useMotionValue(0)
-  const springValue = useSpring(motionValue, {
-    stiffness: 100,
-    damping: 30
-  })
-  const displayValue = useTransform(springValue, (latest) => {
-    return format ? format(Math.floor(latest)) : Math.floor(latest).toString()
-  })
-
-  useEffect(() => {
-    motionValue.set(value, { duration, ease: "easeOut" })
-    return () => motionValue.stop()
-  }, [value, duration, motionValue])
-
-  return <motion.span ref={nodeRef}>{displayValue}</motion.span>
-}
 
 
 type TenantWithStats = Tenant & {
