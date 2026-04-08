@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 import { useServiceLogsRealtime } from '../../hooks/useRealtime'
@@ -26,6 +26,7 @@ export function LivePanel() {
   const [barbers, setBarbers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [highlightBarberId, setHighlightBarberId] = useState<string | null>(null)
+  const isMounted = useRef(true)
 
   // Calculate totals
   const totalDay = logs.reduce((sum, log) => sum + log.price_charged, 0)
@@ -58,9 +59,17 @@ export function LivePanel() {
 
   // Load today's logs and active barbers
   const loadInitialData = useCallback(async () => {
-    if (!tenantId) return
+    if (!tenantId) {
+      if (isMounted.current) {
+        setLoading(false)
+      }
+      return
+    }
 
-    setLoading(true)
+    if (isMounted.current) {
+      setLoading(true)
+    }
+
     try {
       // Load today's service logs with barber names
       const today = new Date().toISOString().split('T')[0]
@@ -81,7 +90,9 @@ export function LivePanel() {
         ...log,
         barber_name: log.profiles.display_name
       }))
-      setLogs(logsWithBarber)
+      if (isMounted.current) {
+        setLogs(logsWithBarber)
+      }
 
       // Load all barbers for this tenant (no is_active filter)
       const { data: barbersData, error: barbersError } = await supabase
@@ -92,16 +103,43 @@ export function LivePanel() {
         .order('display_name')
 
       if (barbersError) throw barbersError
-      setBarbers(barbersData || [])
+      if (isMounted.current) {
+        setBarbers(barbersData || [])
+      }
     } catch (error) {
       console.error('Error loading initial data:', error)
     } finally {
-      setLoading(false)
+      if (isMounted.current) {
+        setLoading(false)
+      }
     }
   }, [tenantId])
 
   useEffect(() => {
-    loadInitialData()
+    isMounted.current = true
+
+    const loadDataWithTimeout = async () => {
+      const timeoutId = setTimeout(() => {
+        if (isMounted.current) {
+          console.warn('LivePanel loading timeout, forcing display')
+          setLoading(false)
+        }
+      }, 5000) // 5 second safety timeout
+
+      try {
+        await loadInitialData()
+      } finally {
+        if (isMounted.current) {
+          clearTimeout(timeoutId)
+        }
+      }
+    }
+
+    loadDataWithTimeout()
+
+    return () => {
+      isMounted.current = false
+    }
   }, [loadInitialData])
 
   // Handle new logs from realtime subscription
