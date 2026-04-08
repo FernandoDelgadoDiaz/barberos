@@ -39,7 +39,13 @@ const DollarIcon = () => (
   </svg>
 )
 
-// Background blur circles component
+const LogOutIcon = () => (
+	  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+	    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+	  </svg>
+	)
+
+	// Background blur circles component
 const BackgroundCircles = () => (
   <>
     <div
@@ -268,6 +274,15 @@ export function Tenants() {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount)
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut()
+      window.location.href = '/login'
+    } catch (err) {
+      console.error('Error signing out:', err)
+    }
   }
 
   // Eye icon for mobile actions
@@ -640,20 +655,52 @@ export function Tenants() {
           transition={{ duration: 0.6 }}
           style={{ marginBottom: '40px' }}
         >
-          <h1
-            style={{
-              fontSize: '32px',
-              fontWeight: 800,
-              color: '#ffffff',
-              marginBottom: '8px',
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            Gestión de Barberías
-          </h1>
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: "'Inter', sans-serif" }}>
-            Administrador del sistema • Superadmin
-          </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <h1
+                style={{
+                  fontSize: '32px',
+                  fontWeight: 800,
+                  color: '#ffffff',
+                  marginBottom: '8px',
+                  fontFamily: "'Inter', sans-serif",
+                }}
+              >
+                Gestión de Barberías
+              </h1>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: "'Inter', sans-serif" }}>
+                Administrador del sistema • Superadmin
+              </p>
+            </div>
+            <button
+              onClick={handleSignOut}
+              style={{
+                padding: '8px 16px',
+                background: 'transparent',
+                color: '#C8A97E',
+                border: '1px solid #C8A97E',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(200,169,126,0.1)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <LogOutIcon />
+              Cerrar sesión
+            </button>
+          </div>
         </motion.div>
 
         {/* Stats summary with GlassStatCard */}
