@@ -118,6 +118,16 @@ export function Tenants() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px)')
+    const handleChange = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    // Set initial
+    setIsMobile(mediaQuery.matches)
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  }, [])
 
   useEffect(() => {
     loadTenants()
@@ -260,191 +270,350 @@ export function Tenants() {
     }).format(amount)
   }
 
-  // Define columns for glass table
-  const columns: Column<TenantWithStats>[] = [
-    {
-      key: 'name',
-      label: 'Nombre',
-      width: '1.5fr',
-      render: (_, row) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              background: row.primary_color,
-              border: '1px solid rgba(255,255,255,0.1)',
-            }}
-          />
-          <div>
-            <div style={{ fontWeight: 600, color: '#ffffff', fontSize: '14px' }}>{row.name}</div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>
-              ID: {row.id.slice(0, 8)}...
+  // Eye icon for mobile actions
+  const EyeIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    </svg>
+  )
+
+  // Define columns for glass table (responsive)
+  const columns: Column<TenantWithStats>[] = isMobile
+    ? [
+        {
+          key: 'name',
+          label: 'Nombre',
+          width: '1.5fr',
+          render: (_, row) => (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: row.primary_color,
+                  border: '1px solid rgba(255,255,255,0.1)',
+                }}
+              />
+              <div style={{ fontWeight: 600, color: '#ffffff', fontSize: '14px' }}>
+                {row.name}
+              </div>
             </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'slug',
-      label: 'Slug',
-      width: '1fr',
-      render: (slug) => (
-        <div style={{ fontFamily: 'monospace', fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>
-          {slug}
-        </div>
-      ),
-    },
-    {
-      key: 'total_barberos',
-      label: 'Barberos',
-      width: '0.8fr',
-      align: 'center',
-      render: (value) => (
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontWeight: 700, color: '#ffffff', fontSize: '16px' }}>{value}</div>
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
-            activos
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'total_servicios',
-      label: 'Servicios',
-      width: '0.8fr',
-      align: 'center',
-      render: (value) => (
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontWeight: 700, color: '#ffffff', fontSize: '16px' }}>{value}</div>
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
-            registrados
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'total_facturado',
-      label: 'Facturado',
-      width: '1fr',
-      align: 'right',
-      render: (value) => (
-        <div style={{ fontWeight: 700, color: '#C8A97E', fontSize: '15px', textAlign: 'right' }}>
-          {formatCurrency(value)}
-        </div>
-      ),
-    },
-    {
-      key: 'is_active',
-      label: 'Estado',
-      width: '0.8fr',
-      align: 'center',
-      render: (value, row) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            toggleTenantStatus(row.id, row.is_active)
-          }}
-          style={{
-            padding: '6px 12px',
-            background: value ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
-            color: value ? 'rgba(34,197,94,0.9)' : 'rgba(239,68,68,0.9)',
-            border: `1px solid ${value ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
-            borderRadius: '9999px',
-            fontSize: '12px',
-            fontWeight: 500,
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.05)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)';
-          }}
-        >
-          {value ? 'Activo' : 'Inactivo'}
-        </button>
-      ),
-    },
-    {
-      key: 'created_at',
-      label: 'Creado',
-      width: '0.9fr',
-      render: (value) => (
-        <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
-          {new Date(value).toLocaleDateString('es-AR')}
-        </div>
-      ),
-    },
-    {
-      key: 'actions',
-      label: 'Acciones',
-      width: '1.2fr',
-      align: 'center',
-      render: (_, row) => (
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              handleViewDetails(row)
-            }}
-            style={{
-              padding: '8px 16px',
-              background: 'transparent',
-              color: '#C8A97E',
-              border: '1px solid #C8A97E',
-              borderRadius: '8px',
-              fontSize: '13px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(200,169,126,0.1)';
-              e.currentTarget.style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-          >
-            Ver detalles
-          </button>
-          {!row.is_active && (
+          ),
+        },
+        {
+          key: 'total_barberos',
+          label: 'Barberos',
+          width: '0.8fr',
+          align: 'center',
+          render: (value) => (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 700, color: '#ffffff', fontSize: '16px' }}>{value}</div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
+                activos
+              </div>
+            </div>
+          ),
+        },
+        {
+          key: 'total_facturado',
+          label: 'Facturado',
+          width: '1fr',
+          align: 'right',
+          render: (value) => (
+            <div style={{ fontWeight: 700, color: '#C8A97E', fontSize: '15px', textAlign: 'right' }}>
+              {formatCurrency(value)}
+            </div>
+          ),
+        },
+        {
+          key: 'is_active',
+          label: 'Estado',
+          width: '0.8fr',
+          align: 'center',
+          render: (value, row) => (
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                handleDeleteTenant(row)
+                toggleTenantStatus(row.id, row.is_active)
               }}
               style={{
-                padding: '8px 16px',
-                background: 'transparent',
-                color: '#e94560',
-                border: '1px solid #e94560',
-                borderRadius: '8px',
-                fontSize: '13px',
+                padding: '6px 12px',
+                background: value ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+                color: value ? 'rgba(34,197,94,0.9)' : 'rgba(239,68,68,0.9)',
+                border: `1px solid ${value ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                borderRadius: '9999px',
+                fontSize: '12px',
                 fontWeight: 500,
                 cursor: 'pointer',
                 transition: 'all 0.2s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(233,69,96,0.1)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.transform = 'scale(1.05)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.transform = 'scale(1)'
               }}
             >
-              Eliminar
+              {value ? 'Activo' : 'Inactivo'}
             </button>
-          )}
-        </div>
-      ),
-    },
-  ]
+          ),
+        },
+        {
+          key: 'actions',
+          label: 'Acciones',
+          width: '1fr',
+          align: 'center',
+          render: (_, row) => (
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleViewDetails(row)
+                }}
+                style={{
+                  padding: '8px',
+                  background: 'transparent',
+                  color: '#C8A97E',
+                  border: '1px solid #C8A97E',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(200,169,126,0.1)'
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent'
+                  e.currentTarget.style.transform = 'translateY(0)'
+                }}
+              >
+                <EyeIcon />
+              </button>
+              {!row.is_active && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDeleteTenant(row)
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    background: 'transparent',
+                    color: '#e94560',
+                    border: '1px solid #e94560',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(233,69,96,0.1)'
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent'
+                    e.currentTarget.style.transform = 'translateY(0)'
+                  }}
+                >
+                  Eliminar
+                </button>
+              )}
+            </div>
+          ),
+        },
+      ]
+    : [
+        {
+          key: 'name',
+          label: 'Nombre',
+          width: '1.5fr',
+          render: (_, row) => (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: row.primary_color,
+                  border: '1px solid rgba(255,255,255,0.1)',
+                }}
+              />
+              <div>
+                <div style={{ fontWeight: 600, color: '#ffffff', fontSize: '14px' }}>{row.name}</div>
+                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>
+                  ID: {row.id.slice(0, 8)}...
+                </div>
+              </div>
+            </div>
+          ),
+        },
+        {
+          key: 'slug',
+          label: 'Slug',
+          width: '1fr',
+          render: (slug) => (
+            <div style={{ fontFamily: 'monospace', fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>
+              {slug}
+            </div>
+          ),
+        },
+        {
+          key: 'total_barberos',
+          label: 'Barberos',
+          width: '0.8fr',
+          align: 'center',
+          render: (value) => (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 700, color: '#ffffff', fontSize: '16px' }}>{value}</div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
+                activos
+              </div>
+            </div>
+          ),
+        },
+        {
+          key: 'total_servicios',
+          label: 'Servicios',
+          width: '0.8fr',
+          align: 'center',
+          render: (value) => (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 700, color: '#ffffff', fontSize: '16px' }}>{value}</div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
+                registrados
+              </div>
+            </div>
+          ),
+        },
+        {
+          key: 'total_facturado',
+          label: 'Facturado',
+          width: '1fr',
+          align: 'right',
+          render: (value) => (
+            <div style={{ fontWeight: 700, color: '#C8A97E', fontSize: '15px', textAlign: 'right' }}>
+              {formatCurrency(value)}
+            </div>
+          ),
+        },
+        {
+          key: 'is_active',
+          label: 'Estado',
+          width: '0.8fr',
+          align: 'center',
+          render: (value, row) => (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                toggleTenantStatus(row.id, row.is_active)
+              }}
+              style={{
+                padding: '6px 12px',
+                background: value ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+                color: value ? 'rgba(34,197,94,0.9)' : 'rgba(239,68,68,0.9)',
+                border: `1px solid ${value ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                borderRadius: '9999px',
+                fontSize: '12px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)'
+              }}
+            >
+              {value ? 'Activo' : 'Inactivo'}
+            </button>
+          ),
+        },
+        {
+          key: 'created_at',
+          label: 'Creado',
+          width: '0.9fr',
+          render: (value) => (
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
+              {new Date(value).toLocaleDateString('es-AR')}
+            </div>
+          ),
+        },
+        {
+          key: 'actions',
+          label: 'Acciones',
+          width: '1.2fr',
+          align: 'center',
+          render: (_, row) => (
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleViewDetails(row)
+                }}
+                style={{
+                  padding: '8px 16px',
+                  background: 'transparent',
+                  color: '#C8A97E',
+                  border: '1px solid #C8A97E',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(200,169,126,0.1)'
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent'
+                  e.currentTarget.style.transform = 'translateY(0)'
+                }}
+              >
+                Ver detalles
+              </button>
+              {!row.is_active && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDeleteTenant(row)
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    background: 'transparent',
+                    color: '#e94560',
+                    border: '1px solid #e94560',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(233,69,96,0.1)'
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent'
+                    e.currentTarget.style.transform = 'translateY(0)'
+                  }}
+                >
+                  Eliminar
+                </button>
+              )}
+            </div>
+          ),
+        },
+      ]
 
   return (
     <motion.div
@@ -554,6 +723,7 @@ export function Tenants() {
               loading={loading}
               emptyMessage="No hay barberías registradas"
               onRowClick={(tenant) => handleViewDetails(tenant)}
+              rowPadding={isMobile ? '24px 20px' : '16px 20px'}
             />
 
             {/* Table footer */}

@@ -29,7 +29,7 @@ export function GlassCard({ children, className = '', glowColor, hoverGlow = tru
     <div
       className={`relative rounded-2xl overflow-hidden ${className}`}
       style={{
-        background: 'rgba(255,255,255,0.03)',
+        background: 'rgba(255,255,255,0.05)',
         backdropFilter: 'blur(20px) saturate(180%)',
         WebkitBackdropFilter: 'blur(20px) saturate(180%)',
         border: isHovered ? '1px solid rgba(200,169,126,0.3)' : '1px solid rgba(255,255,255,0.08)',

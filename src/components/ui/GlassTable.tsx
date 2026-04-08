@@ -17,6 +17,7 @@ interface GlassTableProps<T> {
   loading?: boolean
   emptyMessage?: string
   onRowClick?: (row: T, index: number) => void
+  rowPadding?: string
 }
 
 export function GlassTable<T extends Record<string, any>>({
@@ -26,6 +27,7 @@ export function GlassTable<T extends Record<string, any>>({
   loading = false,
   emptyMessage = 'No hay datos disponibles',
   onRowClick,
+  rowPadding = '16px 20px',
 }: GlassTableProps<T>) {
   const getRowKey = (row: T, index: number): string => {
     if (typeof rowKey === 'function') return rowKey(row, index)
@@ -162,7 +164,7 @@ export function GlassTable<T extends Record<string, any>>({
             style={{
               display: 'grid',
               gridTemplateColumns: columns.map(col => col.width || '1fr').join(' '),
-              padding: '16px 20px',
+              padding: rowPadding,
               borderBottom: '1px solid rgba(255,255,255,0.05)',
               cursor: onRowClick ? 'pointer' : 'default',
               transition: 'background 0.2s ease',
