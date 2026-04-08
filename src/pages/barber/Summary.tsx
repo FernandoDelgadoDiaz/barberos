@@ -50,9 +50,9 @@ export function Summary() {
         console.log('[Summary] Safety timeout triggered, forcing loading false')
         if (isMounted) {
           setLoading(false)
-          setError('La carga está tomando más tiempo de lo esperado. Mostrando datos disponibles.')
+          // setError('La carga está tomando más tiempo de lo esperado. Mostrando datos disponibles.')
         }
-      }, 5000)
+      }, 10000)
 
       try {
         const today = new Date().toISOString().split('T')[0]

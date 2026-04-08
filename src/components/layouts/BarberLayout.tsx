@@ -23,8 +23,14 @@ export function BarberLayout() {
     ?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'BB'
 
   const handleSignOut = async () => {
-    await signOut()
-    navigate('/login')
+    try {
+      await signOut()
+      navigate('/login')
+    } catch (err) {
+      console.error('Error al cerrar sesión:', err)
+      // Forzar navegación a login de todos modos
+      navigate('/login')
+    }
   }
 
   return (
