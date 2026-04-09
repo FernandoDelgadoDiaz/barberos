@@ -5,6 +5,23 @@ import { useServiceLogsRealtime } from '../../hooks/useRealtime'
 import { ExpandableBarberCard } from '../../components/owner/ExpandableBarberCard'
 import type { ServiceLog, Profile } from '../../types'
 
+function getArgentinaDateString(date = new Date()): string {
+  return date.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
+}
+
+function getArgentinaDayRangeUTC(date = new Date()): { startUTC: string; endUTC: string } {
+  // Argentina is UTC-3 (no DST since 2009)
+  const argDate = getArgentinaDateString(date)
+  // Start of day Argentina is 03:00 UTC of the same date
+  const startUTC = `${argDate}T03:00:00Z`
+  // End of day Argentina is 02:59:59.999Z of the next day
+  const nextDay = new Date(date)
+  nextDay.setDate(nextDay.getDate() + 1)
+  const argNextDate = getArgentinaDateString(nextDay)
+  const endUTC = `${argNextDate}T02:59:59.999Z`
+  return { startUTC, endUTC }
+}
+
 
 type ServiceLogSupabaseResponse = ServiceLog & {
   profiles: { display_name: string }
@@ -130,10 +147,11 @@ export function LivePanel() {
 
     try {
       // Load today's service logs with barber names
-      const today = new Date().toISOString().split('T')[0]
+      const todayArgentina = getArgentinaDateString()
       if (isMounted.current) {
-        setCurrentDate(today)
+        setCurrentDate(todayArgentina)
       }
+      const { startUTC, endUTC } = getArgentinaDayRangeUTC()
       const { data: logsData, error: logsError } = await supabase
         .from('service_logs')
         .select(`
@@ -142,8 +160,8 @@ export function LivePanel() {
           appointments!inner(total_price, total_barber_earning, total_owner_earning)
         `)
         .eq('tenant_id', tenantId)
-        .gte('started_at', `${today}T00:00:00`)
-        .lte('started_at', `${today}T23:59:59`)
+        .gte('started_at', startUTC)
+        .lte('started_at', endUTC)
         .order('started_at', { ascending: false })
 
       if (logsError) throw logsError
@@ -212,8 +230,8 @@ export function LivePanel() {
     if (!tenantId) return
 
     const checkDateChange = () => {
-      const today = new Date().toISOString().split('T')[0]
-      if (currentDate && currentDate !== today) {
+      const todayArgentina = getArgentinaDateString()
+      if (currentDate && currentDate !== todayArgentina) {
         console.log('Day changed, reloading data')
         loadInitialData()
       }
