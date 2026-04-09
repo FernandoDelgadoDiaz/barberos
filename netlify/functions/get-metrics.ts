@@ -23,6 +23,20 @@ function toUTCDate(argDate: Date): Date {
 }
 
 /**
+ * Get day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday) in Argentina timezone
+ */
+function getArgentinaDayOfWeek(dateInArgentina: Date): number {
+  // dateInArgentina is already adjusted to Argentina time
+  // Get Argentina date components
+  const year = dateInArgentina.getUTCFullYear()
+  const month = dateInArgentina.getUTCMonth()
+  const day = dateInArgentina.getUTCDate()
+  // Create a UTC date at noon of that Argentina date (avoids timezone crossing issues)
+  const utcNoon = new Date(Date.UTC(year, month, day, 12, 0, 0))
+  return utcNoon.getUTCDay() // 0-6, Sunday to Saturday
+}
+
+/**
  * Get current date/time in Argentina timezone
  */
 function getArgentinaNow(): Date {
@@ -37,8 +51,8 @@ function getArgentinaWeekRange(dateInArgentina: Date): { start: string; end: str
   // Clone the date to avoid mutation
   const date = new Date(dateInArgentina.getTime())
 
-  // Get day of week in Argentina time (0 = Sunday, 1 = Monday, ...) using UTC methods
-  const day = date.getUTCDay()
+  // Get day of week in Argentina time (0 = Sunday, 1 = Monday, ...)
+  const day = getArgentinaDayOfWeek(date)
 
   // Calculate Monday of this week (if Sunday, go back 6 days; otherwise go to Monday)
   const diff = date.getUTCDate() - day + (day === 0 ? -6 : 1)
@@ -65,8 +79,7 @@ function getArgentinaWeekRange(dateInArgentina: Date): { start: string; end: str
  * Get the previous week's range in Argentina timezone
  */
 function getPreviousArgentinaWeekRange(dateInArgentina: Date): { start: string; end: string } {
-  const previousWeek = new Date(dateInArgentina.getTime())
-  previousWeek.setUTCDate(dateInArgentina.getUTCDate() - 7)
+  const previousWeek = new Date(dateInArgentina.getTime() - 7 * 24 * 60 * 60 * 1000)
   return getArgentinaWeekRange(previousWeek)
 }
 

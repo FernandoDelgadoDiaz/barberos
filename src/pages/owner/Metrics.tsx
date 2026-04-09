@@ -50,15 +50,34 @@ function formatNumber(num: number): string {
   return new Intl.NumberFormat('es-AR').format(num)
 }
 
+function getArgentinaDateString(date = new Date()): string {
+  return date.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
+}
+
 function getCurrentWeekRange(): string {
+  // Get current date in Argentina timezone
   const now = new Date()
-  const currentDay = now.getDay()
-  const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay // Domingo = 0, Lunes = 1
-  const monday = new Date(now)
-  monday.setDate(now.getDate() + diffToMonday)
+  const argDateStr = getArgentinaDateString(now)
+  const [year, month, day] = argDateStr.split('-').map(Number)
+  // Create a date at noon Argentina time (using UTC representation)
+  const argNoon = new Date(Date.UTC(year, month - 1, day, 12, 0, 0))
+
+  // Get day of week (0 = Sunday, 1 = Monday, ...) in Argentina
+  const dayOfWeek = argNoon.getUTCDay()
+  // Calculate Monday of this week (if Sunday, go back 6 days; otherwise go to Monday)
+  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+  const monday = new Date(argNoon)
+  monday.setUTCDate(argNoon.getUTCDate() + diffToMonday)
   const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
-  const format = (d: Date) => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+  sunday.setUTCDate(monday.getUTCDate() + 6)
+
+  // Format using Argentina timezone
+  const format = (d: Date) =>
+    d.toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'America/Argentina/Buenos_Aires'
+    })
   return `${format(monday)} - ${format(sunday)}`
 }
 
