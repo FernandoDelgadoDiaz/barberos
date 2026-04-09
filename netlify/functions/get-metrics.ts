@@ -98,6 +98,64 @@ function getArgentinaDateParts(utcISOString: string): { year: number; month: num
   }
 }
 
+/**
+ * Get Argentina local date string (YYYY-MM-DD) from a UTC ISO string
+ */
+function getArgentinaDateString(utcISOString: string): string {
+  const { year, month, day } = getArgentinaDateParts(utcISOString)
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+/**
+ * Get the start (Monday) and end (Sunday) dates of the week containing the given date (in Argentina time).
+ * Returns date strings in YYYY-MM-DD format for filtering by Argentina date.
+ */
+function getArgentinaWeekDateRange(dateInArgentina: Date): { startDate: string; endDate: string } {
+  // Clone the date to avoid mutation
+  const date = new Date(dateInArgentina.getTime())
+
+  // Get day of week in Argentina time (0 = Sunday, 1 = Monday, ...)
+  const day = getArgentinaDayOfWeek(date)
+
+  // Calculate Monday of this week (if Sunday, go back 6 days; otherwise go to Monday)
+  const diff = date.getUTCDate() - day + (day === 0 ? -6 : 1)
+  const monday = new Date(date)
+  monday.setUTCDate(diff)
+  monday.setUTCHours(0, 0, 0, 0)
+
+  // Sunday is 6 days after Monday
+  const sunday = new Date(monday)
+  sunday.setUTCDate(monday.getUTCDate() + 6)
+  sunday.setUTCHours(23, 59, 59, 999)
+
+  // Convert to Argentina date strings (without time)
+  const mondayArg = getArgentinaDateString(toUTCDate(monday).toISOString())
+  const sundayArg = getArgentinaDateString(toUTCDate(sunday).toISOString())
+  return { startDate: mondayArg, endDate: sundayArg }
+}
+
+/**
+ * Convert a date string (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss) assumed to be in Argentina timezone to UTC ISO string.
+ * If the string already ends with 'Z', it's assumed to be UTC and returned as-is.
+ */
+function convertArgentinaDateToUTC(dateString: string, endOfDay = false): string {
+  if (dateString.endsWith('Z')) {
+    return dateString
+  }
+  // If only date, add time
+  let isoArgentina = dateString
+  if (dateString.length === 10) {
+    isoArgentina = endOfDay ? `${dateString}T23:59:59` : `${dateString}T00:00:00`
+  }
+  // Parse as if it were UTC (since we'll adjust offset)
+  const date = new Date(isoArgentina + 'Z') // Treat as UTC
+  // Now date represents the Argentina local time incorrectly interpreted as UTC.
+  // We need to convert Argentina time to UTC: Argentina = UTC + ARGENTINA_OFFSET_MS.
+  // So UTC = Argentina - ARGENTINA_OFFSET_MS.
+  const utcDate = new Date(date.getTime() - ARGENTINA_OFFSET_MS)
+  return utcDate.toISOString()
+}
+
 interface MetricsResponse {
   dia_mas_cortes: { fecha: string; total: number } | null
   hora_pico: { hora: number; total: number } | null
@@ -123,10 +181,12 @@ interface NetlifyFunctionEvent {
 function addDateFilters(query: any, from?: string, to?: string) {
   let q = query
   if (from) {
-    q = q.gte('started_at', from)
+    const fromUTC = convertArgentinaDateToUTC(from, false)
+    q = q.gte('started_at', fromUTC)
   }
   if (to) {
-    q = q.lte('started_at', to)
+    const toUTC = convertArgentinaDateToUTC(to, true)
+    q = q.lte('started_at', toUTC)
   }
   return q
 }
@@ -372,6 +432,9 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     const nowArgentina = getArgentinaNow()
     const currentWeek = getArgentinaWeekRange(nowArgentina)
     const previousWeek = getPreviousArgentinaWeekRange(nowArgentina)
+    // Argentina date-based week ranges for filtering by Argentina date (YYYY-MM-DD)
+    const currentWeekDateRange = getArgentinaWeekDateRange(nowArgentina)
+    const previousWeekDateRange = getArgentinaWeekDateRange(new Date(nowArgentina.getTime() - 7 * 24 * 60 * 60 * 1000))
 
     // Debug logs for timezone verification
     console.log('Timezone debug:', {
@@ -395,13 +458,13 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     }
 
     const currentWeekLogs = allLogs.filter(log => {
-      const logDate = new Date(log.started_at)
-      return logDate >= new Date(currentWeek.start) && logDate <= new Date(currentWeek.end)
+      const argDate = getArgentinaDateString(log.started_at)
+      return argDate >= currentWeekDateRange.startDate && argDate <= currentWeekDateRange.endDate
     })
 
     const previousWeekLogs = allLogs.filter(log => {
-      const logDate = new Date(log.started_at)
-      return logDate >= new Date(previousWeek.start) && logDate <= new Date(previousWeek.end)
+      const argDate = getArgentinaDateString(log.started_at)
+      return argDate >= previousWeekDateRange.startDate && argDate <= previousWeekDateRange.endDate
     })
 
     const semana_actual = {
