@@ -2,13 +2,40 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 import { useServiceLogsRealtime } from '../../hooks/useRealtime'
+import { ExpandableBarberCard } from '../../components/owner/ExpandableBarberCard'
 import type { ServiceLog, Profile } from '../../types'
 
-type ServiceLogWithBarber = ServiceLog & {
-  barber_name: string
+
+type ServiceLogSupabaseResponse = ServiceLog & {
+  profiles: { display_name: string }
+  appointments?: {
+    total_price: number
+    total_barber_earning: number
+    total_owner_earning: number
+  }
 }
 
-type BarberStats = {
+// Extended type with appointment details for commission breakdown
+export type ServiceLogWithDetails = ServiceLog & {
+  barber_name: string
+  appointment_total_price?: number
+  appointment_total_barber_earning?: number
+  appointment_total_owner_earning?: number
+  service_name?: string
+}
+
+// Grouped appointments with their services
+export type AppointmentWithServices = {
+  appointment_id: string
+  barber_id: string
+  started_at: string
+  total_price: number
+  total_barber_earning: number
+  total_owner_earning: number
+  services: ServiceLogWithDetails[]
+}
+
+export type BarberStats = {
   barber: Profile
   servicesCount: number
   totalGenerated: number
@@ -16,16 +43,19 @@ type BarberStats = {
   lastServiceAt: string | null
   isActive: boolean
   highlight: boolean
+  appointments: AppointmentWithServices[]
+  barberEarnings: number // Total earnings for the barber (sum of barber_earning)
 }
 
 export function LivePanel() {
   const { tenant, profile } = useTenantStore()
   const tenantId = tenant?.id || profile?.tenant_id
 
-  const [logs, setLogs] = useState<ServiceLogWithBarber[]>([])
+  const [logs, setLogs] = useState<ServiceLogWithDetails[]>([])
   const [barbers, setBarbers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [highlightBarberId, setHighlightBarberId] = useState<string | null>(null)
+  const [currentDate, setCurrentDate] = useState<string>('')
   const isMounted = useRef(true)
 
   // Calculate totals
@@ -33,12 +63,13 @@ export function LivePanel() {
   const ownerEarning = logs.reduce((sum, log) => sum + log.owner_earning, 0)
   const totalServices = logs.length
 
-  // Calculate barber stats
+  // Calculate barber stats with appointments grouping
   const barberStats: BarberStats[] = barbers.map(barber => {
     const barberLogs = logs.filter(log => log.barber_id === barber.id)
     const servicesCount = barberLogs.length
     const totalGenerated = barberLogs.reduce((sum, log) => sum + log.price_charged, 0)
     const ownerCommission = barberLogs.reduce((sum, log) => sum + log.owner_earning, 0)
+    const barberEarnings = barberLogs.reduce((sum, log) => sum + log.barber_earning, 0)
     const lastServiceAt = barberLogs.length > 0
       ? barberLogs[barberLogs.length - 1].started_at
       : null
@@ -46,14 +77,41 @@ export function LivePanel() {
       ? (Date.now() - new Date(lastServiceAt).getTime()) < 60 * 60 * 1000 // within last hour
       : false
 
+    // Group logs by appointment_id
+    const appointmentsMap = new Map<string, AppointmentWithServices>()
+    barberLogs.forEach(log => {
+      if (!log.appointment_id) return
+
+      if (!appointmentsMap.has(log.appointment_id)) {
+        appointmentsMap.set(log.appointment_id, {
+          appointment_id: log.appointment_id,
+          barber_id: log.barber_id,
+          started_at: log.started_at,
+          total_price: log.appointment_total_price || 0,
+          total_barber_earning: log.appointment_total_barber_earning || 0,
+          total_owner_earning: log.appointment_total_owner_earning || 0,
+          services: []
+        })
+      }
+
+      const appointment = appointmentsMap.get(log.appointment_id)!
+      appointment.services.push(log)
+    })
+
+    // Convert map to array and sort by started_at (newest first)
+    const appointments = Array.from(appointmentsMap.values())
+      .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
+
     return {
       barber,
       servicesCount,
       totalGenerated,
       ownerCommission,
+      barberEarnings,
       lastServiceAt,
       isActive,
-      highlight: highlightBarberId === barber.id
+      highlight: highlightBarberId === barber.id,
+      appointments
     }
   })
 
@@ -73,11 +131,15 @@ export function LivePanel() {
     try {
       // Load today's service logs with barber names
       const today = new Date().toISOString().split('T')[0]
+      if (isMounted.current) {
+        setCurrentDate(today)
+      }
       const { data: logsData, error: logsError } = await supabase
         .from('service_logs')
         .select(`
           *,
-          profiles!inner(display_name)
+          profiles!inner(display_name),
+          appointments!inner(total_price, total_barber_earning, total_owner_earning)
         `)
         .eq('tenant_id', tenantId)
         .gte('started_at', `${today}T00:00:00`)
@@ -86,12 +148,15 @@ export function LivePanel() {
 
       if (logsError) throw logsError
 
-      const logsWithBarber: ServiceLogWithBarber[] = (logsData || []).map((log: any) => ({
+      const logsWithDetails: ServiceLogWithDetails[] = (logsData || []).map((log: ServiceLogSupabaseResponse) => ({
         ...log,
-        barber_name: log.profiles.display_name
+        barber_name: log.profiles.display_name,
+        appointment_total_price: log.appointments?.total_price,
+        appointment_total_barber_earning: log.appointments?.total_barber_earning,
+        appointment_total_owner_earning: log.appointments?.total_owner_earning
       }))
       if (isMounted.current) {
-        setLogs(logsWithBarber)
+        setLogs(logsWithDetails)
       }
 
       // Load all barbers for this tenant (no is_active filter)
@@ -142,21 +207,50 @@ export function LivePanel() {
     }
   }, [loadInitialData])
 
-  // Handle new logs from realtime subscription
-  const handleNewLog = useCallback(async (newLog: ServiceLog) => {
-    // Fetch barber name for the new log
-    const { data } = await supabase
-      .from('profiles')
-      .select('display_name')
-      .eq('id', newLog.barber_id)
-      .single()
+  // Reset data when day changes
+  useEffect(() => {
+    if (!tenantId) return
 
-    const logWithBarber: ServiceLogWithBarber = {
-      ...newLog,
-      barber_name: data?.display_name || 'Barbero'
+    const checkDateChange = () => {
+      const today = new Date().toISOString().split('T')[0]
+      if (currentDate && currentDate !== today) {
+        console.log('Day changed, reloading data')
+        loadInitialData()
+      }
     }
 
-    setLogs(prev => [logWithBarber, ...prev])
+    // Check every minute
+    const intervalId = setInterval(checkDateChange, 60000)
+    return () => clearInterval(intervalId)
+  }, [tenantId, currentDate, loadInitialData])
+
+  // Handle new logs from realtime subscription
+  const handleNewLog = useCallback(async (newLog: ServiceLog) => {
+    // Fetch barber name and appointment details for the new log
+    const [{ data: barberData }, { data: appointmentData }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', newLog.barber_id)
+        .single(),
+      newLog.appointment_id
+        ? supabase
+            .from('appointments')
+            .select('total_price, total_barber_earning, total_owner_earning')
+            .eq('id', newLog.appointment_id)
+            .single()
+        : Promise.resolve({ data: null })
+    ])
+
+    const logWithDetails: ServiceLogWithDetails = {
+      ...newLog,
+      barber_name: barberData?.display_name || 'Barbero',
+      appointment_total_price: appointmentData?.total_price,
+      appointment_total_barber_earning: appointmentData?.total_barber_earning,
+      appointment_total_owner_earning: appointmentData?.total_owner_earning
+    }
+
+    setLogs(prev => [logWithDetails, ...prev])
 
     // Highlight the barber for 2 seconds
     setHighlightBarberId(newLog.barber_id)
@@ -268,72 +362,7 @@ export function LivePanel() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {barberStats.map((stats) => (
-              <div
-                key={stats.barber.id}
-                className="mobile-padding"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '16px',
-                  background: '#383838',
-                  borderRadius: '8px',
-                  border: `1px solid ${stats.highlight ? 'var(--secondary, #C8A97E)' : '#484848'}`,
-                  transition: 'border-color 0.3s ease',
-                  boxShadow: stats.highlight ? '0 0 12px rgba(200, 169, 126, 0.4)' : 'none'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div style={{
-                    width: '44px',
-                    height: '44px',
-                    borderRadius: '10px',
-                    background: 'linear-gradient(135deg, var(--secondary, #C8A97E), #8B6200)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontFamily: 'Syne, sans-serif',
-                    fontWeight: 700,
-                    fontSize: '16px',
-                    color: '#080808'
-                  }}>
-                    {stats.barber.display_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                  </div>
-                  <div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', color: '#fff' }}>
-                      {stats.barber.display_name}
-                      {stats.isActive && (
-                        <span style={{ marginLeft: '8px', width: '8px', height: '8px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
-                      <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: '#888' }}>
-                        {stats.servicesCount} servicio{stats.servicesCount !== 1 ? 's' : ''}
-                      </span>
-                      <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#888' }} />
-                      <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: '#888' }}>
-                        ${stats.totalGenerated.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--secondary, #C8A97E)' }}>
-                      ${stats.ownerCommission.toLocaleString()}
-                    </div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '11px', color: '#888', letterSpacing: '0.5px' }}>COMISIÓN</div>
-                  </div>
-                  <div style={{
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '50%',
-                    background: stats.isActive ? 'var(--secondary, #C8A97E)' : '#888',
-                    opacity: stats.isActive ? 1 : 0.5,
-                    animation: stats.isActive ? 'pulse 2s infinite' : 'none'
-                  }} />
-                </div>
-              </div>
+              <ExpandableBarberCard key={stats.barber.id} stats={stats} />
             ))}
           </div>
         )}
@@ -350,6 +379,45 @@ export function LivePanel() {
           </div>
         )}
       </div>
+
+      {/* Settlement summary */}
+      {barberStats.length > 0 && logs.length > 0 && (
+        <div style={{
+          marginTop: '24px',
+          padding: '20px',
+          background: 'rgba(200, 169, 126, 0.05)',
+          border: '1px solid rgba(200, 169, 126, 0.2)',
+          borderRadius: '12px',
+          textAlign: 'center'
+        }}>
+          <div style={{
+            fontFamily: 'Space Grotesk, sans-serif',
+            fontWeight: 600,
+            fontSize: '13px',
+            color: '#C8A97E',
+            marginBottom: '8px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            Liquidación del día
+          </div>
+          <div style={{
+            fontFamily: 'Space Grotesk, sans-serif',
+            fontWeight: 400,
+            fontSize: '14px',
+            color: '#fff',
+            lineHeight: 1.6
+          }}>
+            Para vos: <span style={{ fontWeight: 700 }}>${ownerEarning.toLocaleString()}</span>
+            {barberStats.map((stats) => (
+              <span key={stats.barber.id}>
+                {' | '}
+                {stats.barber.display_name}: <span style={{ fontWeight: 700 }}>${stats.barberEarnings.toLocaleString()}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes pulse {
