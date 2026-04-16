@@ -58,17 +58,17 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
               </div>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '0', flexShrink: 1 }}>
+            <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px', minWidth: '0' }}>
               <div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', color: '#fff' }}>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   ${stats.barberEarnings.toLocaleString()}
                 </div>
                 <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '10px', color: '#888', letterSpacing: '0.5px' }}>BARBERO</div>
               </div>
               <div style={{ width: '1px', height: '20px', background: '#484848' }} />
               <div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--secondary, #C8A97E)' }}>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--secondary, #C8A97E)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   ${stats.ownerCommission.toLocaleString()}
                 </div>
                 <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '10px', color: '#888', letterSpacing: '0.5px' }}>OWNER</div>
