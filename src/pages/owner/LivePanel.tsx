@@ -200,30 +200,32 @@ export function LivePanel() {
 
   useEffect(() => {
     isMounted.current = true
-
+    if (!tenantId) {
+      // Retry after 500ms in case store is still hydrating
+      const retryId = setTimeout(() => {
+        if (isMounted.current) loadInitialData()
+      }, 500)
+      return () => {
+        clearTimeout(retryId)
+        isMounted.current = false
+      }
+    }
     const loadDataWithTimeout = async () => {
       const timeoutId = setTimeout(() => {
         if (isMounted.current) {
           console.warn('LivePanel loading timeout, forcing display')
           setLoading(false)
         }
-      }, 5000) // 5 second safety timeout
-
+      }, 5000)
       try {
         await loadInitialData()
       } finally {
-        if (isMounted.current) {
-          clearTimeout(timeoutId)
-        }
+        if (isMounted.current) clearTimeout(timeoutId)
       }
     }
-
     loadDataWithTimeout()
-
-    return () => {
-      isMounted.current = false
-    }
-  }, [loadInitialData])
+    return () => { isMounted.current = false }
+  }, [loadInitialData, tenantId])
 
   // Reset data when day changes
   useEffect(() => {
