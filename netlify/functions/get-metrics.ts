@@ -260,7 +260,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       .from('service_logs')
       .select('*')
       .eq('tenant_id', tenant_id)
-      .eq('status', 'closed')
+      .eq('status', 'completed')
 
     const baseQueryWithFilters = addDateFilters(baseQuery, from, to)
 
