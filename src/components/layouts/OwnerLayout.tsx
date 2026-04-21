@@ -1,26 +1,64 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { useTenantStore } from '../../stores/tenantStore'
 import { useAuth } from '../../hooks/useAuth'
 
-const ScissorsIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-    <circle cx="5" cy="19" r="2.5" stroke="var(--secondary, #C8A97E)" strokeWidth="1.5"/>
-    <circle cx="19" cy="19" r="2.5" stroke="var(--secondary, #C8A97E)" strokeWidth="1.5"/>
-    <line x1="5" y1="19" x2="19" y2="5" stroke="var(--secondary, #C8A97E)" strokeWidth="1.5" strokeLinecap="round"/>
-    <line x1="19" y1="19" x2="5" y2="5" stroke="var(--text-dim, #555)" strokeWidth="1.5" strokeLinecap="round"/>
-    <circle cx="5" cy="5" r="2.5" stroke="var(--text-dim, #555)" strokeWidth="1.5"/>
-    <circle cx="19" cy="5" r="2.5" stroke="var(--text-dim, #555)" strokeWidth="1.5"/>
-    <line x1="10" y1="12" x2="14" y2="12" stroke="var(--secondary, #C8A97E)" strokeWidth="1"/>
-  </svg>
-)
+const NavIcon = ({ label }: { label: string }) => {
+  if (label === 'Panel en vivo') return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+      <rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+      <rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+      <rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+    </svg>
+  )
+  if (label === 'Métricas') return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <polyline points="1,13 5,8 9,10 15,3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+  if (label === 'Barberos') return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <circle cx="6" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M1 14c0-2.761 2.239-5 5-5s5 2.239 5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="12" cy="5" r="2" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M14 14c0-2.209-1.343-4-3-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  )
+  if (label === 'Servicios') return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M8 4.5v7M6 6.5c0-.828.895-1.5 2-1.5s2 .672 2 1.5-1 1.5-2 1.5-2 .672-2 1.5.895 1.5 2 1.5 2-.672 2-1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  )
+  if (label === 'Configuración') return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.414 1.414M11.536 11.536l1.414 1.414M3.05 12.95l1.414-1.414M11.536 4.464l1.414-1.414" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  )
+  return null
+}
+
+const SHORT_LABELS: Record<string, string> = {
+  'Panel en vivo': 'Live',
+  'Métricas': 'Métricas',
+  'Configuración': 'Config',
+  'Barberos': 'Barberos',
+  'Servicios': 'Servicios',
+}
 
 export function OwnerLayout() {
   const { profile, tenant } = useTenantStore()
   const { signOut } = useAuth()
   const navigate = useNavigate()
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
 
-  const initials = profile?.display_name
-    ?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'OW'
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   const handleSignOut = async () => {
     try {
@@ -28,7 +66,6 @@ export function OwnerLayout() {
       navigate('/login')
     } catch (err) {
       console.error('Error al cerrar sesión:', err)
-      // Forzar navegación a login de todos modos
       navigate('/login')
     }
   }
@@ -41,36 +78,117 @@ export function OwnerLayout() {
     { to: '/owner/services', label: 'Servicios' },
   ]
 
-  return (
-    <div style={{ minHeight: '100vh', background: 'var(--primary, #1a1a1a)' }}>
-      <header className="owner-header" style={{ background: 'var(--primary, #1a1a1a)', borderBottom: '1px solid var(--border, #383838)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <ScissorsIcon />
-            <span className="owner-logo" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', letterSpacing: '2px', color: 'var(--text, #fff)' }}>
-              BARBER<span style={{ color: 'var(--secondary, #C8A97E)' }}>OS</span>
-            </span>
-          </div>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted, #888)', letterSpacing: '1px' }}>
+  if (isMobile) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#F4F5F7' }}>
+        {/* Mobile top header */}
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '52px', background: '#3D3A8C', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 100 }}>
+          <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: '#fff' }}>
             {tenant?.name}
           </span>
+          <button
+            onClick={handleSignOut}
+            style={{ background: 'transparent', border: 'none', padding: 0, color: '#FF8C42', fontSize: '13px', cursor: 'pointer', fontWeight: 500 }}
+          >
+            Cerrar sesión
+          </button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span className="hide-mobile" style={{ background: 'var(--card, #2a2a2a)', border: '1px solid var(--border, #383838)', borderRadius: '100px', padding: '4px 12px', fontSize: '10px', color: 'var(--text-tertiary, #777)', letterSpacing: '1.5px', textTransform: 'uppercase' }}>owner</span>
-          <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary, #C8A97E), var(--accent-dark, #8B6200))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '11px', color: 'var(--primary, #1a1a1a)' }}>{initials}</div>
-          <button onClick={handleSignOut} style={{ background: 'transparent', border: '1px solid var(--border, #383838)', borderRadius: '8px', padding: '6px 14px', color: 'var(--text-dim, #555)', fontSize: '12px', cursor: 'pointer' }}>Salir</button>
+
+        {/* Content */}
+        <div style={{ marginTop: '52px', flex: 1, padding: '24px', paddingBottom: '80px', overflow: 'auto' }}>
+          <Outlet />
         </div>
-      </header>
-      <nav className="owner-nav" style={{ background: 'var(--primary, #1a1a1a)', borderBottom: '1px solid var(--border, #383838)', display: 'flex', padding: '0 20px' }}>
-        {navItems.map(({ to, label }) => (
-          <NavLink key={to} to={to} className="owner-nav-link" style={({ isActive }) => ({ padding: '12px 16px', fontSize: '13px', fontWeight: 500, color: isActive ? 'var(--secondary, #C8A97E)' : 'var(--text-dim, #555)', borderBottom: isActive ? '2px solid var(--secondary, #C8A97E)' : '2px solid transparent', textDecoration: 'none', letterSpacing: '0.3px' })}>
-            {label}
-          </NavLink>
-        ))}
-      </nav>
-      <main className="owner-main" style={{ padding: '20px' }}>
+
+        {/* Mobile bottom nav */}
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', background: '#3D3A8C', display: 'flex', alignItems: 'center', zIndex: 100 }}>
+          {navItems.map(({ to, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              style={({ isActive }) => ({
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '3px',
+                color: isActive ? '#FF8C42' : 'rgba(255,255,255,0.5)',
+                textDecoration: 'none',
+                fontSize: '10px',
+                fontWeight: 500,
+              })}
+            >
+              <NavIcon label={label} />
+              {SHORT_LABELS[label]}
+            </NavLink>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Sidebar */}
+      <div style={{ width: '210px', flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#3D3A8C', position: 'fixed', top: 0, left: 0, height: '100vh' }}>
+        {/* Tenant info */}
+        <div style={{ padding: '24px 20px 20px' }}>
+          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '17px', color: '#fff', marginBottom: '4px' }}>
+            {tenant?.name}
+          </div>
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>
+            Panel de administración
+          </div>
+        </div>
+
+        {/* Nav items */}
+        <nav style={{ flex: 1, padding: '8px 0' }}>
+          {navItems.map(({ to, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              style={({ isActive }) => ({
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '10px 20px',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: isActive ? '#fff' : 'rgba(255,255,255,0.6)',
+                background: isActive ? 'rgba(255,255,255,0.15)' : 'transparent',
+                borderRight: isActive ? '3px solid #FF8C42' : '3px solid transparent',
+                textDecoration: 'none',
+              })}
+            >
+              <NavIcon label={label} />
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* Footer */}
+        <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginBottom: '10px', wordBreak: 'break-all' }}>
+            {profile?.email}
+          </div>
+          <button
+            onClick={handleSignOut}
+            style={{ background: 'transparent', border: 'none', padding: 0, color: '#FF8C42', fontSize: '12px', cursor: 'pointer', fontWeight: 500 }}
+          >
+            Cerrar sesión
+          </button>
+        </div>
+
+        {/* Watermark */}
+        <div style={{ textAlign: 'center', padding: '10px 0 14px', fontSize: '10px', color: 'rgba(255,255,255,0.15)' }}>
+          Aliada Barberías
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div style={{ marginLeft: '210px', flex: 1, background: '#F4F5F7', minHeight: '100vh', overflow: 'auto', padding: '24px' }}>
         <Outlet />
-      </main>
+      </div>
     </div>
   )
 }
