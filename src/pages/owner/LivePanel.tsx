@@ -309,70 +309,49 @@ export function LivePanel() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '24px', color: '#fff', textAlign: 'center' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '24px', color: '#1a1a2e', textAlign: 'center' }}>
         Cargando panel en vivo...
       </div>
     )
   }
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', position: 'relative', background: 'var(--primary, #1a1a1a)', color: '#fff', padding: '24px', borderRadius: '12px' }}>
-      {/* Large scissors decoration */}
-      <svg width="300" height="300" viewBox="0 0 300 300" fill="none" style={{ position: 'absolute', right: '-50px', top: '-50px', opacity: 0.04, pointerEvents: 'none' }}>
-        <circle cx="150" cy="150" r="120" stroke="var(--secondary, #C8A97E)" strokeWidth="2" strokeDasharray="8 8" />
-        <circle cx="100" cy="200" r="25" stroke="var(--secondary, #C8A97E)" strokeWidth="4" />
-        <circle cx="200" cy="200" r="25" stroke="var(--secondary, #C8A97E)" strokeWidth="4" />
-        <line x1="100" y1="200" x2="200" y2="100" stroke="var(--secondary, #C8A97E)" strokeWidth="4" strokeLinecap="round" />
-        <line x1="200" y1="200" x2="100" y2="100" stroke="#383838" strokeWidth="4" strokeLinecap="round" />
-        <circle cx="100" cy="100" r="25" stroke="#383838" strokeWidth="4" />
-        <circle cx="200" cy="100" r="25" stroke="#383838" strokeWidth="4" />
-        <line x1="130" y1="150" x2="170" y2="150" stroke="var(--secondary, #C8A97E)" strokeWidth="3" />
-      </svg>
+    <div style={{ maxWidth: '1000px', margin: '0 auto', position: 'relative', padding: '8px' }}>
 
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#fff', margin: 0 }}>Panel en vivo</h1>
+        <div>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: '#1a1a2e', margin: 0 }}>Panel en vivo</h1>
+          <p style={{ color: '#888', fontSize: '13px', margin: '2px 0 0 0' }}>{tenant?.name || 'Tu barbería'} • Monitoreo en tiempo real</p>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '12px', color: 'var(--secondary, #C8A97E)', border: '1px solid var(--secondary, #C8A97E)', borderRadius: '20px', padding: '4px 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>EN VIVO</span>
-          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--secondary, #C8A97E)', animation: 'pulse 1s infinite' }} />
+          <span style={{ background: '#FF8C42', color: '#fff', fontSize: '11px', padding: '4px 10px', borderRadius: '20px', fontWeight: 500 }}>● EN VIVO</span>
         </div>
       </div>
-      <p style={{ color: '#888', fontSize: '14px', marginBottom: '24px' }}>{tenant?.name || 'Tu barbería'} • Monitoreo en tiempo real</p>
 
-      {/* Total card */}
-      <div style={{ background: '#242424', border: '1px solid #383838', borderRadius: '12px', padding: '24px', marginBottom: '24px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#888', margin: 0 }}>Total del día</h3>
-            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 'clamp(28px, 7vw, 42px)', color: 'var(--secondary, #C8A97E)', marginTop: '4px' }}>
-              ${totalDay.toLocaleString()}
-            </div>
-            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '14px', color: '#fff', marginTop: '8px' }}>
-              Tu parte: <span style={{ fontWeight: 600 }}>${ownerEarning.toLocaleString()}</span>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '60px', height: '60px', borderRadius: '12px', background: '#2a2a2a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--secondary, #C8A97E)" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: '#fff' }}>{totalServices}</div>
-              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: '#888' }}>servicios</div>
-            </div>
-          </div>
+      {/* Stats row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px', marginTop: '20px' }}>
+        <div style={{ background: '#fff', borderRadius: '10px', padding: '16px', border: '0.5px solid #e0e0e0' }}>
+          <div style={{ fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Total del día</div>
+          <div style={{ fontSize: '22px', fontWeight: 500, color: '#1a1a2e' }}>${totalDay.toLocaleString()}</div>
         </div>
-        <div style={{ height: '4px', background: '#383838', marginTop: '20px', borderRadius: '2px', overflow: 'hidden' }}>
-          <div style={{ width: `${dayProgress}%`, height: '100%', background: 'var(--secondary, #C8A97E)', borderRadius: '2px', transition: 'width 0.5s ease' }} />
+        <div style={{ background: '#fff', borderRadius: '10px', padding: '16px', border: '0.5px solid #e0e0e0' }}>
+          <div style={{ fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Tu ganancia</div>
+          <div style={{ fontSize: '22px', fontWeight: 500, color: '#FF8C42' }}>${ownerEarning.toLocaleString()}</div>
         </div>
-        <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: '#888', marginTop: '8px', textAlign: 'right' }}>
-          {statusText}
+        <div style={{ background: '#fff', borderRadius: '10px', padding: '16px', border: '0.5px solid #e0e0e0' }}>
+          <div style={{ fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Servicios</div>
+          <div style={{ fontSize: '22px', fontWeight: 500, color: '#1a1a2e' }}>{totalServices}</div>
+          <div style={{ height: '3px', background: '#f0f0f0', borderRadius: '2px', marginTop: '8px', overflow: 'hidden' }}>
+            <div style={{ width: `${dayProgress}%`, height: '100%', background: 'linear-gradient(90deg, #3D3A8C, #FF8C42)', borderRadius: '2px', transition: 'width 0.5s ease' }} />
+          </div>
+          <div style={{ fontSize: '10px', color: '#aaa', marginTop: '4px' }}>{statusText}</div>
         </div>
       </div>
 
       {/* Barbers list */}
-      <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '24px' }}>
-        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#fff', margin: '0 0 20px 0' }}>Tu equipo</h2>
+      <div style={{ background: '#fff', borderRadius: '10px', padding: '20px', border: '0.5px solid #e0e0e0', marginBottom: '16px' }}>
+        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '14px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 16px 0' }}>Tu equipo</h2>
 
         {barberStats.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
@@ -388,13 +367,13 @@ export function LivePanel() {
         )}
 
         {logs.length === 0 && barberStats.length > 0 && (
-          <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #383838', color: '#888', fontSize: '12px', textAlign: 'center' }}>
+          <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '0.5px solid #f0f0f0', color: '#aaa', fontSize: '12px', textAlign: 'center' }}>
             <p>Esperando el primer servicio del día...</p>
           </div>
         )}
 
         {logs.length > 0 && (
-          <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #383838', color: '#888', fontSize: '12px', textAlign: 'center' }}>
+          <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '0.5px solid #f0f0f0', color: '#aaa', fontSize: '12px', textAlign: 'center' }}>
             <p>Actualizado en tiempo real • Último servicio: {new Date(logs[0].started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
           </div>
         )}
@@ -402,38 +381,20 @@ export function LivePanel() {
 
       {/* Settlement summary */}
       {barberStats.length > 0 && logs.length > 0 && (
-        <div style={{
-          marginTop: '24px',
-          padding: '20px',
-          background: 'rgba(200, 169, 126, 0.05)',
-          border: '1px solid rgba(200, 169, 126, 0.2)',
-          borderRadius: '12px',
-          textAlign: 'center'
-        }}>
-          <div style={{
-            fontFamily: 'Space Grotesk, sans-serif',
-            fontWeight: 600,
-            fontSize: '13px',
-            color: '#C8A97E',
-            marginBottom: '8px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px'
-          }}>
+        <div style={{ background: '#3D3A8C', borderRadius: '10px', padding: '20px' }}>
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
             Liquidación del día
           </div>
-          <div style={{
-            fontFamily: 'Space Grotesk, sans-serif',
-            fontWeight: 400,
-            fontSize: '14px',
-            color: '#fff',
-            lineHeight: 1.6
-          }}>
-            Para vos: <span style={{ fontWeight: 700 }}>${ownerEarning.toLocaleString()}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+              <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Para vos (owner)</span>
+              <span style={{ fontSize: '14px', fontWeight: 500, color: '#fff' }}>${ownerEarning.toLocaleString()}</span>
+            </div>
             {barberStats.map((stats) => (
-              <span key={stats.barber.id}>
-                {' | '}
-                {stats.barber.display_name}: <span style={{ fontWeight: 700 }}>${stats.barberEarnings.toLocaleString()}</span>
-              </span>
+              <div key={stats.barber.id} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>{stats.barber.display_name}</span>
+                <span style={{ fontSize: '14px', fontWeight: 500, color: '#fff' }}>${stats.barberEarnings.toLocaleString()}</span>
+              </div>
             ))}
           </div>
         </div>
