@@ -49,7 +49,7 @@ const SHORT_LABELS: Record<string, string> = {
 }
 
 export function OwnerLayout() {
-  const { profile, tenant } = useTenantStore()
+  const { tenant } = useTenantStore()
   const { signOut } = useAuth()
   const navigate = useNavigate()
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
