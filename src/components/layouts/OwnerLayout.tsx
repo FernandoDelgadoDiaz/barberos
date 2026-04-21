@@ -169,7 +169,7 @@ export function OwnerLayout() {
         {/* Footer */}
         <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
           <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginBottom: '10px', wordBreak: 'break-all' }}>
-            {profile?.email}
+            {profile?.display_name}
           </div>
           <button
             onClick={handleSignOut}
