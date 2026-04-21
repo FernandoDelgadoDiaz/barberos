@@ -29,14 +29,14 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
               width: '44px',
               height: '44px',
               borderRadius: '10px',
-              background: 'linear-gradient(135deg, var(--secondary, #C8A97E), #8B6200)',
+              background: '#3D3A8C',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontFamily: 'Syne, sans-serif',
               fontWeight: 700,
               fontSize: '16px',
-              color: '#080808'
+              color: '#fff'
             }}>
               {stats.barber.display_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
             </div>

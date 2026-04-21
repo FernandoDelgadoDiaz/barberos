@@ -168,9 +168,6 @@ export function OwnerLayout() {
 
         {/* Footer */}
         <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginBottom: '10px', wordBreak: 'break-all' }}>
-            {profile?.display_name}
-          </div>
           <button
             onClick={handleSignOut}
             style={{ background: 'transparent', border: 'none', padding: 0, color: '#FF8C42', fontSize: '12px', cursor: 'pointer', fontWeight: 500 }}
