@@ -566,26 +566,10 @@ export function Dashboard() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#fff' }}>Turno cerrado</div>
-              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#999', marginTop: '4px' }}>El turno anterior ha sido cerrado. Puedes iniciar uno nuevo.</div>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#999', marginTop: '4px' }}>
+                Tu día ha finalizado. Hasta mañana.
+              </div>
             </div>
-            <button
-              onClick={handleNewShift}
-              disabled={shiftLoading}
-              style={{
-                background: 'var(--secondary, #C8A97E)',
-                color: 'var(--primary, #1a1a1a)',
-                border: 'none',
-                borderRadius: '6px',
-                padding: '10px 20px',
-                fontFamily: 'Space Grotesk, sans-serif',
-                fontWeight: 600,
-                fontSize: '14px',
-                cursor: 'pointer',
-                opacity: shiftLoading ? 0.6 : 1,
-              }}
-            >
-              {shiftLoading ? 'Procesando...' : 'Iniciar nuevo turno'}
-            </button>
           </div>
         )}
       </div>
