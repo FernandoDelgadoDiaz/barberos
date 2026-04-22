@@ -171,26 +171,26 @@ export function Settings() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px', textAlign: 'center', color: '#888' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px', textAlign: 'center', color: '#aaa' }}>
         Cargando configuración...
       </div>
     )
   }
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', background: 'var(--primary, #1a1a1a)', color: '#fff', padding: '24px', borderRadius: '12px' }}>
-      <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#fff', marginBottom: '8px' }}>Configuración</h1>
-      <p style={{ color: '#888', fontSize: '14px', marginBottom: '32px' }}>Personaliza tu barbería</p>
+    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+      <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#1a1a2e', marginBottom: '8px' }}>Configuración</h1>
+      <p style={{ color: '#aaa', fontSize: '14px', marginBottom: '32px' }}>Personaliza tu barbería</p>
 
       {/* Success message */}
       {success && (
         <div style={{
-          background: '#2a2a2a',
-          border: '1px solid var(--secondary, #C8A97E)',
+          background: '#eafaf1',
+          border: '0.5px solid #2ecc71',
           borderRadius: '8px',
           padding: '12px 16px',
           marginBottom: '24px',
-          color: 'var(--secondary, #C8A97E)',
+          color: '#2ecc71',
           fontFamily: 'Space Grotesk, sans-serif',
           fontSize: '14px',
         }}>
@@ -201,12 +201,12 @@ export function Settings() {
       {/* Error message */}
       {error && (
         <div style={{
-          background: '#2a2a2a',
-          border: '1px solid #e94560',
+          background: '#fff5f5',
+          border: '0.5px solid #ffcccc',
           borderRadius: '8px',
           padding: '12px 16px',
           marginBottom: '24px',
-          color: '#e94560',
+          color: '#cc3333',
           fontFamily: 'Space Grotesk, sans-serif',
           fontSize: '14px',
         }}>
@@ -215,14 +215,14 @@ export function Settings() {
       )}
 
       {/* Sección 1 — Identidad de la barbería */}
-      <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '32px', marginBottom: '24px' }}>
-        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#fff', marginBottom: '24px' }}>
+      <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '32px', marginBottom: '24px' }}>
+        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#1a1a2e', marginBottom: '24px' }}>
           Identidad de la barbería
         </h2>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div>
-            <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
               Nombre de la barbería
             </label>
             <input
@@ -231,21 +231,21 @@ export function Settings() {
               onChange={(e) => setTenantForm({ ...tenantForm, name: e.target.value })}
               style={{
                 width: '100%',
-                background: '#2a2a2a',
-                border: '1px solid #383838',
+                background: '#f8f8f8',
+                border: '0.5px solid #e0e0e0',
                 borderRadius: '6px',
                 padding: '12px',
                 fontFamily: 'Space Grotesk, sans-serif',
                 fontWeight: 400,
                 fontSize: '14px',
-                color: '#fff',
+                color: '#1a1a2e',
               }}
             />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
             <div>
-              <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+              <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
                 Color primario
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -257,18 +257,18 @@ export function Settings() {
                     width: '60px',
                     height: '40px',
                     borderRadius: '6px',
-                    border: '1px solid #383838',
+                    border: '0.5px solid #e0e0e0',
                     cursor: 'pointer',
                   }}
                 />
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '14px', color: '#fff' }}>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '14px', color: '#1a1a2e' }}>
                   {tenantForm.primary_color}
                 </div>
               </div>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+              <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
                 Color secundario
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -280,11 +280,11 @@ export function Settings() {
                     width: '60px',
                     height: '40px',
                     borderRadius: '6px',
-                    border: '1px solid #383838',
+                    border: '0.5px solid #e0e0e0',
                     cursor: 'pointer',
                   }}
                 />
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '14px', color: '#fff' }}>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '14px', color: '#1a1a2e' }}>
                   {tenantForm.secondary_color}
                 </div>
               </div>
@@ -292,20 +292,20 @@ export function Settings() {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
               Logo
             </label>
             <div style={{
               width: '100%',
               height: '120px',
-              background: '#2a2a2a',
-              border: '1px dashed #383838',
+              background: '#f8f8f8',
+              border: '1px dashed #e0e0e0',
               borderRadius: '6px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#888',
+              color: '#aaa',
               fontFamily: 'Space Grotesk, sans-serif',
               fontWeight: 400,
               fontSize: '14px',
@@ -318,12 +318,12 @@ export function Settings() {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
               Horario del local
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
               <div>
-                <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
                   Horario de apertura
                 </label>
                 <input
@@ -332,19 +332,19 @@ export function Settings() {
                   onChange={(e) => setTenantForm({ ...tenantForm, opening_time: e.target.value })}
                   style={{
                     width: '100%',
-                    background: '#2a2a2a',
-                    border: '1px solid #383838',
+                    background: '#f8f8f8',
+                    border: '0.5px solid #e0e0e0',
                     borderRadius: '6px',
                     padding: '12px',
                     fontFamily: 'Space Grotesk, sans-serif',
                     fontWeight: 400,
                     fontSize: '14px',
-                    color: '#fff',
+                    color: '#1a1a2e',
                   }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
                   Horario de cierre
                 </label>
                 <input
@@ -353,14 +353,14 @@ export function Settings() {
                   onChange={(e) => setTenantForm({ ...tenantForm, closing_time: e.target.value })}
                   style={{
                     width: '100%',
-                    background: '#2a2a2a',
-                    border: '1px solid #383838',
+                    background: '#f8f8f8',
+                    border: '0.5px solid #e0e0e0',
                     borderRadius: '6px',
                     padding: '12px',
                     fontFamily: 'Space Grotesk, sans-serif',
                     fontWeight: 400,
                     fontSize: '14px',
-                    color: '#fff',
+                    color: '#1a1a2e',
                   }}
                 />
               </div>
@@ -370,16 +370,16 @@ export function Settings() {
       </div>
 
       {/* Sección 2 — Reglas de comisión */}
-      <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '32px', marginBottom: '24px' }}>
+      <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '32px', marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#fff' }}>
+          <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#1a1a2e' }}>
             Reglas de comisión
           </h2>
           <button
             onClick={() => setShowAddRule(true)}
             style={{
-              background: 'var(--secondary, #C8A97E)',
-              color: 'var(--primary, #1a1a1a)',
+              background: 'var(--primary, #3D3A8C)',
+              color: '#fff',
               border: 'none',
               borderRadius: '6px',
               padding: '8px 16px',
@@ -402,12 +402,12 @@ export function Settings() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
           {commissionRules.rules.length === 0 ? (
             <div style={{
-              background: '#2a2a2a',
-              border: '1px dashed #383838',
+              background: '#f8f8f8',
+              border: '1px dashed #e0e0e0',
               borderRadius: '8px',
               padding: '40px 20px',
               textAlign: 'center',
-              color: '#888',
+              color: '#aaa',
               fontFamily: 'Space Grotesk, sans-serif',
               fontSize: '14px',
             }}>
@@ -418,8 +418,8 @@ export function Settings() {
               <div
                 key={index}
                 style={{
-                  background: '#2a2a2a',
-                  border: '1px solid #383838',
+                  background: '#f8f8f8',
+                  border: '0.5px solid #e0e0e0',
                   borderRadius: '8px',
                   padding: '16px',
                   display: 'flex',
@@ -427,7 +427,7 @@ export function Settings() {
                   justifyContent: 'space-between',
                 }}
               >
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '14px', color: '#fff' }}>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '14px', color: '#1a1a2e' }}>
                   {formatRule(rule)}
                 </div>
                 <button
@@ -452,12 +452,12 @@ export function Settings() {
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: '#888' }}>
+            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: '#aaa' }}>
               {commissionRules.resets_daily ? 'Las reglas se reinician cada día.' : 'Las reglas son acumulativas.'}
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: commissionRules.resets_daily ? 'var(--secondary, #C8A97E)' : '#888' }}>
+            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: commissionRules.resets_daily ? 'var(--primary, #3D3A8C)' : '#aaa' }}>
               {commissionRules.resets_daily ? 'Reinicio diario' : 'Acumulativo'}
             </div>
             <div
@@ -466,7 +466,7 @@ export function Settings() {
                 width: '36px',
                 height: '20px',
                 borderRadius: '10px',
-                background: commissionRules.resets_daily ? 'var(--secondary, #C8A97E)' : '#383838',
+                background: commissionRules.resets_daily ? 'var(--primary, #3D3A8C)' : '#e0e0e0',
                 position: 'relative',
                 cursor: 'pointer',
               }}
@@ -487,43 +487,43 @@ export function Settings() {
       </div>
 
       {/* Sección 3 — Información */}
-      <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '32px', marginBottom: '32px' }}>
-        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#fff', marginBottom: '24px' }}>
+      <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '32px', marginBottom: '32px' }}>
+        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#1a1a2e', marginBottom: '24px' }}>
           Información
         </h2>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
           <div>
-            <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
               Tenant slug
             </label>
             <div style={{
-              background: '#2a2a2a',
-              border: '1px solid #383838',
+              background: '#f8f8f8',
+              border: '0.5px solid #e0e0e0',
               borderRadius: '6px',
               padding: '12px',
               fontFamily: 'Space Grotesk, sans-serif',
               fontWeight: 400,
               fontSize: '14px',
-              color: '#fff',
+              color: '#1a1a2e',
             }}>
               {tenant?.slug || 'barber-demo'}
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
               Fecha de creación
             </label>
             <div style={{
-              background: '#2a2a2a',
-              border: '1px solid #383838',
+              background: '#f8f8f8',
+              border: '0.5px solid #e0e0e0',
               borderRadius: '6px',
               padding: '12px',
               fontFamily: 'Space Grotesk, sans-serif',
               fontWeight: 400,
               fontSize: '14px',
-              color: '#fff',
+              color: '#1a1a2e',
             }}>
               {tenant?.created_at ? new Date(tenant.created_at).toLocaleDateString('es-ES') : '2026-04-03'}
             </div>
@@ -537,8 +537,8 @@ export function Settings() {
           onClick={handleSaveTenant}
           disabled={saving}
           style={{
-            background: 'var(--secondary, #C8A97E)',
-            color: 'var(--primary, #1a1a1a)',
+            background: 'var(--primary, #3D3A8C)',
+            color: '#fff',
             border: 'none',
             borderRadius: '8px',
             padding: '14px 32px',
@@ -568,21 +568,21 @@ export function Settings() {
           zIndex: 1000,
         }}>
           <div style={{
-            background: '#242424',
-            border: '1px solid #383838',
+            background: '#fff',
+            border: '0.5px solid #e0e0e0',
             borderRadius: '12px',
             padding: '32px',
             width: '100%',
             maxWidth: '480px',
           }}>
-            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '24px' }}>
+            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '24px' }}>
               Agregar regla de comisión
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
                     Desde servicio
                   </label>
                   <input
@@ -592,20 +592,20 @@ export function Settings() {
                     onChange={(e) => setNewRule({ ...newRule, from_service: e.target.value })}
                     style={{
                       width: '100%',
-                      background: '#2a2a2a',
-                      border: '1px solid #383838',
+                      background: '#f8f8f8',
+                      border: '0.5px solid #e0e0e0',
                       borderRadius: '6px',
                       padding: '12px',
                       fontFamily: 'Space Grotesk, sans-serif',
                       fontWeight: 400,
                       fontSize: '14px',
-                      color: '#fff',
+                      color: '#1a1a2e',
                     }}
                     placeholder="1"
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
                     Hasta servicio (opcional)
                   </label>
                   <input
@@ -615,14 +615,14 @@ export function Settings() {
                     onChange={(e) => setNewRule({ ...newRule, to_service: e.target.value })}
                     style={{
                       width: '100%',
-                      background: '#2a2a2a',
-                      border: '1px solid #383838',
+                      background: '#f8f8f8',
+                      border: '0.5px solid #e0e0e0',
                       borderRadius: '6px',
                       padding: '12px',
                       fontFamily: 'Space Grotesk, sans-serif',
                       fontWeight: 400,
                       fontSize: '14px',
-                      color: '#fff',
+                      color: '#1a1a2e',
                     }}
                     placeholder="Vacío = infinito"
                   />
@@ -631,7 +631,7 @@ export function Settings() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
                     % Barbero
                   </label>
                   <input
@@ -642,20 +642,20 @@ export function Settings() {
                     onChange={(e) => setNewRule({ ...newRule, barber_pct: e.target.value })}
                     style={{
                       width: '100%',
-                      background: '#2a2a2a',
-                      border: '1px solid #383838',
+                      background: '#f8f8f8',
+                      border: '0.5px solid #e0e0e0',
                       borderRadius: '6px',
                       padding: '12px',
                       fontFamily: 'Space Grotesk, sans-serif',
                       fontWeight: 400,
                       fontSize: '14px',
-                      color: '#fff',
+                      color: '#1a1a2e',
                     }}
                     placeholder="50"
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
                     % Dueño
                   </label>
                   <input
@@ -666,21 +666,21 @@ export function Settings() {
                     onChange={(e) => setNewRule({ ...newRule, owner_pct: e.target.value })}
                     style={{
                       width: '100%',
-                      background: '#2a2a2a',
-                      border: '1px solid #383838',
+                      background: '#f8f8f8',
+                      border: '0.5px solid #e0e0e0',
                       borderRadius: '6px',
                       padding: '12px',
                       fontFamily: 'Space Grotesk, sans-serif',
                       fontWeight: 400,
                       fontSize: '14px',
-                      color: '#fff',
+                      color: '#1a1a2e',
                     }}
                     placeholder="50"
                   />
                 </div>
               </div>
 
-              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#888' }}>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#aaa' }}>
                 Los porcentajes deben sumar 100%. Deja vacío "Hasta servicio" para aplicar desde ese servicio en adelante.
               </div>
             </div>
@@ -693,13 +693,13 @@ export function Settings() {
                 }}
                 style={{
                   background: 'transparent',
-                  border: '1px solid #383838',
+                  border: '0.5px solid #e0e0e0',
                   borderRadius: '6px',
                   padding: '10px 20px',
                   fontFamily: 'Space Grotesk, sans-serif',
                   fontWeight: 500,
                   fontSize: '14px',
-                  color: '#888',
+                  color: '#aaa',
                   cursor: 'pointer',
                 }}
               >
@@ -708,8 +708,8 @@ export function Settings() {
               <button
                 onClick={handleAddRule}
                 style={{
-                  background: 'var(--secondary, #C8A97E)',
-                  color: 'var(--primary, #1a1a1a)',
+                  background: 'var(--primary, #3D3A8C)',
+                  color: '#fff',
                   border: 'none',
                   borderRadius: '6px',
                   padding: '10px 20px',
