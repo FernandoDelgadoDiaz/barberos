@@ -239,23 +239,23 @@ export function Metrics() {
 
       {/* SECCIÓN 1 — HERO KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '16px', marginBottom: '16px' }}>
-        <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderLeft: '3px solid #3D3A8C', borderRadius: '10px', padding: '18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderLeft: '3px solid #3D3A8C', borderRadius: '10px', padding: '22px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div style={{ fontSize: '11px', color: '#aaa', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px' }}>FACTURACIÓN TOTAL</div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: isMobile ? '22px' : '26px', color: '#FF8C42', lineHeight: 1 }}>
+          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: isMobile ? '22px' : '26px', color: '#1a1a2e', lineHeight: 1 }}>
             {formatCurrency(metrics!.historico.total_facturado)}
           </div>
           <div style={{ fontSize: '11px', color: '#ccc', marginTop: '4px' }}>desde el primer servicio</div>
         </div>
 
-        <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderLeft: '3px solid #3D3A8C', borderRadius: '10px', padding: '18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderLeft: '3px solid #3D3A8C', borderRadius: '10px', padding: '22px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div style={{ fontSize: '11px', color: '#aaa', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px' }}>TU GANANCIA</div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: isMobile ? '22px' : '26px', color: '#1a1a2e', lineHeight: 1 }}>
+          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: isMobile ? '22px' : '26px', color: '#FF8C42', lineHeight: 1 }}>
             {formatCurrency(metrics!.historico.total_owner)}
           </div>
           <div style={{ fontSize: '11px', color: '#ccc', marginTop: '4px' }}>tu parte acumulada</div>
         </div>
 
-        <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderLeft: '3px solid #3D3A8C', borderRadius: '10px', padding: '18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderLeft: '3px solid #3D3A8C', borderRadius: '10px', padding: '22px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div style={{ fontSize: '11px', color: '#aaa', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px' }}>SERVICIOS TOTALES</div>
           <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: isMobile ? '22px' : '26px', color: '#1a1a2e', lineHeight: 1 }}>
             {formatNumber(metrics!.historico.total_servicios)}
@@ -315,20 +315,21 @@ export function Metrics() {
         <div style={{ fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>
           Servicios esta semana
         </div>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '80px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', height: '100px', padding: '0 4px' }}>
           {metrics!.servicios_por_dia.map((d, i) => {
             const isMax = d.servicios === maxServicios && d.servicios > 0
-            const barHeightPx = d.servicios === 0 ? 4 : Math.max(4, Math.round((d.servicios / maxServicios) * 80))
+            const barHeightPct = d.servicios === 0 ? 4 : Math.max(8, Math.round((d.servicios / maxServicios) * 100))
             return (
-              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '80px' }}>
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', gap: '4px' }}>
                 {d.servicios > 0 && (
-                  <div style={{ fontSize: '10px', color: '#1a1a2e', marginBottom: '2px', fontWeight: 600 }}>{d.servicios}</div>
+                  <span style={{ fontSize: '10px', color: '#1a1a2e', fontWeight: 600 }}>{d.servicios}</span>
                 )}
                 <div style={{
                   width: '100%',
-                  height: `${barHeightPx}px`,
+                  height: `${barHeightPct}%`,
                   background: d.servicios === 0 ? '#f0f0f0' : isMax ? '#FF8C42' : '#3D3A8C',
                   borderRadius: '4px 4px 0 0',
+                  minHeight: '4px'
                 }} />
               </div>
             )
@@ -408,7 +409,7 @@ export function Metrics() {
             valor promedio por servicio registrado
           </div>
         </div>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: isMobile ? '28px' : '36px', color: '#FF8C42' }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: isMobile ? '24px' : '28px', color: '#FF8C42' }}>
           {metrics!.ticket_promedio ? formatCurrency(metrics!.ticket_promedio) : '—'}
         </div>
       </div>
@@ -422,7 +423,7 @@ export function Metrics() {
               {formatMonth(metrics!.mes_top.mes)}
             </div>
           </div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '28px', color: '#3D3A8C' }}>
+          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '28px', color: '#FF8C42' }}>
             {formatCurrency(metrics!.mes_top.total)}
           </div>
         </div>
