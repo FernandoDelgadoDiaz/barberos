@@ -275,11 +275,6 @@ export function Dashboard() {
     }
   }
 
-  const handleNewShift = async () => {
-    // Same as open shift but reset any closed shift state
-    await handleOpenShift()
-  }
-
   const toggleServiceSelection = (service: ServiceWithEstimation) => {
     if (shiftStatus !== 'open') {
       setError('No hay un turno abierto. Inicia un turno para registrar servicios.')
