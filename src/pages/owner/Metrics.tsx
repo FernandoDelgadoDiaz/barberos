@@ -315,12 +315,12 @@ export function Metrics() {
         <div style={{ fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>
           Servicios esta semana
         </div>
-        <div style={{ position: 'relative', height: '120px', display: 'flex', alignItems: 'flex-end', gap: '6px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', alignItems: 'end', height: '120px' }}>
           {metrics!.servicios_por_dia.map((d, i) => {
             const isMax = d.servicios === maxServicios && d.servicios > 0
             const barHeightPct = d.servicios === 0 ? 3 : Math.max(10, Math.round((d.servicios / maxServicios) * 90))
             return (
-              <div key={i} style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
                 {d.servicios > 0 && (
                   <span style={{ fontSize: '10px', color: '#1a1a2e', fontWeight: 600, marginBottom: '3px' }}>{d.servicios}</span>
                 )}
@@ -330,10 +330,14 @@ export function Metrics() {
                   background: d.servicios === 0 ? '#f0f0f0' : isMax ? '#FF8C42' : '#3D3A8C',
                   borderRadius: '4px 4px 0 0',
                 }} />
-                <div style={{ fontSize: '10px', color: '#aaa', marginTop: '6px', textAlign: 'center' }}>{d.dia}</div>
               </div>
             )
           })}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', marginTop: '6px' }}>
+          {metrics!.servicios_por_dia.map((d, i) => (
+            <div key={i} style={{ textAlign: 'center', fontSize: '10px', color: '#aaa' }}>{d.dia}</div>
+          ))}
         </div>
       </div>
 
