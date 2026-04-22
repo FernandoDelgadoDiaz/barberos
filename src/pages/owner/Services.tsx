@@ -194,25 +194,25 @@ export function Services() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px', textAlign: 'center', color: '#888' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px', textAlign: 'center', color: '#aaa' }}>
         Cargando servicios...
       </div>
     )
   }
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', background: '#2a2a2a', color: '#fff', padding: '24px', borderRadius: '12px' }}>
+    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div className="mobile-stack" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#fff', marginBottom: '8px' }}>Servicios</h1>
-          <p style={{ color: '#888', fontSize: '14px' }}>{tenant?.name || 'Tu barbería'} • Catálogo de servicios y precios</p>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#1a1a2e', marginBottom: '8px' }}>Servicios</h1>
+          <p style={{ color: '#aaa', fontSize: '14px' }}>{tenant?.name || 'Tu barbería'} • Catálogo de servicios y precios</p>
         </div>
         <button
           onClick={handleAdd}
           className="mobile-full"
           style={{
-            background: 'var(--secondary, #C8A97E)',
-            color: '#2a2a2a',
+            background: 'var(--primary, #3D3A8C)',
+            color: '#fff',
             border: 'none',
             borderRadius: '8px',
             padding: '12px 20px',
@@ -235,12 +235,12 @@ export function Services() {
       {/* Error message */}
       {error && (
         <div style={{
-          background: '#2a2a2a',
-          border: '1px solid #e94560',
+          background: '#fff5f5',
+          border: '0.5px solid #ffcccc',
           borderRadius: '8px',
           padding: '12px 16px',
           marginBottom: '24px',
-          color: '#e94560',
+          color: '#cc3333',
           fontFamily: 'Space Grotesk, sans-serif',
           fontSize: '14px',
         }}>
@@ -251,12 +251,12 @@ export function Services() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {services.length === 0 ? (
           <div style={{
-            background: '#2a2a2a',
-            border: '1px solid #383838',
-            borderRadius: '12px',
+            background: '#fff',
+            border: '0.5px solid #e0e0e0',
+            borderRadius: '10px',
             padding: '60px 40px',
             textAlign: 'center',
-            color: '#888',
+            color: '#aaa',
             fontFamily: 'Space Grotesk, sans-serif',
             fontSize: '14px',
           }}>
@@ -268,26 +268,26 @@ export function Services() {
               key={service.id}
               className="responsive-row"
               style={{
-                background: '#2a2a2a',
-                border: '1px solid #383838',
-                borderRadius: '12px',
+                background: '#fff',
+                border: '0.5px solid #e0e0e0',
+                borderRadius: '10px',
                 padding: '20px',
               }}
             >
               <div className="responsive-row-left">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '10px', background: '#2a2a2a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={service.is_active ? 'var(--secondary, #C8A97E)' : '#888'} strokeWidth="2">
+                  <div style={{ width: '48px', height: '48px', borderRadius: '10px', background: '#eeedf8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={service.is_active ? 'var(--primary, #3D3A8C)' : '#ccc'} strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                     </svg>
                   </div>
                   <div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#fff', marginBottom: '4px' }}>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#1a1a2e', marginBottom: '4px' }}>
                       {service.name}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888' }}>
-                      <span style={{ color: 'var(--secondary, #C8A97E)' }}>${service.base_price.toLocaleString()}</span>
-                      <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#888' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa' }}>
+                      <span style={{ color: 'var(--primary, #3D3A8C)' }}>${service.base_price.toLocaleString()}</span>
+                      <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#aaa' }} />
                       <span>{service.duration_min} min</span>
                     </div>
                   </div>
@@ -299,13 +299,13 @@ export function Services() {
                   onClick={() => handleEdit(service)}
                   style={{
                     background: 'transparent',
-                    border: '1px solid #383838',
+                    border: '0.5px solid #e0e0e0',
                     borderRadius: '6px',
                     padding: '8px 12px',
                     fontFamily: 'Space Grotesk, sans-serif',
                     fontWeight: 500,
                     fontSize: '12px',
-                    color: '#888',
+                    color: '#aaa',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -322,13 +322,13 @@ export function Services() {
                   onClick={() => handleDelete(service)}
                   style={{
                     background: 'transparent',
-                    border: '1px solid #383838',
+                    border: '0.5px solid #ffcccc',
                     borderRadius: '6px',
                     padding: '8px 12px',
                     fontFamily: 'Space Grotesk, sans-serif',
                     fontWeight: 500,
                     fontSize: '12px',
-                    color: '#e94560',
+                    color: '#e74c3c',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -342,7 +342,7 @@ export function Services() {
                 </button>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: service.is_active ? 'var(--secondary, #C8A97E)' : '#888' }}>
+                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: service.is_active ? 'var(--primary, #3D3A8C)' : '#aaa' }}>
                     {service.is_active ? 'Activo' : 'Inactivo'}
                   </div>
                   <div
@@ -351,7 +351,7 @@ export function Services() {
                       width: '36px',
                       height: '20px',
                       borderRadius: '10px',
-                      background: service.is_active ? 'var(--secondary, #C8A97E)' : '#383838',
+                      background: service.is_active ? 'var(--primary, #3D3A8C)' : '#e0e0e0',
                       position: 'relative',
                       cursor: 'pointer',
                     }}
@@ -382,28 +382,28 @@ export function Services() {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0,0,0,0.8)',
+          background: 'rgba(0,0,0,0.4)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000,
         }}>
           <div style={{
-            background: '#242424',
-            border: '1px solid #383838',
+            background: '#fff',
+            border: '0.5px solid #e0e0e0',
             borderRadius: '12px',
             padding: '32px',
             width: '90vw',
             maxWidth: '480px',
             alignSelf: 'center',
           }}>
-            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '24px' }}>
+            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '24px' }}>
               {editingService ? 'Editar servicio' : 'Agregar servicio'}
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
                   Nombre
                 </label>
                 <input
@@ -412,21 +412,21 @@ export function Services() {
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   style={{
                     width: '100%',
-                    background: '#2a2a2a',
-                    border: '1px solid #383838',
+                    background: '#f8f8f8',
+                    border: '0.5px solid #e0e0e0',
                     borderRadius: '6px',
                     padding: '12px',
                     fontFamily: 'Space Grotesk, sans-serif',
                     fontWeight: 400,
                     fontSize: '14px',
-                    color: '#fff',
+                    color: '#1a1a2e',
                   }}
                 />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
                     Precio ($)
                   </label>
                   <input
@@ -435,20 +435,20 @@ export function Services() {
                     onChange={(e) => setFormData({ ...formData, base_price: e.target.value })}
                     style={{
                       width: '100%',
-                      background: '#2a2a2a',
-                      border: '1px solid #383838',
+                      background: '#f8f8f8',
+                      border: '0.5px solid #e0e0e0',
                       borderRadius: '6px',
                       padding: '12px',
                       fontFamily: 'Space Grotesk, sans-serif',
                       fontWeight: 400,
                       fontSize: '14px',
-                      color: '#fff',
+                      color: '#1a1a2e',
                     }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
                     Duración (min)
                   </label>
                   <input
@@ -457,14 +457,14 @@ export function Services() {
                     onChange={(e) => setFormData({ ...formData, duration_min: e.target.value })}
                     style={{
                       width: '100%',
-                      background: '#2a2a2a',
-                      border: '1px solid #383838',
+                      background: '#f8f8f8',
+                      border: '0.5px solid #e0e0e0',
                       borderRadius: '6px',
                       padding: '12px',
                       fontFamily: 'Space Grotesk, sans-serif',
                       fontWeight: 400,
                       fontSize: '14px',
-                      color: '#fff',
+                      color: '#1a1a2e',
                     }}
                   />
                 </div>
@@ -472,7 +472,7 @@ export function Services() {
 
               {editingService && (
                 <div>
-                  <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
                     Estado
                   </label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -482,7 +482,7 @@ export function Services() {
                         width: '36px',
                         height: '20px',
                         borderRadius: '10px',
-                        background: formData.is_active ? 'var(--secondary, #C8A97E)' : '#383838',
+                        background: formData.is_active ? 'var(--primary, #3D3A8C)' : '#e0e0e0',
                         position: 'relative',
                         cursor: 'pointer',
                       }}
@@ -498,7 +498,7 @@ export function Services() {
                         transition: 'left 0.2s',
                       }} />
                     </div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: formData.is_active ? 'var(--secondary, #C8A97E)' : '#888' }}>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: formData.is_active ? 'var(--primary, #3D3A8C)' : '#aaa' }}>
                       {formData.is_active ? 'Activo' : 'Inactivo'}
                     </div>
                   </div>
@@ -512,13 +512,13 @@ export function Services() {
                 disabled={saving}
                 style={{
                   background: 'transparent',
-                  border: '1px solid #383838',
+                  border: '0.5px solid #e0e0e0',
                   borderRadius: '6px',
                   padding: '10px 20px',
                   fontFamily: 'Space Grotesk, sans-serif',
                   fontWeight: 500,
                   fontSize: '14px',
-                  color: '#888',
+                  color: '#aaa',
                   cursor: 'pointer',
                 }}
               >
@@ -528,8 +528,8 @@ export function Services() {
                 onClick={handleSave}
                 disabled={saving}
                 style={{
-                  background: 'var(--secondary, #C8A97E)',
-                  color: 'var(--primary, #1a1a1a)',
+                  background: 'var(--primary, #3D3A8C)',
+                  color: '#fff',
                   border: 'none',
                   borderRadius: '6px',
                   padding: '10px 20px',
