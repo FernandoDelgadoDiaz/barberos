@@ -166,6 +166,7 @@ interface MetricsResponse {
   historico: { total_servicios: number; total_facturado: number; total_owner: number }
   semana_actual: { servicios: number; facturado: number }
   semana_anterior: { servicios: number; facturado: number }
+  servicios_por_dia: { dia: string; servicios: number; facturado: number }[]
 }
 
 interface NetlifyFunctionEvent {
@@ -286,7 +287,8 @@ export const handler = async (event: NetlifyFunctionEvent) => {
         ticket_promedio: null,
         historico: { total_servicios: 0, total_facturado: 0, total_owner: 0 },
         semana_actual: { servicios: 0, facturado: 0 },
-        semana_anterior: { servicios: 0, facturado: 0 }
+        semana_anterior: { servicios: 0, facturado: 0 },
+        servicios_por_dia: ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(dia => ({ dia, servicios: 0, facturado: 0 }))
       }
       return {
         statusCode: 200,
@@ -477,6 +479,22 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       facturado: previousWeekLogs.reduce((acc, log) => acc + log.price_charged, 0)
     }
 
+    const DAY_NAMES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
+    const serviciosPorDiaMap: Record<number, { servicios: number; facturado: number }> = {}
+    currentWeekLogs.forEach(log => {
+      const argDate = toArgentinaDate(new Date(log.started_at))
+      const dow = getArgentinaDayOfWeek(argDate)
+      const curr = serviciosPorDiaMap[dow] || { servicios: 0, facturado: 0 }
+      curr.servicios += 1
+      curr.facturado += log.price_charged
+      serviciosPorDiaMap[dow] = curr
+    })
+    const serviciosPorDia = [1,2,3,4,5,6,0].map(dow => ({
+      dia: DAY_NAMES[dow],
+      servicios: serviciosPorDiaMap[dow]?.servicios || 0,
+      facturado: serviciosPorDiaMap[dow]?.facturado || 0,
+    }))
+
     // Build response
     const response: MetricsResponse = {
       dia_mas_cortes: diaMasCortes,
@@ -487,7 +505,8 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       ticket_promedio: ticketPromedio,
       historico,
       semana_actual,
-      semana_anterior
+      semana_anterior,
+      servicios_por_dia: serviciosPorDia
     }
 
     return {
