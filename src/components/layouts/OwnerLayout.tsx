@@ -82,13 +82,13 @@ export function OwnerLayout() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#F4F5F7' }}>
         {/* Mobile top header */}
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '52px', background: '#3D3A8C', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 100 }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '52px', background: 'var(--primary, #3D3A8C)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 100 }}>
           <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: '#fff' }}>
             {tenant?.name}
           </span>
           <button
             onClick={handleSignOut}
-            style={{ background: 'transparent', border: 'none', padding: 0, color: '#FF8C42', fontSize: '13px', cursor: 'pointer', fontWeight: 500 }}
+            style={{ background: 'transparent', border: 'none', padding: 0, color: 'var(--secondary, #FF8C42)', fontSize: '13px', cursor: 'pointer', fontWeight: 500 }}
           >
             Cerrar sesión
           </button>
@@ -100,7 +100,7 @@ export function OwnerLayout() {
         </div>
 
         {/* Mobile bottom nav */}
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', background: '#3D3A8C', display: 'flex', alignItems: 'center', zIndex: 100 }}>
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', background: 'var(--primary, #3D3A8C)', display: 'flex', alignItems: 'center', zIndex: 100 }}>
           {navItems.map(({ to, label }) => (
             <NavLink
               key={to}
@@ -112,7 +112,7 @@ export function OwnerLayout() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '3px',
-                color: isActive ? '#FF8C42' : 'rgba(255,255,255,0.5)',
+                color: isActive ? 'var(--secondary, #FF8C42)' : 'rgba(255,255,255,0.5)',
                 textDecoration: 'none',
                 fontSize: '10px',
                 fontWeight: 500,
@@ -130,7 +130,7 @@ export function OwnerLayout() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       {/* Sidebar */}
-      <div style={{ width: '210px', flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#3D3A8C', position: 'fixed', top: 0, left: 0, height: '100vh' }}>
+      <div style={{ width: '210px', flexShrink: 0, display: 'flex', flexDirection: 'column', background: 'var(--primary, #3D3A8C)', position: 'fixed', top: 0, left: 0, height: '100vh' }}>
         {/* Tenant info */}
         <div style={{ padding: '24px 20px 20px' }}>
           <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '17px', color: '#fff', marginBottom: '4px' }}>
@@ -156,7 +156,7 @@ export function OwnerLayout() {
                 fontWeight: 500,
                 color: isActive ? '#fff' : 'rgba(255,255,255,0.6)',
                 background: isActive ? 'rgba(255,255,255,0.15)' : 'transparent',
-                borderRight: isActive ? '3px solid #FF8C42' : '3px solid transparent',
+                borderRight: isActive ? '3px solid var(--secondary, #FF8C42)' : '3px solid transparent',
                 textDecoration: 'none',
               })}
             >
@@ -170,7 +170,7 @@ export function OwnerLayout() {
         <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
           <button
             onClick={handleSignOut}
-            style={{ background: 'transparent', border: 'none', padding: 0, color: '#FF8C42', fontSize: '12px', cursor: 'pointer', fontWeight: 500 }}
+            style={{ background: 'transparent', border: 'none', padding: 0, color: 'var(--secondary, #FF8C42)', fontSize: '12px', cursor: 'pointer', fontWeight: 500 }}
           >
             Cerrar sesión
           </button>
