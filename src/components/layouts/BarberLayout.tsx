@@ -39,12 +39,12 @@ export function BarberLayout() {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <ScissorsIcon />
-            <span className="barber-logo" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', letterSpacing: '2px', color: 'var(--text, #fff)' }}>
-              BARBER<span style={{ color: 'var(--secondary, #C8A97E)' }}>OS</span>
+            <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--text, #fff)' }}>
+              {tenant?.name || 'Mi barbería'}
             </span>
           </div>
           <span style={{ fontSize: '11px', color: 'var(--text-muted, #888)', letterSpacing: '1px' }}>
-            {tenant?.name}
+            Panel del barbero
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

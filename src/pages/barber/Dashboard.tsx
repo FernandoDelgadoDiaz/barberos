@@ -38,7 +38,13 @@ export function Dashboard() {
 
     if (!tenant?.id || !profile?.id) {
       if (isMounted) setLoading(false)
-      return
+      const retryId = setTimeout(() => {
+        if (isMounted) setRefreshTrigger(prev => prev + 1)
+      }, 500)
+      return () => {
+        isMounted = false
+        clearTimeout(retryId)
+      }
     }
 
     const loadData = async () => {
