@@ -51,8 +51,12 @@ export function Barbers() {
   }, [tenantId])
 
   useEffect(() => {
+    if (!tenantId) {
+      const retryId = setTimeout(() => { loadBarbers() }, 500)
+      return () => clearTimeout(retryId)
+    }
     loadBarbers()
-  }, [loadBarbers])
+  }, [loadBarbers, tenantId])
 
   const handleToggleActive = async (id: string) => {
     const barber = barbers.find(b => b.id === id)

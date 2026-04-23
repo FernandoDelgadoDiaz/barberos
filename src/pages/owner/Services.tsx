@@ -20,9 +20,8 @@ export function Services() {
 
   // Load services
   useEffect(() => {
-    if (!tenant?.id) return
-
     const loadServices = async () => {
+      if (!tenant?.id) return
       setLoading(true)
       setError(null)
 
@@ -43,6 +42,11 @@ export function Services() {
       } finally {
         setLoading(false)
       }
+    }
+
+    if (!tenant?.id) {
+      const retryId = setTimeout(() => { loadServices() }, 500)
+      return () => clearTimeout(retryId)
     }
 
     loadServices()

@@ -31,16 +31,12 @@ export function Summary() {
   // Load today's logs
   useEffect(() => {
     console.log('[Summary] useEffect triggered', { tenantId: tenant?.id, profileId: profile?.id })
-    if (!tenant?.id || !profile?.id) {
-      console.log('[Summary] missing tenant or profile, skipping load')
-      setLoading(false)
-      return
-    }
 
     let isMounted = true
     let timeoutId: ReturnType<typeof setTimeout> | null = null
 
     const loadTodayLogs = async () => {
+      if (!tenant?.id || !profile?.id) return
       console.log('[Summary] loadTodayLogs start')
       if (isMounted) setLoading(true)
       setError(null)
@@ -159,6 +155,18 @@ export function Summary() {
         if (timeoutId) clearTimeout(timeoutId)
         console.log('[Summary] loadTodayLogs finally, isMounted:', isMounted)
         if (isMounted) setLoading(false)
+      }
+    }
+
+    if (!tenant?.id || !profile?.id) {
+      console.log('[Summary] missing tenant or profile, scheduling retry')
+      setLoading(false)
+      const retryId = setTimeout(() => {
+        if (isMounted) loadTodayLogs()
+      }, 500)
+      return () => {
+        isMounted = false
+        clearTimeout(retryId)
       }
     }
 

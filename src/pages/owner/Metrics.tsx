@@ -155,6 +155,12 @@ export function Metrics() {
         setLoading(false)
       }
     }
+
+    if (!tenant?.id) {
+      const retryId = setTimeout(() => { fetchMetrics() }, 500)
+      return () => clearTimeout(retryId)
+    }
+
     fetchMetrics()
   }, [tenant?.id])
 

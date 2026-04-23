@@ -34,22 +34,28 @@ export function Settings() {
 
   // Load tenant data and commission rules
   useEffect(() => {
-    if (!tenant) return
+    const applyTenant = () => {
+      if (!tenant) return
+      setTenantForm({
+        name: tenant.name || '',
+        primary_color: tenant.primary_color || '#C8A97E',
+        secondary_color: tenant.secondary_color || '#1a1a1a',
+        opening_time: tenant.opening_time || '09:00',
+        closing_time: tenant.closing_time || '21:00',
+      })
+      setCommissionRules(tenant.commission_rules || {
+        rules: [],
+        resets_daily: true,
+      })
+      setLoading(false)
+    }
 
-    setTenantForm({
-      name: tenant.name || '',
-      primary_color: tenant.primary_color || '#C8A97E',
-      secondary_color: tenant.secondary_color || '#1a1a1a',
-      opening_time: tenant.opening_time || '09:00',
-      closing_time: tenant.closing_time || '21:00',
-    })
+    if (!tenant) {
+      const retryId = setTimeout(() => { applyTenant() }, 500)
+      return () => clearTimeout(retryId)
+    }
 
-    setCommissionRules(tenant.commission_rules || {
-      rules: [],
-      resets_daily: true,
-    })
-
-    setLoading(false)
+    applyTenant()
   }, [tenant])
 
   const formatRule = (rule: CommissionRule) => {
