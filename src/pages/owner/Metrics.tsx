@@ -26,7 +26,8 @@ interface MetricsData {
 }
 
 function formatDate(fecha: string): string {
-  const date = new Date(fecha)
+  const [year, month, day] = fecha.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
   const options: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long' }
   return date.toLocaleDateString('es-ES', options)
 }
