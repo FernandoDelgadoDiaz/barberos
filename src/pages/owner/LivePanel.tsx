@@ -3,7 +3,7 @@ import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 import { useServiceLogsRealtime } from '../../hooks/useRealtime'
 import { ExpandableBarberCard } from '../../components/owner/ExpandableBarberCard'
-import type { ServiceLog, Profile } from '../../types'
+import type { ServiceLog, Profile, DailyExpense } from '../../types'
 
 function getArgentinaDateString(date = new Date()): string {
   return date.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
@@ -74,6 +74,10 @@ export function LivePanel() {
   const [highlightBarberId, setHighlightBarberId] = useState<string | null>(null)
   const [currentDate, setCurrentDate] = useState<string>('')
   const [showPaymentBreakdown, setShowPaymentBreakdown] = useState(false)
+  const [expenses, setExpenses] = useState<DailyExpense[]>([])
+  const [showExpenseModal, setShowExpenseModal] = useState(false)
+  const [expenseForm, setExpenseForm] = useState({ description: '', amount: '' })
+  const [savingExpense, setSavingExpense] = useState(false)
   const isMounted = useRef(true)
 
   // Calculate totals
@@ -139,6 +143,9 @@ export function LivePanel() {
     }
   })
 
+  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
+  const totalBarberEarnings = barberStats.reduce((sum, s) => sum + s.barberEarnings, 0)
+
   // Load today's logs and active barbers
   const loadInitialData = useCallback(async () => {
     if (!tenantId) {
@@ -196,6 +203,16 @@ export function LivePanel() {
       if (isMounted.current) {
         setBarbers(barbersData || [])
       }
+
+      const { data: expensesData } = await supabase
+        .from('daily_expenses')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('expense_date', todayArgentina)
+        .order('created_at', { ascending: true })
+      if (isMounted.current) {
+        setExpenses(expensesData || [])
+      }
     } catch (error) {
       console.error('Error loading initial data:', error)
     } finally {
@@ -204,6 +221,37 @@ export function LivePanel() {
       }
     }
   }, [tenantId])
+
+  const handleAddExpense = async () => {
+    if (!tenantId || !profile) return
+    const amount = parseFloat(expenseForm.amount)
+    if (!expenseForm.description.trim() || isNaN(amount) || amount <= 0) return
+    setSavingExpense(true)
+    try {
+      const argToday = getArgentinaDateString()
+      const { data, error } = await supabase
+        .from('daily_expenses')
+        .insert({
+          tenant_id: tenantId,
+          owner_id: profile.id,
+          amount,
+          description: expenseForm.description.trim(),
+          expense_date: argToday
+        })
+        .select()
+        .single()
+      if (error) throw error
+      if (isMounted.current) {
+        setExpenses(prev => [...prev, data])
+        setExpenseForm({ description: '', amount: '' })
+        setShowExpenseModal(false)
+      }
+    } catch (err) {
+      console.error('Error saving expense:', err)
+    } finally {
+      if (isMounted.current) setSavingExpense(false)
+    }
+  }
 
   useEffect(() => {
     isMounted.current = true
@@ -414,6 +462,33 @@ export function LivePanel() {
         )}
       </div>
 
+      {/* Expenses section */}
+      <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '20px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: expenses.length > 0 ? '12px' : '0' }}>
+          <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '14px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>GASTOS DEL DÍA</h2>
+          <button
+            onClick={() => setShowExpenseModal(true)}
+            style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 16px', fontSize: '13px', cursor: 'pointer' }}
+          >
+            ＋ Agregar gasto
+          </button>
+        </div>
+        {expenses.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {expenses.map(expense => (
+              <div key={expense.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                <span style={{ color: '#444' }}>{expense.description}</span>
+                <span style={{ color: '#e74c3c', fontWeight: 500 }}>-${expense.amount.toLocaleString()}</span>
+              </div>
+            ))}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 700, borderTop: '0.5px solid #f0f0f0', paddingTop: '8px', marginTop: '4px' }}>
+              <span style={{ color: '#1a1a2e' }}>Total gastos</span>
+              <span style={{ color: '#e74c3c' }}>-${totalExpenses.toLocaleString()}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Settlement summary */}
       {barberStats.length > 0 && logs.length > 0 && (
         <div style={{ background: '#3D3A8C', borderRadius: '10px', padding: '20px' }}>
@@ -422,8 +497,8 @@ export function LivePanel() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-              <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Para vos (owner)</span>
-              <span style={{ fontSize: '14px', fontWeight: 500, color: '#fff' }}>${ownerEarning.toLocaleString()}</span>
+              <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Total Barbería</span>
+              <span style={{ fontSize: '14px', fontWeight: 500, color: '#fff' }}>${totalDay.toLocaleString()}</span>
             </div>
             {barberStats.map((stats) => (
               <div key={stats.barber.id} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
@@ -431,6 +506,56 @@ export function LivePanel() {
                 <span style={{ fontSize: '14px', fontWeight: 500, color: '#fff' }}>${stats.barberEarnings.toLocaleString()}</span>
               </div>
             ))}
+            {totalExpenses > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px' }}>
+                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Insumos del día</span>
+                <span style={{ fontSize: '14px', fontWeight: 500, color: '#FF6B6B' }}>-${totalExpenses.toLocaleString()}</span>
+              </div>
+            )}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '14px', color: '#fff', fontWeight: 600 }}>Ganancia real del dueño</span>
+              <span style={{ fontSize: '18px', fontWeight: 700, color: '#FF8C42' }}>${(totalDay - totalBarberEarnings - totalExpenses).toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Expense modal */}
+      {showExpenseModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '12px', padding: '32px', maxWidth: '400px', width: '90%' }}>
+            <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#1a1a2e', margin: '0 0 24px 0' }}>Agregar gasto</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+              <input
+                type="text"
+                placeholder="Ej: Shampoo, toallas, etc."
+                value={expenseForm.description}
+                onChange={e => setExpenseForm(prev => ({ ...prev, description: e.target.value }))}
+                style={{ border: '0.5px solid #e0e0e0', borderRadius: '8px', padding: '12px', fontSize: '14px', outline: 'none' }}
+              />
+              <input
+                type="number"
+                placeholder="0"
+                value={expenseForm.amount}
+                onChange={e => setExpenseForm(prev => ({ ...prev, amount: e.target.value }))}
+                style={{ border: '0.5px solid #e0e0e0', borderRadius: '8px', padding: '12px', fontSize: '14px', outline: 'none' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => { setShowExpenseModal(false); setExpenseForm({ description: '', amount: '' }) }}
+                style={{ background: 'none', border: '0.5px solid #e0e0e0', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAddExpense}
+                disabled={savingExpense}
+                style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', cursor: savingExpense ? 'not-allowed' : 'pointer', opacity: savingExpense ? 0.7 : 1 }}
+              >
+                {savingExpense ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
           </div>
         </div>
       )}

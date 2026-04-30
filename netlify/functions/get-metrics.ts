@@ -167,6 +167,7 @@ interface MetricsResponse {
   semana_actual: { servicios: number; facturado: number }
   semana_anterior: { servicios: number; facturado: number }
   servicios_por_dia: { dia: string; servicios: number; facturado: number }[]
+  gastos_mes: number
 }
 
 interface NetlifyFunctionEvent {
@@ -288,7 +289,8 @@ export const handler = async (event: NetlifyFunctionEvent) => {
         historico: { total_servicios: 0, total_facturado: 0, total_owner: 0 },
         semana_actual: { servicios: 0, facturado: 0 },
         semana_anterior: { servicios: 0, facturado: 0 },
-        servicios_por_dia: ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(dia => ({ dia, servicios: 0, facturado: 0 }))
+        servicios_por_dia: ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(dia => ({ dia, servicios: 0, facturado: 0 })),
+        gastos_mes: 0
       }
       return {
         statusCode: 200,
@@ -495,6 +497,20 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       facturado: serviciosPorDiaMap[dow]?.facturado || 0,
     }))
 
+    // Fetch monthly expenses
+    const argNow2 = getArgentinaNow()
+    const argYear = argNow2.getUTCFullYear()
+    const argMonth = argNow2.getUTCMonth() + 1
+    const firstDayOfMonth = `${argYear}-${String(argMonth).padStart(2, '0')}-01`
+    const lastDayOfMonth = `${argYear}-${String(argMonth).padStart(2, '0')}-${String(new Date(Date.UTC(argYear, argMonth, 0)).getUTCDate()).padStart(2, '0')}`
+    const { data: monthExpenses } = await supabase
+      .from('daily_expenses')
+      .select('amount')
+      .eq('tenant_id', tenant_id)
+      .gte('expense_date', firstDayOfMonth)
+      .lte('expense_date', lastDayOfMonth)
+    const total_gastos_mes = (monthExpenses || []).reduce((sum: number, e: { amount: number }) => sum + (e.amount || 0), 0)
+
     // Build response
     const response: MetricsResponse = {
       dia_mas_cortes: diaMasCortes,
@@ -506,7 +522,8 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       historico,
       semana_actual,
       semana_anterior,
-      servicios_por_dia: serviciosPorDia
+      servicios_por_dia: serviciosPorDia,
+      gastos_mes: total_gastos_mes
     }
 
     return {

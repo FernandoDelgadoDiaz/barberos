@@ -123,3 +123,13 @@ export interface LogServiceResponse {
   appointment: Appointment
   service_logs: ServiceLog[]
 }
+
+export interface DailyExpense {
+  id: string
+  tenant_id: string
+  owner_id: string
+  amount: number
+  description: string
+  expense_date: string
+  created_at: string
+}
