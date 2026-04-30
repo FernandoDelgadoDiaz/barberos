@@ -523,7 +523,7 @@ export function LivePanel() {
       {/* Expense modal */}
       {showExpenseModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '12px', padding: '32px', maxWidth: '400px', width: '90%' }}>
+          <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '12px', padding: '32px', maxWidth: '400px', width: '90%', color: '#1a1a2e' }}>
             <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#1a1a2e', margin: '0 0 24px 0' }}>Agregar gasto</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
               <input
@@ -544,7 +544,7 @@ export function LivePanel() {
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => { setShowExpenseModal(false); setExpenseForm({ description: '', amount: '' }) }}
-                style={{ background: 'none', border: '0.5px solid #e0e0e0', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', cursor: 'pointer' }}
+                style={{ background: 'none', border: '0.5px solid #e0e0e0', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', cursor: 'pointer', color: '#666' }}
               >
                 Cancelar
               </button>
