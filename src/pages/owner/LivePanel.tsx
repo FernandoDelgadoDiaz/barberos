@@ -531,14 +531,14 @@ export function LivePanel() {
                 placeholder="Ej: Shampoo, toallas, etc."
                 value={expenseForm.description}
                 onChange={e => setExpenseForm(prev => ({ ...prev, description: e.target.value }))}
-                style={{ border: '0.5px solid #e0e0e0', borderRadius: '8px', padding: '12px', fontSize: '14px', outline: 'none' }}
+                style={{ border: '0.5px solid #e0e0e0', borderRadius: '8px', padding: '12px', fontSize: '14px', outline: 'none', backgroundColor: '#f8f8f8', color: '#1a1a2e', width: '100%', boxSizing: 'border-box' }}
               />
               <input
                 type="number"
                 placeholder="0"
                 value={expenseForm.amount}
                 onChange={e => setExpenseForm(prev => ({ ...prev, amount: e.target.value }))}
-                style={{ border: '0.5px solid #e0e0e0', borderRadius: '8px', padding: '12px', fontSize: '14px', outline: 'none' }}
+                style={{ border: '0.5px solid #e0e0e0', borderRadius: '8px', padding: '12px', fontSize: '14px', outline: 'none', backgroundColor: '#f8f8f8', color: '#1a1a2e', width: '100%', boxSizing: 'border-box' }}
               />
             </div>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
