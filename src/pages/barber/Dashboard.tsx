@@ -54,8 +54,6 @@ export function Dashboard() {
 
       try {
         console.log('[Dashboard] loadData start', { tenantId: tenant?.id, profileId: profile?.id, activeShiftId })
-        const today = new Date().toISOString().split('T')[0]
-
 
         // Check for active shift (open or paused)
         const { data: activeShift, error: shiftError } = await supabase
@@ -100,25 +98,37 @@ export function Dashboard() {
 
         if (servicesError) throw servicesError
 
-        // Load service logs based on shift or day
-        let logsData: any[] = []
-        let query = supabase
-          .from('service_logs')
-          .select('*')
-          .eq('tenant_id', tenant.id)
-          .eq('barber_id', profile.id)
-          .eq('status', 'completed')
-          .gte('started_at', `${today}T00:00:00`)
-          .lte('started_at', `${today}T23:59:59`)
-
+        // Resolve which shift_id to use for logs and appointments
+        let shiftIdForLogs: string | null = null
         if (activeShift) {
-          query = query.eq('shift_id', activeShift.id)
+          shiftIdForLogs = activeShift.id
+        } else {
+          const { data: closedShift } = await supabase
+            .from('shifts')
+            .select('id')
+            .eq('tenant_id', tenant.id)
+            .eq('barber_id', profile.id)
+            .eq('status', 'closed')
+            .order('started_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          shiftIdForLogs = closedShift?.id ?? null
         }
 
-        const { data: logsDataQuery, error: logsError } = await query.order('started_at', { ascending: false })
-
-        if (logsError) throw logsError
-        logsData = logsDataQuery || []
+        // Load service logs for the resolved shift (empty if no shift found)
+        let logsData: any[] = []
+        if (shiftIdForLogs) {
+          const { data: logsDataQuery, error: logsError } = await supabase
+            .from('service_logs')
+            .select('*')
+            .eq('tenant_id', tenant.id)
+            .eq('barber_id', profile.id)
+            .eq('status', 'completed')
+            .eq('shift_id', shiftIdForLogs)
+            .order('started_at', { ascending: false })
+          if (logsError) throw logsError
+          logsData = logsDataQuery || []
+        }
 
         // Calculate estimated earnings for each service based on next service number
         const nextServiceNumber = (logsData?.length || 0) + 1
@@ -128,28 +138,20 @@ export function Dashboard() {
           estimatedEarning: applyCommission(commissionRules, nextServiceNumber, service.base_price),
         }))
 
-        // Count appointments for current shift (or today)
+        // Count appointments for the resolved shift
         let appointmentsCount = 0
-        let appointmentsQuery = supabase
-          .from('appointments')
-          .select('*', { count: 'exact', head: true })
-          .eq('tenant_id', tenant.id)
-          .eq('barber_id', profile.id)
-
-        if (activeShift) {
-          appointmentsQuery = appointmentsQuery.eq('shift_id', activeShift.id)
-        } else {
-          const today = new Date().toISOString().split('T')[0]
-          appointmentsQuery = appointmentsQuery
-            .gte('started_at', `${today}T00:00:00`)
-            .lte('started_at', `${today}T23:59:59`)
-        }
-
-        const { count, error: appointmentsError } = await appointmentsQuery
-        if (appointmentsError) {
-          console.error('Error counting appointments:', appointmentsError)
-        } else {
-          appointmentsCount = count || 0
+        if (shiftIdForLogs) {
+          const { count, error: appointmentsError } = await supabase
+            .from('appointments')
+            .select('*', { count: 'exact', head: true })
+            .eq('tenant_id', tenant.id)
+            .eq('barber_id', profile.id)
+            .eq('shift_id', shiftIdForLogs)
+          if (appointmentsError) {
+            console.error('Error counting appointments:', appointmentsError)
+          } else {
+            appointmentsCount = count || 0
+          }
         }
 
         if (isMounted) {
