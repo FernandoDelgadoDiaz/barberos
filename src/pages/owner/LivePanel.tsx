@@ -73,12 +73,19 @@ export function LivePanel() {
   const [loading, setLoading] = useState(true)
   const [highlightBarberId, setHighlightBarberId] = useState<string | null>(null)
   const [currentDate, setCurrentDate] = useState<string>('')
+  const [showPaymentBreakdown, setShowPaymentBreakdown] = useState(false)
   const isMounted = useRef(true)
 
   // Calculate totals
   const totalDay = logs.reduce((sum, log) => sum + log.price_charged, 0)
   const ownerEarning = logs.reduce((sum, log) => sum + log.owner_earning, 0)
   const totalServices = logs.length
+  const efectivoTotal = logs
+    .filter(log => (log.payment_method || 'efectivo') === 'efectivo')
+    .reduce((sum, log) => sum + log.price_charged, 0)
+  const transferenciaTotal = logs
+    .filter(log => log.payment_method === 'transferencia')
+    .reduce((sum, log) => sum + log.price_charged, 0)
 
   // Calculate barber stats with appointments grouping
   const barberStats: BarberStats[] = barbers.map(barber => {
@@ -331,9 +338,37 @@ export function LivePanel() {
 
       {/* Stats row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px', marginTop: '20px' }}>
-        <div style={{ background: '#fff', borderRadius: '10px', padding: '16px', border: '0.5px solid #e0e0e0' }}>
+        <div style={{ background: '#fff', borderRadius: '10px', padding: '16px', border: '0.5px solid #e0e0e0', position: 'relative' }}>
           <div style={{ fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Total del día</div>
-          <div style={{ fontSize: '22px', fontWeight: 500, color: '#1a1a2e' }}>${totalDay.toLocaleString()}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ fontSize: '22px', fontWeight: 500, color: '#1a1a2e' }}>${totalDay.toLocaleString()}</div>
+            <button
+              onClick={() => setShowPaymentBreakdown(prev => !prev)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: '#888', display: 'flex', alignItems: 'center' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d={showPaymentBreakdown ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} />
+              </svg>
+            </button>
+          </div>
+          {showPaymentBreakdown && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              marginTop: '4px',
+              background: '#fff',
+              border: '0.5px solid #e0e0e0',
+              borderRadius: '8px',
+              padding: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              zIndex: 10,
+            }}>
+              <div style={{ fontSize: '13px', color: '#555', marginBottom: '6px' }}>💵 Efectivo: <strong>${efectivoTotal.toLocaleString()}</strong></div>
+              <div style={{ fontSize: '13px', color: '#555' }}>📲 Transferencia: <strong>${transferenciaTotal.toLocaleString()}</strong></div>
+            </div>
+          )}
         </div>
         <div style={{ background: '#fff', borderRadius: '10px', padding: '16px', border: '0.5px solid #e0e0e0' }}>
           <div style={{ fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Tu ganancia</div>

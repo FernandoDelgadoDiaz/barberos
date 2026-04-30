@@ -74,6 +74,7 @@ interface RequestBody {
   started_at: string
   ended_at?: string        // Opcional, se ignora (ended_at será null)
   shift_id?: string
+  payment_method?: 'efectivo' | 'transferencia'
 }
 
 // Interfaz para appointment (local)
@@ -107,6 +108,7 @@ interface ServiceLog {
   ended_at: string | null
   status: 'completed'
   shift_id?: string | null
+  payment_method: 'efectivo' | 'transferencia'
 }
 
 function applyCommission(rules: CommissionRule[], serviceNumber: number, price: number) {
@@ -164,6 +166,8 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
     const body: RequestBody = JSON.parse(event.body)
+    const paymentMethod: 'efectivo' | 'transferencia' =
+      body.payment_method === 'transferencia' ? 'transferencia' : 'efectivo'
 
     // Validar required fields
     if (!body.barber_id || !body.services || !body.started_at) {
@@ -407,6 +411,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
         ended_at: null,
         status: 'completed',
         shift_id: body.shift_id ?? null,
+        payment_method: paymentMethod,
       }
 
       const { data: insertedLog, error: logError } = await supabase

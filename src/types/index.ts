@@ -59,6 +59,7 @@ export type ServiceLog = {
   ended_at: string | null
   status: string
   shift_id?: string | null
+  payment_method?: 'efectivo' | 'transferencia'
   created_at: string
 }
 

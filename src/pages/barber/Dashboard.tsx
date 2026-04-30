@@ -31,6 +31,7 @@ export function Dashboard() {
   const [shiftLoading, setShiftLoading] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [appointmentsCount, setAppointmentsCount] = useState<number>(0)
+  const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia'>('efectivo')
 
 
   useEffect(() => {
@@ -335,6 +336,7 @@ export function Dashboard() {
           services: servicesPayload,
           started_at: new Date().toISOString(),
           shift_id: activeShiftId,
+          payment_method: paymentMethod,
         }),
       })
 
@@ -350,6 +352,7 @@ export function Dashboard() {
       // Clear selection
       setSelectedServices([])
       setShowConfirmModal(false)
+      setPaymentMethod('efectivo')
 
       setSuccessMessage(`¡Atención registrada! ${result.message || ''}`)
       setTimeout(() => setSuccessMessage(null), 5000)
@@ -773,6 +776,49 @@ export function Dashboard() {
             <p style={{ color: '#999', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', marginBottom: '24px' }}>
               Estás a punto de registrar {selectedCount} servicio{selectedCount !== 1 ? 's' : ''} para este cliente:
             </p>
+
+            {/* Payment method selector */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '12px', color: '#888', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Método de pago
+              </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => setPaymentMethod('efectivo')}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: '8px',
+                    border: paymentMethod === 'efectivo' ? 'none' : '0.5px solid #e0e0e0',
+                    background: paymentMethod === 'efectivo' ? '#1E2A3A' : '#f8f8f8',
+                    color: paymentMethod === 'efectivo' ? '#fff' : '#aaa',
+                    fontFamily: 'Space Grotesk, sans-serif',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  💵 Efectivo
+                </button>
+                <button
+                  onClick={() => setPaymentMethod('transferencia')}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: '8px',
+                    border: paymentMethod === 'transferencia' ? 'none' : '0.5px solid #e0e0e0',
+                    background: paymentMethod === 'transferencia' ? '#1E2A3A' : '#f8f8f8',
+                    color: paymentMethod === 'transferencia' ? '#fff' : '#aaa',
+                    fontFamily: 'Space Grotesk, sans-serif',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  📲 Transferencia
+                </button>
+              </div>
+            </div>
 
             <div style={{
               background: 'var(--primary, #1a1a1a)',
