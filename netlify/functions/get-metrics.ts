@@ -75,13 +75,6 @@ function getArgentinaWeekRange(dateInArgentina: Date): { start: string; end: str
   }
 }
 
-/**
- * Get the previous week's range in Argentina timezone
- */
-function getPreviousArgentinaWeekRange(dateInArgentina: Date): { start: string; end: string } {
-  const previousWeek = new Date(dateInArgentina.getTime() - 7 * 24 * 60 * 60 * 1000)
-  return getArgentinaWeekRange(previousWeek)
-}
 
 /**
  * Extract Argentina local date parts from a UTC ISO string
@@ -434,8 +427,6 @@ export const handler = async (event: NetlifyFunctionEvent) => {
 
     // h. Comparación semana actual vs anterior (Argentina timezone)
     const nowArgentina = getArgentinaNow()
-    const currentWeek = getArgentinaWeekRange(nowArgentina)
-    const previousWeek = getPreviousArgentinaWeekRange(nowArgentina)
     // Argentina date-based week ranges for filtering by Argentina date (YYYY-MM-DD)
     const currentWeekDateRange = getArgentinaWeekDateRange(nowArgentina)
     const previousWeekDateRange = getArgentinaWeekDateRange(new Date(nowArgentina.getTime() - 7 * 24 * 60 * 60 * 1000))
