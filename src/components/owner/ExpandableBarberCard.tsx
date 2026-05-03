@@ -9,6 +9,14 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const toggleExpand = () => setIsExpanded(!isExpanded)
 
+  const allServices = stats.appointments.flatMap(a => a.services)
+  const efectivoTotal = allServices
+    .filter(s => (s.payment_method || 'efectivo') === 'efectivo')
+    .reduce((sum, s) => sum + s.price_charged, 0)
+  const transferenciaTotal = allServices
+    .filter(s => s.payment_method === 'transferencia')
+    .reduce((sum, s) => sum + s.price_charged, 0)
+
   return (
     <div style={{ background: '#fff', borderRadius: '10px', border: '0.5px solid #e0e0e0', overflow: 'hidden' }}>
       <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }} onClick={toggleExpand}>
@@ -99,6 +107,18 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
           <div style={{ marginTop: '14px', padding: '12px', background: '#3D3A8C', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Total para {stats.barber.display_name}</div>
             <div style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>${stats.barberEarnings.toLocaleString()}</div>
+          </div>
+          <div style={{ marginTop: '8px', padding: '10px 12px', background: '#f8f8f8', borderRadius: '8px', border: '0.5px solid #eeeeee' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#666' }}>
+              <span>💵 Efectivo</span>
+              <span style={{ fontWeight: 500 }}>${efectivoTotal.toLocaleString()}</span>
+            </div>
+            {transferenciaTotal > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#666', marginTop: '6px' }}>
+                <span>📲 Transferencia</span>
+                <span style={{ fontWeight: 500 }}>${transferenciaTotal.toLocaleString()}</span>
+              </div>
+            )}
           </div>
         </div>
       )}
