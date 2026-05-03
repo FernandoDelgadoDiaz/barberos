@@ -316,9 +316,9 @@ export function Dashboard() {
           started_at: new Date().toISOString(),
           shift_id: activeShiftId,
           payment_method: wizardPaymentMethod,
-          tip_amount: parseInt(wizardTip) || 0,
+          tip_amount: parseFloat(wizardTip) || 0,
           tip_payment_method: wizardPaymentMethod,
-          others_amount: parseInt(wizardOthers) || 0,
+          others_amount: parseFloat(wizardOthers) || 0,
           others_payment_method: wizardPaymentMethod,
         }),
       })
@@ -829,21 +829,21 @@ export function Dashboard() {
                   <div style={{ fontSize: '13px', color: '#555', fontFamily: 'Space Grotesk, sans-serif' }}>
                     Método de pago: {wizardPaymentMethod === 'transferencia' ? '📲 Transferencia' : '💵 Efectivo'}
                   </div>
-                  {(parseInt(wizardTip) || 0) > 0 && (
+                  {(parseFloat(wizardTip) || 0) > 0 && (
                     <div style={{ fontSize: '13px', color: '#555', fontFamily: 'Space Grotesk, sans-serif' }}>
-                      Propina: ${(parseInt(wizardTip) || 0).toLocaleString('es-AR')} <span style={{ color: '#888' }}>(100% para vos)</span>
+                      Propina: ${(parseFloat(wizardTip) || 0).toLocaleString('es-AR')} <span style={{ color: '#888' }}>(100% para vos)</span>
                     </div>
                   )}
-                  {(parseInt(wizardOthers) || 0) > 0 && (
+                  {(parseFloat(wizardOthers) || 0) > 0 && (
                     <div style={{ fontSize: '13px', color: '#555', fontFamily: 'Space Grotesk, sans-serif' }}>
-                      Otros: ${(parseInt(wizardOthers) || 0).toLocaleString('es-AR')} <span style={{ color: '#888' }}>(100% para el dueño)</span>
+                      Otros: ${(parseFloat(wizardOthers) || 0).toLocaleString('es-AR')} <span style={{ color: '#888' }}>(100% para el dueño)</span>
                     </div>
                   )}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f8f8f8', borderRadius: '8px', marginBottom: '20px' }}>
                   <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '14px', color: '#1a1a2e' }}>Total</span>
                   <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e' }}>
-                    ${(selectedServices.reduce((s, x) => s + x.base_price, 0) + (parseInt(wizardTip) || 0) + (parseInt(wizardOthers) || 0)).toLocaleString('es-AR')}
+                    ${(selectedServices.reduce((s, x) => s + x.base_price, 0) + (parseFloat(wizardTip) || 0) + (parseFloat(wizardOthers) || 0)).toLocaleString('es-AR')}
                   </span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
