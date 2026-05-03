@@ -83,8 +83,10 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     const tenantId = barberProfile.tenant_id
 
     // 2. Aggregate service logs for the given date
-    const startOfDay = `${body.date}T00:00:00`
-    const endOfDay = `${body.date}T23:59:59`
+    const argTodayParts = body.date.split('-')
+    const argTomorrow = new Date(Date.UTC(+argTodayParts[0], +argTodayParts[1] - 1, +argTodayParts[2] + 1)).toISOString().split('T')[0]
+    const logsStartUTC = `${body.date}T03:00:00Z`
+    const logsEndUTC = `${argTomorrow}T02:59:59.999Z`
 
     const { data: logs, error: logsError } = await supabase
       .from('service_logs')
@@ -92,8 +94,8 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       .eq('barber_id', body.barber_id)
       .eq('tenant_id', tenantId)
       .eq('status', 'completed')
-      .gte('started_at', startOfDay)
-      .lte('started_at', endOfDay)
+      .gte('started_at', logsStartUTC)
+      .lte('started_at', logsEndUTC)
 
     if (logsError) {
       console.error('Logs aggregation error:', logsError)
