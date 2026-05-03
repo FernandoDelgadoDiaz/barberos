@@ -160,7 +160,7 @@ export function Register() {
               <div>
                 <div style={{ fontSize: '14px', color: '#aaa', marginBottom: '4px' }}>Tu URL personalizada:</div>
                 <div style={{ fontSize: '16px', color: '#1a1a2e' }}>
-                  barberos-app.netlify.app/login?tenant={slug}
+                  {window.location.origin}/login?tenant={slug}
                 </div>
               </div>
             </div>
@@ -264,7 +264,7 @@ export function Register() {
                   />
                   <div style={{ marginTop: '8px', fontSize: '12px', color: '#aaa' }}>
                     Solo letras minúsculas, números y guiones. Tu URL será:{' '}
-                    <span style={{ color: '#1E2A3A' }}>barberos-app.netlify.app/login?tenant={slug || 'tu-slug'}</span>
+                    <span style={{ color: '#1E2A3A' }}>{window.location.origin}/login?tenant={slug || 'tu-slug'}</span>
                   </div>
                 </div>
 
