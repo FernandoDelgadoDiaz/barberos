@@ -305,18 +305,6 @@ export function Dashboard() {
     })
   }
 
-  const handleRegisterAttention = () => {
-    if (shiftStatus !== 'open') {
-      setError('No hay un turno abierto. Inicia un turno para registrar servicios.')
-      return
-    }
-    if (selectedServices.length === 0) {
-      setError('Selecciona al menos un servicio para registrar la atención.')
-      return
-    }
-    setWizardStep(1)
-  }
-
   const confirmAttention = async () => {
     if (!tenant || !profile || selectedServices.length === 0) return
     if (shiftStatus !== 'open') {
