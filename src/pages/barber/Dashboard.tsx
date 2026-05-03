@@ -57,8 +57,6 @@ export function Dashboard() {
       setError(null)
 
       try {
-        console.log('[Dashboard] loadData start', { tenantId: tenant?.id, profileId: profile?.id, activeShiftId })
-
         // Check for active shift (open or paused)
         const { data: activeShift, error: shiftError } = await supabase
           .from('shifts')
@@ -74,19 +72,14 @@ export function Dashboard() {
         }
 
         if (activeShift) {
-          console.log('[Dashboard] active shift found:', activeShift.id, 'status:', activeShift.status)
           if (isMounted) {
             setShiftStatus(activeShift.status) // 'open' or 'paused'
             setCurrentShift(activeShift)
             setActiveShiftId(activeShift.id)
           }
         } else {
-          console.log('[Dashboard] no active shift, shiftError:', shiftError)
           if (isMounted) {
-            setShiftStatus(prev => {
-              console.log('[Dashboard] previous shiftStatus:', prev)
-              return prev === 'closed' ? 'closed' : 'no_shift'
-            })
+            setShiftStatus(prev => prev === 'closed' ? 'closed' : 'no_shift')
             setCurrentShift(null)
             setActiveShiftId(null)
           }
@@ -213,7 +206,6 @@ export function Dashboard() {
   }
 
   const handleCloseShift = async () => {
-    console.log('[Dashboard] handleCloseShift called', { currentShiftId: currentShift?.id, tenantId: tenant?.id, profileId: profile?.id })
     if (!tenant || !profile || !currentShift) return
     setShiftLoading(true)
     setError(null)
@@ -232,15 +224,11 @@ export function Dashboard() {
         throw new Error(errorData.error || 'Error al cerrar turno')
       }
       const result = await response.json()
-      console.log('[Dashboard] close-shift API success:', result)
       // Update local state
       setShiftStatus('closed')
       setCurrentShift(null)
       setActiveShiftId(null)
-      setRefreshTrigger(prev => {
-        console.log('[Dashboard] refreshTrigger increment')
-        return prev + 1
-      }) // Trigger reload of logs/services
+      setRefreshTrigger(prev => prev + 1) // Trigger reload of logs/services
       setSuccessMessage('Turno cerrado correctamente')
       setTimeout(() => setSuccessMessage(null), 5000)
     } catch (err: unknown) {
@@ -253,7 +241,6 @@ export function Dashboard() {
   }
 
   const handlePauseResumeShift = async () => {
-    console.log('[Dashboard] handlePauseResumeShift called', { currentShiftId: currentShift?.id, tenantId: tenant?.id, profileId: profile?.id })
     if (!tenant || !profile || !currentShift) return
     setShiftLoading(true)
     setError(null)
@@ -272,7 +259,6 @@ export function Dashboard() {
         throw new Error(errorData.error || 'Error al pausar/reanudar turno')
       }
       const result = await response.json()
-      console.log('[Dashboard] pause-shift API success:', result)
       // Update local state
       setShiftStatus(result.shift.status) // 'open' or 'paused'
       setCurrentShift(result.shift)

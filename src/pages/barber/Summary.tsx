@@ -30,20 +30,16 @@ export function Summary() {
 
   // Load today's logs
   useEffect(() => {
-    console.log('[Summary] useEffect triggered', { tenantId: tenant?.id, profileId: profile?.id })
-
     let isMounted = true
     let timeoutId: ReturnType<typeof setTimeout> | null = null
 
     const loadTodayLogs = async () => {
       if (!tenant?.id || !profile?.id) return
-      console.log('[Summary] loadTodayLogs start')
       if (isMounted) setLoading(true)
       setError(null)
 
       // Safety timeout: force loading false after 5 seconds
       timeoutId = setTimeout(() => {
-        console.log('[Summary] Safety timeout triggered, forcing loading false')
         if (isMounted) {
           setLoading(false)
           // setError('La carga está tomando más tiempo de lo esperado. Mostrando datos disponibles.')
@@ -70,7 +66,6 @@ export function Summary() {
           } else {
             dailySummary = data
             isDayClosed = !!data
-            console.log('[Summary] daily_summaries query result:', { dailySummary, isDayClosed })
           }
         } catch (err) {
           console.warn('[Summary] daily_summaries query exception (non‑blocking):', err)
@@ -97,7 +92,6 @@ export function Summary() {
             console.error('[Summary] service_logs query error:', logsError)
           } else {
             logsData = data || []
-            console.log('[Summary] service_logs query result count:', logsData.length)
           }
         } catch (err) {
           console.error('[Summary] service_logs query exception:', err)
@@ -122,7 +116,6 @@ export function Summary() {
             console.error('[Summary] shifts query error:', shiftsError)
           } else {
             shiftsData = data || []
-            console.log('[Summary] shifts query result count:', shiftsData.length)
           }
         } catch (err) {
           console.error('[Summary] shifts query exception:', err)
@@ -145,7 +138,6 @@ export function Summary() {
             ownerEarnings,
           })
         }
-        console.log('[Summary] loadTodayLogs completed successfully')
       } catch (err: unknown) {
         console.error('[Summary] Unexpected error in loadTodayLogs:', err)
         const errorMessage = err instanceof Error ? err.message : 'Error al cargar resumen'
@@ -153,13 +145,11 @@ export function Summary() {
       } finally {
         // Clear safety timeout
         if (timeoutId) clearTimeout(timeoutId)
-        console.log('[Summary] loadTodayLogs finally, isMounted:', isMounted)
         if (isMounted) setLoading(false)
       }
     }
 
     if (!tenant?.id || !profile?.id) {
-      console.log('[Summary] missing tenant or profile, scheduling retry')
       setLoading(false)
       const retryId = setTimeout(() => {
         if (isMounted) loadTodayLogs()
