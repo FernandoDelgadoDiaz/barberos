@@ -65,8 +65,19 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
                     <div style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a2e' }}>
                       Atención #{appointment.services[0]?.service_number_today || '?'}
                     </div>
-                    <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>
-                      {new Date(appointment.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                      <span style={{ fontSize: '11px', color: '#aaa' }}>
+                        {new Date(appointment.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      {appointment.services[0]?.payment_method === 'transferencia' ? (
+                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: '#f0f4ff', color: '#3D3A8C' }}>
+                          📲 Transferencia
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: '#f0f9f0', color: '#2ecc71' }}>
+                          💵 Efectivo
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
