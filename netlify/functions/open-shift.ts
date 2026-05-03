@@ -6,18 +6,6 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 /**
- * Get current UTC time adjusted for Argentina timezone (UTC-3).
- * Returns ISO string in UTC representing the current Argentina local time.
- */
-function getArgentinaUTCNow(): string {
-  // Argentina is UTC-3, so subtract 3 hours from UTC to get Argentina time,
-  // then convert to UTC ISO string (which will be the UTC representation of that Argentina time).
-  const nowUTC = new Date()
-  const argentinaTime = new Date(nowUTC.getTime() - (3 * 60 * 60 * 1000))
-  return argentinaTime.toISOString()
-}
-
-/**
  * Get UTC start and end of the current Argentina day.
  * Returns ISO strings in UTC for filtering Supabase timestamps.
  */
@@ -201,7 +189,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     const newShift: Omit<Shift, 'id'> = {
       tenant_id: tenantId,
       barber_id: body.barber_id,
-      started_at: getArgentinaUTCNow(),
+      started_at: new Date().toISOString(),
       closed_at: null,
       paused_at: null,
       status: 'open',
