@@ -14,7 +14,7 @@ function convertToUTC(timestamp: string): string {
     return timestamp
   }
   // If timestamp already contains a timezone offset (e.g., +/-HH:mm), let Date handle it
-  if (timestamp.includes('+') || timestamp.includes('-') && timestamp.lastIndexOf('-') > 10) {
+  if ((timestamp.includes('+') || timestamp.includes('-')) && timestamp.lastIndexOf('-') > 10) {
     // Has offset, let Date parse it
     return new Date(timestamp).toISOString()
   }
