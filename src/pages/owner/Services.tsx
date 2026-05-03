@@ -177,21 +177,21 @@ export function Services() {
 
   const handleDelete = async (service: ServiceCatalog) => {
     if (!tenant?.id) return
-    if (!confirm(`¿Eliminar servicio "${service.name}"?`)) return
+    if (!confirm(`¿Desactivar servicio "${service.name}"? Ya no aparecerá en el catálogo.`)) return
 
     try {
       const { error } = await supabase
         .from('services_catalog')
-        .delete()
+        .update({ is_active: false })
         .eq('id', service.id)
         .eq('tenant_id', tenant.id)
 
       if (error) throw error
 
-      setServices(services.filter(s => s.id !== service.id))
+      setServices(services.map(s => s.id === service.id ? { ...s, is_active: false } : s))
     } catch (err: unknown) {
       console.error('Error deleting service:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Error al eliminar servicio'
+      const errorMessage = err instanceof Error ? err.message : 'Error al desactivar servicio'
       setError(errorMessage)
     }
   }
