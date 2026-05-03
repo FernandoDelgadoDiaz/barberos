@@ -379,8 +379,6 @@ export function Dashboard() {
     }
   }
 
-  const totalSelected = selectedServices.reduce((sum, s) => sum + s.base_price, 0)
-  const selectedCount = selectedServices.length
 
   if (loading) {
     return (
@@ -651,113 +649,24 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Services list */}
+      {/* Register attention button */}
       {shiftStatus === 'open' && (
-      <div className="services-catalog" style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#555', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>Catálogo de servicios</h2>
-          {selectedCount > 0 && (
-            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', color: 'var(--secondary, #C8A97E)' }}>
-              {selectedCount} servicio{selectedCount !== 1 ? 's' : ''} seleccionado{selectedCount !== 1 ? 's' : ''} • Total: ${totalSelected.toLocaleString()}
-            </div>
-          )}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {services.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '24px', color: '#999', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px' }}>
-              No hay servicios configurados
-            </div>
-          ) : (
-            services.map((service) => {
-              const isSelected = selectedServices.some(s => s.id === service.id)
-              return (
-                <div
-                  key={service.id}
-                  className="service-item"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '12px',
-                    background: '#2a2a2a',
-                    border: `1px solid ${isSelected ? 'var(--secondary, #C8A97E)' : '#383838'}`,
-                    borderRadius: '8px',
-                    minHeight: '60px',
-                    opacity: shiftStatus !== 'open' ? 0.5 : 1,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div
-                      style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '4px',
-                        border: `2px solid ${isSelected ? 'var(--secondary, #C8A97E)' : '#555'}`,
-                        background: isSelected ? 'var(--secondary, #C8A97E)' : 'transparent',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: shiftStatus === 'open' ? 'pointer' : 'not-allowed',
-                      }}
-                      onClick={() => shiftStatus === 'open' && toggleServiceSelection(service)}
-                    >
-                      {isSelected && (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary, #1a1a1a)" strokeWidth="3">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: 'var(--primary, #1a1a1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-7-7m7 7l-7 7" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="service-name" style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#fff' }}>{service.name}</div>
-                      <div className="service-estimated" style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '11px', color: '#999', marginTop: '2px' }}>
-                        Ganancia estimada: <span style={{ color: 'var(--secondary, #C8A97E)' }}>${service.estimatedEarning.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--secondary, #C8A97E)' }}>${service.base_price.toLocaleString()}</div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '11px', color: '#999' }}>{service.duration_min} min</div>
-                  </div>
-                </div>
-              )
-            })
-          )}
-        </div>
-      </div>
-      )}
-
-      {/* Register attention button (hidden when no services or day closed) */}
-      {services.length > 0 && shiftStatus === 'open' && (
         <button
-          onClick={handleRegisterAttention}
-          disabled={selectedCount === 0}
+          onClick={() => { setSelectedServices([]); setWizardStep(1) }}
           style={{
             width: '100%',
             height: '52px',
-            background: selectedCount > 0 ? 'var(--secondary, #C8A97E)' : '#555',
-            color: selectedCount > 0 ? 'var(--primary, #1a1a1a)' : '#999',
+            background: 'var(--primary, #1E2A3A)',
+            color: '#fff',
             fontFamily: 'Space Grotesk, sans-serif',
             fontWeight: 600,
             fontSize: '16px',
             border: 'none',
             borderRadius: '12px',
-            padding: '16px',
-            cursor: selectedCount > 0 ? 'pointer' : 'not-allowed',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
+            cursor: 'pointer',
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selectedCount > 0 ? 'var(--primary, #1a1a1a)' : '#999'} strokeWidth="3">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          {selectedCount > 0 ? `Registrar atención (${selectedCount} servicio${selectedCount !== 1 ? 's' : ''}) - Total: $${totalSelected.toLocaleString()}` : 'Selecciona servicios para registrar atención'}
+          + Registrar atención
         </button>
       )}
 
