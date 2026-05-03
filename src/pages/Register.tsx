@@ -406,13 +406,15 @@ export function Register() {
                   />
                   <label htmlFor="acceptTerms" style={{ fontSize: '14px', color: '#aaa', lineHeight: '1.5' }}>
                     Acepto los{' '}
-                    <a href="/terminos" style={{ color: '#1E2A3A', textDecoration: 'none' }} target="_blank" rel="noopener noreferrer">
+                    {/* TODO: create /terminos route */}
+                    <span style={{ color: '#1E2A3A', textDecoration: 'none', cursor: 'default' }}>
                       términos de uso
-                    </a>{' '}
+                    </span>{' '}
                     y{' '}
-                    <a href="/privacidad" style={{ color: '#1E2A3A', textDecoration: 'none' }} target="_blank" rel="noopener noreferrer">
+                    {/* TODO: create /privacidad route */}
+                    <span style={{ color: '#1E2A3A', textDecoration: 'none', cursor: 'default' }}>
                       política de privacidad
-                    </a>
+                    </span>
                   </label>
                 </div>
 

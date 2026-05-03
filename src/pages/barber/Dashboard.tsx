@@ -34,6 +34,7 @@ export function Dashboard() {
   const [processing, setProcessing] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [shiftLoading, setShiftLoading] = useState(false)
+  const [confirmingClose, setConfirmingClose] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [appointmentsCount, setAppointmentsCount] = useState<number>(0)
 
@@ -480,24 +481,43 @@ export function Dashboard() {
               >
                 {shiftLoading ? 'Procesando...' : 'Pausar'}
               </button>
-              <button
-                onClick={handleCloseShift}
-                disabled={shiftLoading}
-                style={{
-                  background: '#e94560',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '10px 20px',
-                  fontFamily: 'Space Grotesk, sans-serif',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  opacity: shiftLoading ? 0.6 : 1,
-                }}
-              >
-                {shiftLoading ? 'Procesando...' : 'Cerrar turno'}
-              </button>
+              {confirmingClose ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#fff' }}>¿Cerrar turno?</span>
+                  <button
+                    onClick={() => { setConfirmingClose(false); handleCloseShift() }}
+                    disabled={shiftLoading}
+                    style={{ background: '#e94560', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 14px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
+                  >
+                    Sí, cerrar
+                  </button>
+                  <button
+                    onClick={() => setConfirmingClose(false)}
+                    style={{ background: '#555', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 14px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmingClose(true)}
+                  disabled={shiftLoading}
+                  style={{
+                    background: '#e94560',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '10px 20px',
+                    fontFamily: 'Space Grotesk, sans-serif',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    opacity: shiftLoading ? 0.6 : 1,
+                  }}
+                >
+                  {shiftLoading ? 'Procesando...' : 'Cerrar turno'}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -530,24 +550,43 @@ export function Dashboard() {
               >
                 {shiftLoading ? 'Procesando...' : 'Reanudar'}
               </button>
-              <button
-                onClick={handleCloseShift}
-                disabled={shiftLoading}
-                style={{
-                  background: '#e94560',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '10px 20px',
-                  fontFamily: 'Space Grotesk, sans-serif',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  opacity: shiftLoading ? 0.6 : 1,
-                }}
-              >
-                {shiftLoading ? 'Procesando...' : 'Cerrar turno'}
-              </button>
+              {confirmingClose ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#fff' }}>¿Cerrar turno?</span>
+                  <button
+                    onClick={() => { setConfirmingClose(false); handleCloseShift() }}
+                    disabled={shiftLoading}
+                    style={{ background: '#e94560', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 14px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
+                  >
+                    Sí, cerrar
+                  </button>
+                  <button
+                    onClick={() => setConfirmingClose(false)}
+                    style={{ background: '#555', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 14px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmingClose(true)}
+                  disabled={shiftLoading}
+                  style={{
+                    background: '#e94560',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '10px 20px',
+                    fontFamily: 'Space Grotesk, sans-serif',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    opacity: shiftLoading ? 0.6 : 1,
+                  }}
+                >
+                  {shiftLoading ? 'Procesando...' : 'Cerrar turno'}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -666,7 +705,7 @@ export function Dashboard() {
             {/* ── Step 1: Services ── */}
             {wizardStep === 1 && (
               <>
-                <div style={{ fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '8px' }}>Paso 1 de 4 · Servicios</div>
+                <div style={{ fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '8px' }}>Paso 1 de 5 · Servicios</div>
                 <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '20px' }}>¿Qué servicios?</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto', marginBottom: '12px' }}>
                   {services.map(service => {
@@ -706,7 +745,7 @@ export function Dashboard() {
             {/* ── Step 2: Payment method ── */}
             {wizardStep === 2 && (
               <>
-                <div style={{ fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 2 de 4 · Método de pago</div>
+                <div style={{ fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 2 de 5 · Método de pago</div>
                 <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '24px' }}>¿Cómo pagó el cliente?</div>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <button
@@ -728,7 +767,7 @@ export function Dashboard() {
             {/* ── Step 3: Tip ── */}
             {wizardStep === 3 && (
               <>
-                <div style={{ fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 3 de 4 · Propina</div>
+                <div style={{ fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 3 de 5 · Propina</div>
                 <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '6px' }}>¿Hubo propina?</div>
                 <div style={{ fontSize: '13px', color: '#888', marginBottom: '24px' }}>La propina es 100% para el barbero</div>
                 {!wizardTipEnabled ? (
@@ -772,7 +811,7 @@ export function Dashboard() {
             {/* ── Step 4: Others ── */}
             {wizardStep === 4 && (
               <>
-                <div style={{ fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 4 de 4 · Otros</div>
+                <div style={{ fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 4 de 5 · Otros</div>
                 <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '6px' }}>¿Hubo otros?</div>
                 <div style={{ fontSize: '13px', color: '#888', marginBottom: '24px' }}>Ceras, bebidas, etc. Van 100% al dueño</div>
                 {!wizardOthersEnabled ? (

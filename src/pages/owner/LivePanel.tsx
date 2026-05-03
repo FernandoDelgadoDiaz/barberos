@@ -78,7 +78,14 @@ export function LivePanel() {
   const [showExpenseModal, setShowExpenseModal] = useState(false)
   const [expenseForm, setExpenseForm] = useState({ description: '', amount: '' })
   const [savingExpense, setSavingExpense] = useState(false)
+  const [isSmallMobile, setIsSmallMobile] = useState(window.innerWidth <= 480)
   const isMounted = useRef(true)
+
+  useEffect(() => {
+    const handler = () => setIsSmallMobile(window.innerWidth <= 480)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
 
   // Calculate totals
   const totalDay = logs.reduce((sum, log) => sum + log.price_charged, 0)
@@ -385,7 +392,7 @@ export function LivePanel() {
       </div>
 
       {/* Stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px', marginTop: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isSmallMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px', marginTop: '20px' }}>
         <div style={{ background: '#fff', borderRadius: '10px', padding: '16px', border: '0.5px solid #e0e0e0', position: 'relative' }}>
           <div style={{ fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Total del día</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
