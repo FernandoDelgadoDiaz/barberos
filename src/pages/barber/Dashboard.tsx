@@ -25,13 +25,17 @@ export function Dashboard() {
   const [shiftStatus, setShiftStatus] = useState<'loading' | 'no_shift' | 'open' | 'paused' | 'closed'>('loading')
   const [currentShift, setCurrentShift] = useState<Shift | null>(null)
   const [selectedServices, setSelectedServices] = useState<ServiceWithEstimation[]>([])
-  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [wizardStep, setWizardStep] = useState<0|1|2|3|4|5>(0)
+  const [wizardPaymentMethod, setWizardPaymentMethod] = useState<'efectivo'|'transferencia'>('efectivo')
+  const [wizardTip, setWizardTip] = useState('')
+  const [wizardTipEnabled, setWizardTipEnabled] = useState(false)
+  const [wizardOthers, setWizardOthers] = useState('')
+  const [wizardOthersEnabled, setWizardOthersEnabled] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [shiftLoading, setShiftLoading] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [appointmentsCount, setAppointmentsCount] = useState<number>(0)
-  const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia'>('efectivo')
 
 
   useEffect(() => {
@@ -310,7 +314,7 @@ export function Dashboard() {
       setError('Selecciona al menos un servicio para registrar la atención.')
       return
     }
-    setShowConfirmModal(true)
+    setWizardStep(1)
   }
 
   const confirmAttention = async () => {
@@ -338,7 +342,11 @@ export function Dashboard() {
           services: servicesPayload,
           started_at: new Date().toISOString(),
           shift_id: activeShiftId,
-          payment_method: paymentMethod,
+          payment_method: wizardPaymentMethod,
+          tip_amount: parseInt(wizardTip) || 0,
+          tip_payment_method: wizardPaymentMethod,
+          others_amount: parseInt(wizardOthers) || 0,
+          others_payment_method: wizardPaymentMethod,
         }),
       })
 
@@ -351,10 +359,14 @@ export function Dashboard() {
 
       // Refresh data
       setRefreshTrigger(prev => prev + 1)
-      // Clear selection
+      // Reset wizard
+      setWizardStep(0)
       setSelectedServices([])
-      setShowConfirmModal(false)
-      setPaymentMethod('efectivo')
+      setWizardPaymentMethod('efectivo')
+      setWizardTip('')
+      setWizardTipEnabled(false)
+      setWizardOthers('')
+      setWizardOthersEnabled(false)
 
       setSuccessMessage(`¡Atención registrada! ${result.message || ''}`)
       setTimeout(() => setSuccessMessage(null), 5000)
@@ -749,137 +761,228 @@ export function Dashboard() {
         </button>
       )}
 
-      {/* Confirmation Modal */}
-      {showConfirmModal && selectedServices.length > 0 && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.7)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            background: '#242424',
-            border: '1px solid #383838',
-            borderRadius: '16px',
-            padding: '32px',
-            width: '90vw',
-            maxWidth: '480px',
-            alignSelf: 'center',
-          }}>
-            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '16px' }}>
-              ¿Registrar atención?
-            </h2>
-            <p style={{ color: '#999', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', marginBottom: '24px' }}>
-              Estás a punto de registrar {selectedCount} servicio{selectedCount !== 1 ? 's' : ''} para este cliente:
-            </p>
+      {/* Wizard Modal */}
+      {wizardStep > 0 && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', maxWidth: '480px', width: '90vw', borderRadius: '12px', padding: '32px', position: 'relative' }}>
 
-            {/* Payment method selector */}
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '12px', color: '#888', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Método de pago
-              </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  onClick={() => setPaymentMethod('efectivo')}
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    borderRadius: '8px',
-                    border: paymentMethod === 'efectivo' ? 'none' : '0.5px solid #e0e0e0',
-                    background: paymentMethod === 'efectivo' ? '#1E2A3A' : '#f8f8f8',
-                    color: paymentMethod === 'efectivo' ? '#fff' : '#aaa',
-                    fontFamily: 'Space Grotesk, sans-serif',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  💵 Efectivo
-                </button>
-                <button
-                  onClick={() => setPaymentMethod('transferencia')}
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    borderRadius: '8px',
-                    border: paymentMethod === 'transferencia' ? 'none' : '0.5px solid #e0e0e0',
-                    background: paymentMethod === 'transferencia' ? '#1E2A3A' : '#f8f8f8',
-                    color: paymentMethod === 'transferencia' ? '#fff' : '#aaa',
-                    fontFamily: 'Space Grotesk, sans-serif',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  📲 Transferencia
-                </button>
-              </div>
+            {/* Progress bar */}
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: '#f0f0f0', borderRadius: '12px 12px 0 0', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${Math.min(wizardStep, 4) / 4 * 100}%`, background: 'var(--primary, #1E2A3A)', transition: 'width 0.3s ease' }} />
             </div>
 
-            <div style={{
-              background: 'var(--primary, #1a1a1a)',
-              border: '1px solid #383838',
-              borderRadius: '8px',
-              padding: '20px',
-              marginBottom: '24px',
-              maxHeight: '300px',
-              overflowY: 'auto',
-            }}>
-              {selectedServices.map(service => (
-                <div key={service.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #383838' }}>
-                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#fff' }}>{service.name}</div>
-                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', color: 'var(--secondary, #C8A97E)' }}>${service.base_price.toLocaleString()}</div>
+            {/* Back button (steps 2-4) */}
+            {wizardStep > 1 && wizardStep < 5 && (
+              <button
+                onClick={() => setWizardStep(prev => (prev - 1) as 0|1|2|3|4|5)}
+                style={{ position: 'absolute', top: '16px', left: '16px', background: 'none', border: 'none', cursor: 'pointer', color: '#888', fontSize: '13px', fontFamily: 'Space Grotesk, sans-serif', display: 'flex', alignItems: 'center', gap: '4px', padding: '4px' }}
+              >
+                ← Volver
+              </button>
+            )}
+
+            {/* ── Step 1: Services ── */}
+            {wizardStep === 1 && (
+              <>
+                <div style={{ fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '8px' }}>Paso 1 de 4 · Servicios</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '20px' }}>¿Qué servicios?</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto', marginBottom: '12px' }}>
+                  {services.map(service => {
+                    const isSel = selectedServices.some(s => s.id === service.id)
+                    return (
+                      <div
+                        key={service.id}
+                        onClick={() => toggleServiceSelection(service)}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: isSel ? '#f0f4ff' : '#f8f8f8', borderRadius: '8px', border: isSel ? '1px solid #3D3A8C' : '0.5px solid #e0e0e0', cursor: 'pointer' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ width: '18px', height: '18px', borderRadius: '4px', border: `2px solid ${isSel ? '#3D3A8C' : '#ccc'}`, background: isSel ? '#3D3A8C' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {isSel && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                          </div>
+                          <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', color: '#1a1a2e' }}>{service.name}</span>
+                        </div>
+                        <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '14px', color: '#1a1a2e' }}>${service.base_price.toLocaleString('es-AR')}</span>
+                      </div>
+                    )
+                  })}
                 </div>
-              ))}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px', marginTop: '8px', borderTop: '2px solid #383838' }}>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '16px', color: '#fff' }}>Total</div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '20px', color: 'var(--secondary, #C8A97E)' }}>${totalSelected.toLocaleString()}</div>
-              </div>
-            </div>
+                <div style={{ fontSize: '12px', color: '#888', marginBottom: '16px', minHeight: '18px' }}>
+                  {selectedServices.length > 0
+                    ? `${selectedServices.length} seleccionado${selectedServices.length !== 1 ? 's' : ''} · $${selectedServices.reduce((s, x) => s + x.base_price, 0).toLocaleString('es-AR')}`
+                    : 'Ningún servicio seleccionado'}
+                </div>
+                <button
+                  onClick={() => setWizardStep(2)}
+                  disabled={selectedServices.length === 0}
+                  style={{ width: '100%', padding: '14px', background: selectedServices.length > 0 ? 'var(--primary, #1E2A3A)' : '#e0e0e0', color: selectedServices.length > 0 ? '#fff' : '#aaa', border: 'none', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: selectedServices.length > 0 ? 'pointer' : 'not-allowed' }}
+                >
+                  Siguiente →
+                </button>
+              </>
+            )}
 
-            <div className="mobile-stack" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                disabled={processing}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid #383838',
-                  borderRadius: '6px',
-                  padding: '10px 20px',
-                  fontFamily: 'Space Grotesk, sans-serif',
-                  fontWeight: 500,
-                  fontSize: '14px',
-                  color: '#999',
-                  cursor: 'pointer',
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={confirmAttention}
-                disabled={processing}
-                style={{
-                  background: 'var(--secondary, #C8A97E)',
-                  color: 'var(--primary, #1a1a1a)',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '10px 20px',
-                  fontFamily: 'Space Grotesk, sans-serif',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  opacity: processing ? 0.6 : 1,
-                }}
-              >
-                {processing ? 'Procesando...' : 'Registrar atención'}
-              </button>
-            </div>
+            {/* ── Step 2: Payment method ── */}
+            {wizardStep === 2 && (
+              <>
+                <div style={{ fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 2 de 4 · Método de pago</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '24px' }}>¿Cómo pagó el cliente?</div>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button
+                    onClick={() => { setWizardPaymentMethod('efectivo'); setWizardStep(3) }}
+                    style={{ flex: 1, padding: '20px 12px', borderRadius: '10px', border: wizardPaymentMethod === 'efectivo' ? 'none' : '0.5px solid #e0e0e0', background: wizardPaymentMethod === 'efectivo' ? 'var(--primary, #1E2A3A)' : '#f8f8f8', color: wizardPaymentMethod === 'efectivo' ? '#fff' : '#aaa', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
+                  >
+                    💵 Efectivo
+                  </button>
+                  <button
+                    onClick={() => { setWizardPaymentMethod('transferencia'); setWizardStep(3) }}
+                    style={{ flex: 1, padding: '20px 12px', borderRadius: '10px', border: wizardPaymentMethod === 'transferencia' ? 'none' : '0.5px solid #e0e0e0', background: wizardPaymentMethod === 'transferencia' ? 'var(--primary, #1E2A3A)' : '#f8f8f8', color: wizardPaymentMethod === 'transferencia' ? '#fff' : '#aaa', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
+                  >
+                    📲 Transferencia
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* ── Step 3: Tip ── */}
+            {wizardStep === 3 && (
+              <>
+                <div style={{ fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 3 de 4 · Propina</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '6px' }}>¿Hubo propina?</div>
+                <div style={{ fontSize: '13px', color: '#888', marginBottom: '24px' }}>La propina es 100% para el barbero</div>
+                {!wizardTipEnabled ? (
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button
+                      onClick={() => setWizardTipEnabled(true)}
+                      style={{ flex: 1, padding: '16px', borderRadius: '10px', border: '0.5px solid #e0e0e0', background: '#f8f8f8', color: '#1a1a2e', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
+                    >
+                      Sí, hubo propina
+                    </button>
+                    <button
+                      onClick={() => { setWizardTip(''); setWizardStep(4) }}
+                      style={{ flex: 1, padding: '16px', borderRadius: '10px', border: 'none', background: 'var(--primary, #1E2A3A)', color: '#fff', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
+                    >
+                      No, continuar →
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                      <span style={{ fontSize: '20px', fontWeight: 700, color: '#1a1a2e', fontFamily: 'Space Grotesk, sans-serif' }}>$</span>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={wizardTip}
+                        onChange={e => setWizardTip(e.target.value)}
+                        style={{ flex: 1, border: '0.5px solid #e0e0e0', borderRadius: '8px', padding: '12px', fontSize: '16px', background: '#f8f8f8', color: '#1a1a2e', outline: 'none' }}
+                      />
+                    </div>
+                    <button
+                      onClick={() => setWizardStep(4)}
+                      style={{ width: '100%', padding: '14px', background: 'var(--primary, #1E2A3A)', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
+                    >
+                      Siguiente →
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* ── Step 4: Others ── */}
+            {wizardStep === 4 && (
+              <>
+                <div style={{ fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 4 de 4 · Otros</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '6px' }}>¿Hubo otros?</div>
+                <div style={{ fontSize: '13px', color: '#888', marginBottom: '24px' }}>Ceras, bebidas, etc. Van 100% al dueño</div>
+                {!wizardOthersEnabled ? (
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button
+                      onClick={() => setWizardOthersEnabled(true)}
+                      style={{ flex: 1, padding: '16px', borderRadius: '10px', border: '0.5px solid #e0e0e0', background: '#f8f8f8', color: '#1a1a2e', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
+                    >
+                      Sí, hubo otros
+                    </button>
+                    <button
+                      onClick={() => { setWizardOthers(''); setWizardStep(5) }}
+                      style={{ flex: 1, padding: '16px', borderRadius: '10px', border: 'none', background: 'var(--primary, #1E2A3A)', color: '#fff', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
+                    >
+                      No, continuar →
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                      <span style={{ fontSize: '20px', fontWeight: 700, color: '#1a1a2e', fontFamily: 'Space Grotesk, sans-serif' }}>$</span>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={wizardOthers}
+                        onChange={e => setWizardOthers(e.target.value)}
+                        style={{ flex: 1, border: '0.5px solid #e0e0e0', borderRadius: '8px', padding: '12px', fontSize: '16px', background: '#f8f8f8', color: '#1a1a2e', outline: 'none' }}
+                      />
+                    </div>
+                    <button
+                      onClick={() => setWizardStep(5)}
+                      style={{ width: '100%', padding: '14px', background: 'var(--primary, #1E2A3A)', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
+                    >
+                      Siguiente →
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* ── Step 5: Summary & confirm ── */}
+            {wizardStep === 5 && (
+              <>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '20px', marginTop: '8px' }}>Confirmar atención</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                  {selectedServices.map(s => (
+                    <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#1a1a2e', fontFamily: 'Space Grotesk, sans-serif' }}>
+                      <span>{s.name}</span>
+                      <span style={{ fontWeight: 500 }}>${s.base_price.toLocaleString('es-AR')}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ borderTop: '0.5px solid #f0f0f0', paddingTop: '12px', marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ fontSize: '13px', color: '#555', fontFamily: 'Space Grotesk, sans-serif' }}>
+                    Método de pago: {wizardPaymentMethod === 'transferencia' ? '📲 Transferencia' : '💵 Efectivo'}
+                  </div>
+                  {(parseInt(wizardTip) || 0) > 0 && (
+                    <div style={{ fontSize: '13px', color: '#555', fontFamily: 'Space Grotesk, sans-serif' }}>
+                      Propina: ${(parseInt(wizardTip) || 0).toLocaleString('es-AR')} <span style={{ color: '#888' }}>(100% para vos)</span>
+                    </div>
+                  )}
+                  {(parseInt(wizardOthers) || 0) > 0 && (
+                    <div style={{ fontSize: '13px', color: '#555', fontFamily: 'Space Grotesk, sans-serif' }}>
+                      Otros: ${(parseInt(wizardOthers) || 0).toLocaleString('es-AR')} <span style={{ color: '#888' }}>(100% para el dueño)</span>
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f8f8f8', borderRadius: '8px', marginBottom: '20px' }}>
+                  <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '14px', color: '#1a1a2e' }}>Total</span>
+                  <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e' }}>
+                    ${(selectedServices.reduce((s, x) => s + x.base_price, 0) + (parseInt(wizardTip) || 0) + (parseInt(wizardOthers) || 0)).toLocaleString('es-AR')}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <button
+                    onClick={confirmAttention}
+                    disabled={processing}
+                    style={{ width: '100%', padding: '14px', background: 'var(--primary, #1E2A3A)', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: processing ? 'not-allowed' : 'pointer', opacity: processing ? 0.7 : 1 }}
+                  >
+                    {processing ? 'Procesando...' : '✓ Confirmar atención'}
+                  </button>
+                  <button
+                    onClick={() => setWizardStep(4)}
+                    disabled={processing}
+                    style={{ width: '100%', padding: '12px', background: 'none', color: '#888', border: '0.5px solid #e0e0e0', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', cursor: 'pointer' }}
+                  >
+                    ← Volver
+                  </button>
+                </div>
+              </>
+            )}
+
           </div>
         </div>
       )}
