@@ -60,6 +60,10 @@ export type ServiceLog = {
   status: string
   shift_id?: string | null
   payment_method?: 'efectivo' | 'transferencia'
+  tip_amount?: number
+  tip_payment_method?: 'efectivo' | 'transferencia'
+  others_amount?: number
+  others_payment_method?: 'efectivo' | 'transferencia'
   created_at: string
 }
 
@@ -117,6 +121,10 @@ export interface LogServiceRequest {
   started_at: string
   ended_at?: string
   shift_id?: string
+  tip_amount?: number
+  tip_payment_method?: 'efectivo' | 'transferencia'
+  others_amount?: number
+  others_payment_method?: 'efectivo' | 'transferencia'
 }
 
 export interface LogServiceResponse {

@@ -75,6 +75,10 @@ interface RequestBody {
   ended_at?: string        // Opcional, se ignora (ended_at será null)
   shift_id?: string
   payment_method?: 'efectivo' | 'transferencia'
+  tip_amount?: number
+  tip_payment_method?: 'efectivo' | 'transferencia'
+  others_amount?: number
+  others_payment_method?: 'efectivo' | 'transferencia'
 }
 
 // Interfaz para appointment (local)
@@ -109,6 +113,10 @@ interface ServiceLog {
   status: 'completed'
   shift_id?: string | null
   payment_method: 'efectivo' | 'transferencia'
+  tip_amount: number
+  tip_payment_method: 'efectivo' | 'transferencia'
+  others_amount: number
+  others_payment_method: 'efectivo' | 'transferencia'
 }
 
 function applyCommission(rules: CommissionRule[], serviceNumber: number, price: number) {
@@ -168,6 +176,12 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     const body: RequestBody = JSON.parse(event.body)
     const paymentMethod: 'efectivo' | 'transferencia' =
       body.payment_method === 'transferencia' ? 'transferencia' : 'efectivo'
+    const tipAmount = typeof body.tip_amount === 'number' ? body.tip_amount : 0
+    const tipPaymentMethod: 'efectivo' | 'transferencia' =
+      body.tip_payment_method === 'transferencia' ? 'transferencia' : 'efectivo'
+    const othersAmount = typeof body.others_amount === 'number' ? body.others_amount : 0
+    const othersPaymentMethod: 'efectivo' | 'transferencia' =
+      body.others_payment_method === 'transferencia' ? 'transferencia' : 'efectivo'
 
     // Validar required fields
     if (!body.barber_id || !body.services || !body.started_at) {
@@ -412,6 +426,10 @@ export const handler = async (event: NetlifyFunctionEvent) => {
         status: 'completed',
         shift_id: body.shift_id ?? null,
         payment_method: paymentMethod,
+        tip_amount: tipAmount,
+        tip_payment_method: tipPaymentMethod,
+        others_amount: othersAmount,
+        others_payment_method: othersPaymentMethod,
       }
 
       const { data: insertedLog, error: logError } = await supabase
