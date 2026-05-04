@@ -306,11 +306,14 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     const totalPrice = body.services.reduce((sum, service) => sum + service.price_charged, 0)
 
     // 6. Aplicar comisión sobre el TOTAL de la atención
-    const { barber: totalBarberEarning, owner: totalOwnerEarning } = applyCommission(
+    const { barber: commissionBarberEarning, owner: commissionOwnerEarning } = applyCommission(
       commissionRules.rules,
       attentionNumber,
       totalPrice
     )
+    // tip 100% al barbero; others 100% al dueño
+    const totalBarberEarning = commissionBarberEarning + tipAmount
+    const totalOwnerEarning  = commissionOwnerEarning  + othersAmount
 
     // Validate numeric values
     if (isNaN(totalPrice) || totalPrice <= 0) {
@@ -411,14 +414,15 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     for (let i = 0; i < body.services.length; i++) {
       const service = body.services[i]
       const serviceNumberToday = currentServiceNumber + i + 1
+      const isFirst = i === 0
 
       const serviceLog: Omit<ServiceLog, 'id'> = {
         tenant_id: tenantId,
         barber_id: body.barber_id,
         service_id: service.service_id,
         price_charged: service.price_charged,
-        barber_earning: totalBarberEarning * (service.price_charged / totalPrice),
-        owner_earning: totalOwnerEarning * (service.price_charged / totalPrice),
+        barber_earning: commissionBarberEarning * (service.price_charged / totalPrice) + (isFirst ? tipAmount : 0),
+        owner_earning:  commissionOwnerEarning  * (service.price_charged / totalPrice) + (isFirst ? othersAmount : 0),
         service_number_today: serviceNumberToday,
         appointment_id: appointment.id,
         started_at: startedAtUTC,
@@ -426,9 +430,9 @@ export const handler = async (event: NetlifyFunctionEvent) => {
         status: 'completed',
         shift_id: body.shift_id ?? null,
         payment_method: paymentMethod,
-        tip_amount: tipAmount,
+        tip_amount:    isFirst ? tipAmount    : 0,
         tip_payment_method: tipPaymentMethod,
-        others_amount: othersAmount,
+        others_amount: isFirst ? othersAmount : 0,
         others_payment_method: othersPaymentMethod,
       }
 
