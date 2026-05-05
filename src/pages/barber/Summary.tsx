@@ -283,21 +283,21 @@ export function Summary() {
       </div>
 
       <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#fff', marginBottom: '8px' }}>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#1a1a2e', marginBottom: '8px' }}>
           Resumen del Día
         </h1>
-        <p style={{ color: '#999', fontSize: '14px' }}>Consulta tus métricas diarias</p>
+        <p style={{ color: '#aaa', fontSize: '14px' }}>Consulta tus métricas diarias</p>
       </div>
 
       {/* Error message */}
       {error && (
         <div style={{
-          background: '#2a2a2a',
-          border: '1px solid #e94560',
+          background: '#fff0f0',
+          border: '0.5px solid #ffcccc',
           borderRadius: '8px',
           padding: '12px 16px',
           marginBottom: '24px',
-          color: '#e94560',
+          color: '#e74c3c',
           fontFamily: 'Space Grotesk, sans-serif',
           fontSize: '14px',
         }}>
@@ -307,54 +307,54 @@ export function Summary() {
 
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', marginBottom: '32px' }}>
-        <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '24px' }}>
-          <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#999', margin: '0 0 12px 0' }}>
+        <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '12px', padding: '24px' }}>
+          <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#aaa', margin: '0 0 12px 0' }}>
             Servicios hoy
           </h3>
-          <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '36px', color: '#fff' }}>
+          <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '36px', color: '#1a1a2e' }}>
             {summary?.totalServices || 0}
           </div>
         </div>
-        <div style={{ background: '#2a2a2a', border: '1px solid var(--secondary, #C8A97E)', borderRadius: '12px', padding: '24px' }}>
-          <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#999', margin: '0 0 12px 0' }}>
+        <div style={{ background: '#fff', border: '0.5px solid var(--primary, #1E2A3A)', borderRadius: '12px', padding: '24px' }}>
+          <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#aaa', margin: '0 0 12px 0' }}>
             Mi ganancia total
           </h3>
-          <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '36px', color: 'var(--secondary, #C8A97E)' }}>
+          <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '36px', color: 'var(--secondary, #D4A853)' }}>
             ${summary?.barberEarnings.toLocaleString() || '0'}
           </div>
         </div>
       </div>
 
       {/* Close day section */}
-      <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '32px', marginBottom: '32px' }}>
+      <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '12px', padding: '32px', marginBottom: '32px' }}>
         {dayClosed ? (
           <div>
-            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '8px' }}>
+            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '8px' }}>
               Día Cerrado
             </h2>
-            <p style={{ color: '#999', fontSize: '14px', fontFamily: 'Space Grotesk, sans-serif', marginBottom: '24px' }}>
+            <p style={{ color: '#aaa', fontSize: '14px', fontFamily: 'Space Grotesk, sans-serif', marginBottom: '24px' }}>
               El día ya fue cerrado. Aquí está el resumen final.
             </p>
             {(closeResult || existingSummary) && (
               <div style={{
-                background: '#2a2a2a',
-                border: '1px solid var(--secondary, #C8A97E)',
+                background: '#f8f8f8',
+                border: '0.5px solid var(--primary, #1E2A3A)',
                 borderRadius: '8px',
                 padding: '20px',
               }}>
-                <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--secondary, #C8A97E)', marginBottom: '12px' }}>
+                <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--secondary, #D4A853)', marginBottom: '12px' }}>
                   Resumen del día cerrado
                 </h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
                   <div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#999' }}>Servicios totales</div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: '#fff' }}>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#aaa' }}>Servicios totales</div>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: '#1a1a2e' }}>
                       {closeResult ? closeResult.summary.total_services : existingSummary?.total_services}
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#999' }}>Tu ganancia total</div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--secondary, #C8A97E)' }}>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#aaa' }}>Tu ganancia total</div>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--secondary, #D4A853)' }}>
                       ${closeResult ? closeResult.summary.barber_earnings.toLocaleString() : existingSummary?.barber_earnings.toLocaleString()}
                     </div>
                   </div>
@@ -366,10 +366,10 @@ export function Summary() {
           <>
             <div className="mobile-stack" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <div>
-                <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '8px' }}>
+                <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '8px' }}>
                   Cierre del día
                 </h2>
-                <p style={{ color: '#999', fontSize: '14px', fontFamily: 'Space Grotesk, sans-serif' }}>
+                <p style={{ color: '#aaa', fontSize: '14px', fontFamily: 'Space Grotesk, sans-serif' }}>
                   Genera el resumen final de hoy y registra tus ganancias.
                 </p>
               </div>
@@ -377,8 +377,8 @@ export function Summary() {
                 onClick={handleCloseDay}
                 disabled={closingDay || activeLogs.length === 0}
                 style={{
-                  background: activeLogs.length === 0 ? '#383838' : 'var(--secondary, #C8A97E)',
-                  color: activeLogs.length === 0 ? '#999' : 'var(--primary, #1a1a1a)',
+                  background: activeLogs.length === 0 ? '#e0e0e0' : 'var(--secondary, #D4A853)',
+                  color: activeLogs.length === 0 ? '#999' : 'var(--primary, #1a1a2e)',
                   border: 'none',
                   borderRadius: '8px',
                   padding: '12px 24px',
@@ -396,25 +396,25 @@ export function Summary() {
             </div>
             {closeResult && (
               <div style={{
-                background: '#2a2a2a',
-                border: '1px solid var(--secondary, #C8A97E)',
+                background: '#f8f8f8',
+                border: '0.5px solid var(--primary, #1E2A3A)',
                 borderRadius: '8px',
                 padding: '20px',
                 marginTop: '20px',
               }}>
-                <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--secondary, #C8A97E)', marginBottom: '12px' }}>
+                <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--secondary, #D4A853)', marginBottom: '12px' }}>
                   Día cerrado exitosamente
                 </h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
                   <div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#999' }}>Servicios totales</div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: '#fff' }}>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#aaa' }}>Servicios totales</div>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: '#1a1a2e' }}>
                       {closeResult.summary.total_services}
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#999' }}>Tu ganancia total</div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--secondary, #C8A97E)' }}>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#aaa' }}>Tu ganancia total</div>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--secondary, #D4A853)' }}>
                       ${closeResult.summary.barber_earnings.toLocaleString()}
                     </div>
                   </div>
@@ -426,13 +426,13 @@ export function Summary() {
       </div>
 
       {/* Services history */}
-      <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '32px' }}>
-        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '24px' }}>
+      <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '12px', padding: '32px' }}>
+        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '24px' }}>
           Historial de servicios hoy
         </h2>
 
         {logs.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#999', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px' }}>
+          <div style={{ textAlign: 'center', padding: '40px', color: '#aaa', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px' }}>
             No hay servicios registrados hoy.
           </div>
         ) : (
@@ -441,8 +441,8 @@ export function Summary() {
               <div
                 key={log.id}
                 style={{
-                  background: '#2a2a2a',
-                  borderBottom: '1px solid #383838',
+                  background: '#fff',
+                  borderBottom: '0.5px solid #e0e0e0',
                   padding: '20px',
                   display: 'flex',
                   alignItems: 'center',
@@ -450,18 +450,18 @@ export function Summary() {
                 }}
               >
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#fff', marginBottom: '4px' }}>
+                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#1a1a2e', marginBottom: '4px' }}>
                     Servicio #{log.service_number_today}
                   </div>
-                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#999' }}>
+                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#aaa' }}>
                     {formatTime(log.started_at)} • ${log.price_charged.toLocaleString()}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--secondary, #C8A97E)' }}>
+                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--secondary, #D4A853)' }}>
                     +${log.barber_earning.toLocaleString()}
                   </div>
-                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#999', marginTop: '2px' }}>
+                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#aaa', marginTop: '2px' }}>
                     Ganancia
                   </div>
                 </div>
@@ -472,13 +472,13 @@ export function Summary() {
       </div>
 
       {/* Shifts history */}
-      <div style={{ background: '#2a2a2a', border: '1px solid #383838', borderRadius: '12px', padding: '32px', marginTop: '32px' }}>
-        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '24px' }}>
+      <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '12px', padding: '32px', marginTop: '32px' }}>
+        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '24px' }}>
           Historial de turnos hoy
         </h2>
 
         {shifts.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#999', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px' }}>
+          <div style={{ textAlign: 'center', padding: '40px', color: '#aaa', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px' }}>
             No hay turnos cerrados hoy.
           </div>
         ) : (
@@ -488,8 +488,8 @@ export function Summary() {
                 <div
                   key={shift.id}
                   style={{
-                    background: '#2a2a2a',
-                    borderBottom: '1px solid #383838',
+                    background: '#fff',
+                    borderBottom: '0.5px solid #e0e0e0',
                     padding: '20px',
                     display: 'flex',
                     alignItems: 'center',
@@ -497,18 +497,18 @@ export function Summary() {
                   }}
                 >
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#fff', marginBottom: '4px' }}>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#1a1a2e', marginBottom: '4px' }}>
                       Turno {formatTime(shift.started_at)} - {shift.closed_at ? formatTime(shift.closed_at) : 'No cerrado'}
                     </div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#999' }}>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#aaa' }}>
                       {shift.total_services} servicios • ${shift.total_revenue.toLocaleString()}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--secondary, #C8A97E)' }}>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--secondary, #D4A853)' }}>
                       +${shift.barber_earnings.toLocaleString()}
                     </div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#999', marginTop: '2px' }}>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#aaa', marginTop: '2px' }}>
                       Ganancia del turno
                     </div>
                   </div>
@@ -518,26 +518,26 @@ export function Summary() {
             <div style={{
               marginTop: '24px',
               padding: '20px',
-              background: '#2a2a2a',
-              border: '1px solid var(--secondary, #C8A97E)',
+              background: '#f8f8f8',
+              border: '0.5px solid var(--primary, #1E2A3A)',
               borderRadius: '8px',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
             }}>
               <div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#fff' }}>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#1a1a2e' }}>
                   Total acumulado del día
                 </div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#999' }}>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#aaa' }}>
                   Suma de ganancias de todos los turnos cerrados hoy
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '24px', color: 'var(--secondary, #C8A97E)' }}>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '24px', color: 'var(--secondary, #D4A853)' }}>
                   ${shifts.reduce((sum, shift) => sum + shift.barber_earnings, 0).toLocaleString()}
                 </div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#999', marginTop: '2px' }}>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#aaa', marginTop: '2px' }}>
                   {shifts.reduce((sum, shift) => sum + shift.total_services, 0)} servicios totales
                 </div>
               </div>

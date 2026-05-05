@@ -37,6 +37,7 @@ export function Dashboard() {
   const [confirmingClose, setConfirmingClose] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [appointmentsCount, setAppointmentsCount] = useState<number>(0)
+  const [lastShiftDate, setLastShiftDate] = useState<string | null>(null)
 
 
   useEffect(() => {
@@ -103,7 +104,7 @@ export function Dashboard() {
         } else {
           const { data: closedShift } = await supabase
             .from('shifts')
-            .select('id')
+            .select('id, started_at')
             .eq('tenant_id', tenant.id)
             .eq('barber_id', profile.id)
             .eq('status', 'closed')
@@ -111,6 +112,14 @@ export function Dashboard() {
             .limit(1)
             .maybeSingle()
           shiftIdForLogs = closedShift?.id ?? null
+          if (closedShift?.started_at && isMounted) {
+            const d = new Date(closedShift.started_at)
+            const formatted = d.toLocaleDateString('es-AR', {
+              weekday: 'long', day: 'numeric', month: 'long',
+              timeZone: 'America/Argentina/Buenos_Aires',
+            })
+            setLastShiftDate(`Datos del turno del ${formatted}`)
+          }
         }
 
         // Load service logs for the resolved shift (empty if no shift found)
@@ -651,6 +660,12 @@ export function Dashboard() {
           </div>
         </div>
       </div>
+
+      {shiftStatus === 'closed' && lastShiftDate && (
+        <div style={{ textAlign: 'center', color: '#aaa', fontSize: '12px', fontFamily: 'Space Grotesk, sans-serif', marginBottom: '16px', marginTop: '-8px' }}>
+          {lastShiftDate}
+        </div>
+      )}
 
       {/* Register attention button */}
       {shiftStatus === 'open' ? (
