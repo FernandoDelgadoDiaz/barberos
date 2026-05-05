@@ -25,6 +25,9 @@ export function Summary() {
   const [dayClosed, setDayClosed] = useState(false)
   const [existingSummary, setExistingSummary] = useState<BackendDailySummary | null>(null)
   const [shifts, setShifts] = useState<Shift[]>([])
+  const [totalServicesMonth, setTotalServicesMonth] = useState(0)
+  const [totalEarningsMonth, setTotalEarningsMonth] = useState(0)
+  const [monthName, setMonthName] = useState('')
 
   const activeLogs = logs.filter(log => log.status === 'completed')
 
@@ -122,6 +125,32 @@ export function Summary() {
         }
 
         if (isMounted) setShifts(shiftsData)
+
+        // Load monthly accumulated stats (Argentina timezone)
+        try {
+          const argNow = new Date()
+          const argToday = argNow.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
+          const [year, month] = argToday.split('-').map(Number)
+          const monthStart = new Date(Date.UTC(year, month - 1, 1, 3, 0, 0)).toISOString()
+          const monthEnd = new Date(Date.UTC(year, month, 1, 2, 59, 59, 999)).toISOString()
+          const { data: monthLogs, error: monthError } = await supabase
+            .from('service_logs')
+            .select('barber_earning')
+            .eq('tenant_id', tenant.id)
+            .eq('barber_id', profile.id)
+            .in('status', ['completed', 'closed'])
+            .gte('started_at', monthStart)
+            .lte('started_at', monthEnd)
+          if (monthError) {
+            console.warn('[Summary] monthly logs query error (non-blocking):', monthError)
+          } else if (isMounted) {
+            setTotalServicesMonth((monthLogs || []).length)
+            setTotalEarningsMonth((monthLogs || []).reduce((sum, l) => sum + l.barber_earning, 0))
+            setMonthName(argNow.toLocaleDateString('es-AR', { month: 'long', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' }))
+          }
+        } catch (err) {
+          console.warn('[Summary] monthly logs query exception (non-blocking):', err)
+        }
 
         // Calculate summary using only logs and shifts (ignore daily_summaries for calculation)
         const activeLogs = logsData.filter(log => log.status === 'completed')
@@ -236,6 +265,23 @@ export function Summary() {
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+      {/* Monthly accumulated stats */}
+      <div style={{ marginBottom: '32px' }}>
+        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: '#1a1a2e', margin: 0 }}>Mi mes</h2>
+        <div style={{ color: '#aaa', fontSize: '13px', marginTop: '4px', marginBottom: '16px', textTransform: 'capitalize' }}>{monthName}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '20px' }}>
+            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '10px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Servicios del mes</div>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '32px', color: '#1a1a2e' }}>{totalServicesMonth}</div>
+          </div>
+          <div style={{ background: '#fff', border: '0.5px solid var(--primary, #1E2A3A)', borderRadius: '10px', padding: '20px' }}>
+            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '10px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Mi ganancia del mes</div>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '28px', color: 'var(--secondary, #D4A853)' }}>${totalEarningsMonth.toLocaleString('es-AR')}</div>
+          </div>
+        </div>
+        <div style={{ marginTop: '24px', marginBottom: '24px', borderTop: '0.5px solid #e0e0e0' }} />
+      </div>
+
       <div style={{ marginBottom: '32px' }}>
         <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#fff', marginBottom: '8px' }}>
           Resumen del Día
