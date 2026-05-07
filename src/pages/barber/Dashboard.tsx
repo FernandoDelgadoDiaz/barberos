@@ -365,136 +365,121 @@ export function Dashboard() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px', textAlign: 'center', color: '#aaa', fontFamily: 'Space Grotesk, sans-serif' }}>
-        Cargando...
+      <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '240px', gap: '16px' }}>
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+        <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid #E8E9EB', borderTopColor: '#D4A853', animation: 'spin 0.8s linear infinite' }} />
+        <p style={{ fontSize: 14, color: '#9CA3AF', fontFamily: 'Space Grotesk, sans-serif', margin: 0 }}>Cargando...</p>
       </div>
     )
   }
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+
       {/* Success toast */}
       {successMessage && (
         <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          background: '#fff',
-          color: '#1a1a2e',
-          border: '0.5px solid #e0e0e0',
-          padding: '16px 20px',
-          borderRadius: '10px',
-          fontFamily: 'Space Grotesk, sans-serif',
-          fontWeight: 600,
-          fontSize: '14px',
-          zIndex: 1000,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          position: 'fixed', top: '20px', right: '20px',
+          background: '#fff', color: '#1E2A3A',
+          border: '1px solid #E8E9EB', padding: '14px 20px',
+          borderRadius: '10px', fontFamily: 'Space Grotesk, sans-serif',
+          fontWeight: 600, fontSize: '14px',
+          zIndex: 1000, boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
         }}>
-          {successMessage}
+          ✓ {successMessage}
         </div>
       )}
 
-      {/* Hero card */}
-      <div className="dashboard-hero" style={{ background: 'var(--primary, #1E2A3A)', borderRadius: '14px', padding: '24px', marginBottom: '24px', position: 'relative', overflow: 'hidden' }}>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#fff', margin: 0 }}>
+      {/* Hero banner */}
+      <div className="dashboard-hero" style={{
+        background: '#1E2A3A',
+        backgroundImage: 'repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 10px)',
+        borderRadius: '14px', padding: '28px 32px', marginBottom: '20px',
+        position: 'relative', overflow: 'hidden',
+      }}>
+        {/* Shift status badge */}
+        <div style={{ position: 'absolute', top: '20px', right: '24px' }}>
+          {shiftStatus === 'open' ? (
+            <span style={{ background: 'rgba(212,168,83,0.15)', color: '#D4A853', border: '1px solid rgba(212,168,83,0.3)', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600 }}>● Turno activo</span>
+          ) : shiftStatus === 'paused' ? (
+            <span style={{ background: 'rgba(212,168,83,0.1)', color: '#D4A853', border: '1px solid rgba(212,168,83,0.2)', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600 }}>⏸ Pausado</span>
+          ) : (
+            <span style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600 }}>○ Sin turno</span>
+          )}
+        </div>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '28px', color: '#fff', margin: 0 }}>
           Hola, {profile?.display_name || 'Barbero'}
         </h1>
-        <p style={{ color: 'rgba(255,255,255,0.6)', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', marginTop: '8px' }}>Tu día empieza ahora. Que los cortes fluyan.</p>
+        <p style={{ color: 'rgba(255,255,255,0.65)', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', marginTop: '8px', marginBottom: 0 }}>
+          Tu día empieza ahora. Que los cortes fluyan.
+        </p>
       </div>
 
       {/* Shift control card */}
-      <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '20px', marginBottom: '24px' }}>
-        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '14px', color: '#888', margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '1px' }}>Control de turno</h2>
+      <div style={{ background: '#fff', border: '1px solid #E8E9EB', borderRadius: '12px', padding: '24px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '11px', color: '#9CA3AF', margin: '0 0 20px 0', textTransform: 'uppercase', letterSpacing: '1.5px' }}>Control de turno</h2>
+
         {shiftStatus === 'loading' && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: '#1a1a2e' }}>Cargando estado de turno...</div>
-              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#aaa', marginTop: '4px' }}>Verificando si hay un turno activo.</div>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '18px', color: '#1E2A3A' }}>Verificando turno...</div>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#6B7280', marginTop: '4px' }}>Consultando estado actual</div>
             </div>
-            <button disabled style={{
-                background: '#f8f8f8',
-                color: '#aaa',
-                border: '0.5px solid #e0e0e0',
-                borderRadius: '8px',
-                padding: '10px 20px',
-                fontFamily: 'Space Grotesk, sans-serif',
-                fontWeight: 600,
-                fontSize: '14px',
-                cursor: 'not-allowed',
-                opacity: 0.6,
-              }}>
+            <button disabled style={{ background: '#F9FAFB', color: '#9CA3AF', border: '1px solid #E8E9EB', borderRadius: '8px', padding: '10px 20px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'not-allowed', opacity: 0.6 }}>
               Cargando...
             </button>
           </div>
         )}
+
         {shiftStatus === 'no_shift' && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 24px 8px', gap: '12px', textAlign: 'center' }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#D4A853" strokeWidth="1.5" style={{ opacity: 0.7 }}>
+              <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+              <line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/>
+              <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+            </svg>
             <div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: '#1a1a2e' }}>No hay un turno activo</div>
-              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#aaa', marginTop: '4px' }}>Inicia un turno para comenzar a registrar servicios.</div>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '18px', color: '#1E2A3A' }}>No hay turno activo</div>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', color: '#6B7280', marginTop: '4px' }}>Iniciá tu turno para comenzar a registrar atenciones</div>
             </div>
             <button
               onClick={handleOpenShift}
               disabled={shiftLoading}
-              style={{
-                background: 'var(--primary, #1E2A3A)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '12px 24px',
-                fontFamily: 'Space Grotesk, sans-serif',
-                fontWeight: 600,
-                fontSize: '14px',
-                cursor: shiftLoading ? 'not-allowed' : 'pointer',
-                opacity: shiftLoading ? 0.6 : 1,
-              }}
+              style={{ background: '#D4A853', color: '#1E2A3A', border: 'none', borderRadius: '8px', padding: '12px 32px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: shiftLoading ? 'not-allowed' : 'pointer', opacity: shiftLoading ? 0.6 : 1, marginTop: '4px', transition: 'background 150ms' }}
             >
               {shiftLoading ? 'Procesando...' : 'Iniciar turno'}
             </button>
           </div>
         )}
+
         {shiftStatus === 'open' && currentShift && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
             <div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: '#1a1a2e' }}>Turno activo</div>
-              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#aaa', marginTop: '4px' }}>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '18px', color: '#1E2A3A' }}>Turno activo</div>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#6B7280', marginTop: '4px' }}>
                 Iniciado a las {new Date(currentShift.started_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                {currentShift.total_services > 0 && ` • ${currentShift.total_services} servicios • $${currentShift.barber_earnings.toLocaleString()} ganados`}
+                {currentShift.total_services > 0 && ` · ${currentShift.total_services} servicios · $${currentShift.barber_earnings.toLocaleString()} ganados`}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <button
                 onClick={handlePauseResumeShift}
                 disabled={shiftLoading}
-                style={{
-                  background: '#f8f8f8',
-                  color: '#666',
-                  border: '0.5px solid #e0e0e0',
-                  borderRadius: '8px',
-                  padding: '10px 20px',
-                  fontFamily: 'Space Grotesk, sans-serif',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  cursor: shiftLoading ? 'not-allowed' : 'pointer',
-                  opacity: shiftLoading ? 0.6 : 1,
-                }}
+                style={{ background: 'transparent', color: '#1E2A3A', border: '1.5px solid #1E2A3A', borderRadius: '8px', padding: '10px 20px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: shiftLoading ? 'not-allowed' : 'pointer', opacity: shiftLoading ? 0.6 : 1, transition: 'all 150ms' }}
+                onMouseEnter={e => { if (!shiftLoading) { e.currentTarget.style.background = '#1E2A3A'; e.currentTarget.style.color = '#fff' } }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#1E2A3A' }}
               >
                 {shiftLoading ? 'Procesando...' : 'Pausar'}
               </button>
               {confirmingClose ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#1a1a2e' }}>¿Cerrar turno?</span>
-                  <button
-                    onClick={() => { setConfirmingClose(false); handleCloseShift() }}
-                    disabled={shiftLoading}
-                    style={{ background: '#fff0f0', color: '#e74c3c', border: '0.5px solid #ffcccc', borderRadius: '8px', padding: '8px 14px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
-                  >
+                  <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#1E2A3A' }}>¿Cerrar turno?</span>
+                  <button onClick={() => { setConfirmingClose(false); handleCloseShift() }} disabled={shiftLoading}
+                    style={{ background: '#FEF2F2', color: '#DC2626', border: '1.5px solid #FCA5A5', borderRadius: '8px', padding: '8px 14px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '13px', cursor: 'pointer', transition: 'all 150ms' }}>
                     Sí, cerrar
                   </button>
-                  <button
-                    onClick={() => setConfirmingClose(false)}
-                    style={{ background: '#f8f8f8', color: '#666', border: '0.5px solid #e0e0e0', borderRadius: '8px', padding: '8px 14px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
-                  >
+                  <button onClick={() => setConfirmingClose(false)}
+                    style={{ background: '#F9FAFB', color: '#6B7280', border: '1px solid #E8E9EB', borderRadius: '8px', padding: '8px 14px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>
                     Cancelar
                   </button>
                 </div>
@@ -502,18 +487,9 @@ export function Dashboard() {
                 <button
                   onClick={() => setConfirmingClose(true)}
                   disabled={shiftLoading}
-                  style={{
-                    background: '#fff0f0',
-                    color: '#e74c3c',
-                    border: '0.5px solid #ffcccc',
-                    borderRadius: '8px',
-                    padding: '10px 20px',
-                    fontFamily: 'Space Grotesk, sans-serif',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    cursor: shiftLoading ? 'not-allowed' : 'pointer',
-                    opacity: shiftLoading ? 0.6 : 1,
-                  }}
+                  style={{ background: '#FEF2F2', color: '#DC2626', border: '1.5px solid #FCA5A5', borderRadius: '8px', padding: '10px 20px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: shiftLoading ? 'not-allowed' : 'pointer', opacity: shiftLoading ? 0.6 : 1, transition: 'all 150ms' }}
+                  onMouseEnter={e => { if (!shiftLoading) { e.currentTarget.style.background = '#DC2626'; e.currentTarget.style.color = '#fff' } }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626' }}
                 >
                   {shiftLoading ? 'Procesando...' : 'Cerrar turno'}
                 </button>
@@ -521,49 +497,34 @@ export function Dashboard() {
             </div>
           </div>
         )}
+
         {shiftStatus === 'paused' && currentShift && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
             <div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: '#1a1a2e' }}>Turno pausado</div>
-              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#aaa', marginTop: '4px' }}>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '18px', color: '#1E2A3A' }}>Turno pausado</div>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#6B7280', marginTop: '4px' }}>
                 Iniciado a las {new Date(currentShift.started_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                {currentShift.paused_at && ` • Pausado a las ${new Date(currentShift.paused_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`}
-                {currentShift.total_services > 0 && ` • ${currentShift.total_services} servicios • $${currentShift.barber_earnings.toLocaleString()} ganados`}
+                {currentShift.paused_at && ` · Pausado a las ${new Date(currentShift.paused_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`}
+                {currentShift.total_services > 0 && ` · ${currentShift.total_services} servicios · $${currentShift.barber_earnings.toLocaleString()} ganados`}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <button
                 onClick={handlePauseResumeShift}
                 disabled={shiftLoading}
-                style={{
-                  background: 'var(--secondary, #D4A853)',
-                  color: '#1a1a2e',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '10px 20px',
-                  fontFamily: 'Space Grotesk, sans-serif',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  cursor: shiftLoading ? 'not-allowed' : 'pointer',
-                  opacity: shiftLoading ? 0.6 : 1,
-                }}
+                style={{ background: '#D4A853', color: '#1E2A3A', border: 'none', borderRadius: '8px', padding: '10px 20px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: shiftLoading ? 'not-allowed' : 'pointer', opacity: shiftLoading ? 0.6 : 1 }}
               >
                 {shiftLoading ? 'Procesando...' : 'Reanudar'}
               </button>
               {confirmingClose ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#1a1a2e' }}>¿Cerrar turno?</span>
-                  <button
-                    onClick={() => { setConfirmingClose(false); handleCloseShift() }}
-                    disabled={shiftLoading}
-                    style={{ background: '#fff0f0', color: '#e74c3c', border: '0.5px solid #ffcccc', borderRadius: '8px', padding: '8px 14px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
-                  >
+                  <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#1E2A3A' }}>¿Cerrar turno?</span>
+                  <button onClick={() => { setConfirmingClose(false); handleCloseShift() }} disabled={shiftLoading}
+                    style={{ background: '#FEF2F2', color: '#DC2626', border: '1.5px solid #FCA5A5', borderRadius: '8px', padding: '8px 14px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>
                     Sí, cerrar
                   </button>
-                  <button
-                    onClick={() => setConfirmingClose(false)}
-                    style={{ background: '#f8f8f8', color: '#666', border: '0.5px solid #e0e0e0', borderRadius: '8px', padding: '8px 14px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
-                  >
+                  <button onClick={() => setConfirmingClose(false)}
+                    style={{ background: '#F9FAFB', color: '#6B7280', border: '1px solid #E8E9EB', borderRadius: '8px', padding: '8px 14px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>
                     Cancelar
                   </button>
                 </div>
@@ -571,18 +532,9 @@ export function Dashboard() {
                 <button
                   onClick={() => setConfirmingClose(true)}
                   disabled={shiftLoading}
-                  style={{
-                    background: '#fff0f0',
-                    color: '#e74c3c',
-                    border: '0.5px solid #ffcccc',
-                    borderRadius: '8px',
-                    padding: '10px 20px',
-                    fontFamily: 'Space Grotesk, sans-serif',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    cursor: shiftLoading ? 'not-allowed' : 'pointer',
-                    opacity: shiftLoading ? 0.6 : 1,
-                  }}
+                  style={{ background: '#FEF2F2', color: '#DC2626', border: '1.5px solid #FCA5A5', borderRadius: '8px', padding: '10px 20px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: shiftLoading ? 'not-allowed' : 'pointer', opacity: shiftLoading ? 0.6 : 1, transition: 'all 150ms' }}
+                  onMouseEnter={e => { if (!shiftLoading) { e.currentTarget.style.background = '#DC2626'; e.currentTarget.style.color = '#fff' } }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626' }}
                 >
                   {shiftLoading ? 'Procesando...' : 'Cerrar turno'}
                 </button>
@@ -590,79 +542,89 @@ export function Dashboard() {
             </div>
           </div>
         )}
+
         {shiftStatus === 'closed' && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: '#1a1a2e' }}>Turno cerrado</div>
-              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#aaa', marginTop: '4px' }}>
-                Tu día ha finalizado. Hasta mañana.
-              </div>
-            </div>
+          <div>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '18px', color: '#1E2A3A' }}>Turno cerrado</div>
+            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#6B7280', marginTop: '4px' }}>Tu día ha finalizado. Hasta mañana.</div>
           </div>
         )}
       </div>
 
       {/* Error message */}
       {error && (
-        <div style={{
-          background: '#fff0f0',
-          border: '0.5px solid #ffcccc',
-          borderRadius: '10px',
-          padding: '12px 16px',
-          marginBottom: '16px',
-          color: '#e74c3c',
-          fontFamily: 'Space Grotesk, sans-serif',
-          fontSize: '14px',
-        }}>
+        <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', color: '#DC2626', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px' }}>
           {error}
         </div>
       )}
 
-      {/* Grid cards */}
-      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* Stat cards */}
+      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
+
+        {/* Servicios */}
+        <div
+          style={{ background: '#fff', border: '1px solid #E8E9EB', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', transition: 'box-shadow 200ms, transform 200ms', cursor: 'default' }}
+          onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+          onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'; e.currentTarget.style.transform = 'translateY(0)' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div>
-              <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '11px', color: '#888', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Servicios</h3>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '24px', color: '#1a1a2e', marginTop: '8px' }}>{todayLogs.length}</div>
+              <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '11px', color: '#9CA3AF', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>Servicios</h3>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '36px', color: '#1E2A3A', marginTop: '8px', lineHeight: 1 }}>{todayLogs.length}</div>
             </div>
-            <div style={{ background: '#eeedf8', borderRadius: '8px', padding: '8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary, #1E2A3A)" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            <div style={{ background: '#EFF6FF', borderRadius: '10px', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2">
+                <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+                <line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/>
+                <line x1="8.12" y1="8.12" x2="12" y2="12"/>
               </svg>
             </div>
           </div>
         </div>
-        <div style={{ background: '#fff', border: '0.5px solid var(--primary, #1E2A3A)', borderRadius: '10px', padding: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+
+        {/* Mi ganancia — highlighted */}
+        <div
+          style={{ background: '#fff', borderTop: '3px solid #D4A853', borderLeft: '1.5px solid #D4A853', borderRight: '1.5px solid #D4A853', borderBottom: '1.5px solid #D4A853', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', transition: 'box-shadow 200ms', cursor: 'default' }}
+          onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(212,168,83,0.15)' }}
+          onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div>
-              <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '11px', color: '#888', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Mi ganancia</h3>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '24px', color: 'var(--secondary, #D4A853)', marginTop: '8px' }}>${totalEarningsToday.toLocaleString()}</div>
+              <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '11px', color: '#9CA3AF', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>Mi ganancia</h3>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '36px', color: '#D4A853', marginTop: '8px', lineHeight: 1 }}>${totalEarningsToday.toLocaleString()}</div>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#9CA3AF', marginTop: '6px' }}>del turno actual</div>
             </div>
-            <div style={{ background: '#eeedf8', borderRadius: '8px', padding: '8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary, #1E2A3A)" strokeWidth="2">
+            <div style={{ background: '#FBF7EC', borderRadius: '10px', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D4A853" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
           </div>
         </div>
-        <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+
+        {/* Atenciones */}
+        <div
+          style={{ background: '#fff', border: '1px solid #E8E9EB', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', transition: 'box-shadow 200ms, transform 200ms', cursor: 'default' }}
+          onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+          onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'; e.currentTarget.style.transform = 'translateY(0)' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div>
-              <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '11px', color: '#888', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Atenciones</h3>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '24px', color: '#1a1a2e', marginTop: '8px' }}>{appointmentsCount}</div>
+              <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '11px', color: '#9CA3AF', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>Atenciones</h3>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '36px', color: '#1E2A3A', marginTop: '8px', lineHeight: 1 }}>{appointmentsCount}</div>
             </div>
-            <div style={{ background: '#eeedf8', borderRadius: '8px', padding: '8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary, #1E2A3A)" strokeWidth="2">
+            <div style={{ background: '#F0FDF4', borderRadius: '10px', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
           </div>
         </div>
+
       </div>
 
       {shiftStatus === 'closed' && lastShiftDate && (
-        <div style={{ textAlign: 'center', color: '#aaa', fontSize: '12px', fontFamily: 'Space Grotesk, sans-serif', marginBottom: '16px', marginTop: '-8px' }}>
+        <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: '12px', fontFamily: 'Space Grotesk, sans-serif', marginBottom: '16px', marginTop: '-8px' }}>
           {lastShiftDate}
         </div>
       )}
@@ -671,43 +633,24 @@ export function Dashboard() {
       {shiftStatus === 'open' ? (
         <button
           onClick={() => { setSelectedServices([]); setWizardStep(1) }}
-          style={{
-            width: '100%',
-            height: '64px',
-            background: 'var(--primary, #1E2A3A)',
-            color: '#fff',
-            fontFamily: 'Syne, sans-serif',
-            fontWeight: 700,
-            fontSize: '18px',
-            border: 'none',
-            borderRadius: '14px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 16px rgba(30,42,58,0.25)',
-          }}
+          style={{ width: '100%', height: '56px', background: '#1E2A3A', color: '#fff', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', letterSpacing: '0.01em', border: 'none', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 150ms ease' }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#2D3F52'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(30,42,58,0.25)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#1E2A3A'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+          onMouseDown={e => { e.currentTarget.style.transform = 'translateY(0)' }}
         >
-          + Registrar atención
+          <span style={{ color: '#D4A853', fontSize: '22px', fontWeight: 700, lineHeight: 1 }}>+</span>
+          Registrar atención
         </button>
       ) : (
         <div>
           <button
             disabled
-            style={{
-              width: '100%',
-              height: '64px',
-              background: '#e0e0e0',
-              color: '#aaa',
-              fontFamily: 'Syne, sans-serif',
-              fontWeight: 700,
-              fontSize: '18px',
-              border: 'none',
-              borderRadius: '14px',
-              cursor: 'not-allowed',
-              boxShadow: 'none',
-            }}
+            style={{ width: '100%', height: '56px', background: '#F3F4F6', color: '#9CA3AF', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', border: 'none', borderRadius: '10px', cursor: 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
           >
-            + Registrar atención
+            <span style={{ fontSize: '22px', fontWeight: 700, lineHeight: 1 }}>+</span>
+            Registrar atención
           </button>
-          <div style={{ textAlign: 'center', color: '#aaa', fontSize: '12px', fontFamily: 'Space Grotesk, sans-serif', marginTop: '8px' }}>
+          <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: '12px', fontFamily: 'Space Grotesk, sans-serif', marginTop: '8px' }}>
             Inicia un turno para registrar
           </div>
         </div>
@@ -715,19 +658,19 @@ export function Dashboard() {
 
       {/* Wizard Modal */}
       {wizardStep > 0 && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', maxWidth: '480px', width: '90vw', borderRadius: '16px', padding: '28px', position: 'relative' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', maxWidth: '480px', width: '90vw', borderRadius: '16px', padding: '28px', position: 'relative', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
 
             {/* Progress bar */}
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: '#f0f0f0', borderRadius: '16px 16px 0 0', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${Math.min(wizardStep, 4) / 4 * 100}%`, background: 'var(--primary, #1E2A3A)', transition: 'width 0.3s ease' }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: '#F3F4F6', borderRadius: '16px 16px 0 0', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${Math.min(wizardStep, 4) / 4 * 100}%`, background: '#1E2A3A', transition: 'width 0.3s ease' }} />
             </div>
 
             {/* Back button (steps 2-5) */}
             {wizardStep > 1 && (
               <button
                 onClick={() => setWizardStep(prev => (prev - 1) as 0|1|2|3|4|5)}
-                style={{ position: 'absolute', top: '16px', left: '16px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#aaa', fontSize: '13px', fontFamily: 'Space Grotesk, sans-serif', display: 'flex', alignItems: 'center', gap: '4px', padding: '4px' }}
+                style={{ position: 'absolute', top: '16px', left: '16px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#9CA3AF', fontSize: '13px', fontFamily: 'Space Grotesk, sans-serif', display: 'flex', alignItems: 'center', gap: '4px', padding: '4px' }}
               >
                 ← Volver
               </button>
@@ -736,8 +679,8 @@ export function Dashboard() {
             {/* ── Step 1: Services ── */}
             {wizardStep === 1 && (
               <>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '8px' }}>Paso 1 de 5 · Servicios</div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '20px' }}>¿Qué servicios?</div>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '8px' }}>Paso 1 de 5 · Servicios</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1E2A3A', marginBottom: '20px' }}>¿Qué servicios?</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto', marginBottom: '12px' }}>
                   {services.map(service => {
                     const isSel = selectedServices.some(s => s.id === service.id)
@@ -745,20 +688,20 @@ export function Dashboard() {
                       <div
                         key={service.id}
                         onClick={() => toggleServiceSelection(service)}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: isSel ? '#eeedf8' : '#f8f8f8', borderRadius: '8px', border: isSel ? '1px solid var(--primary, #1E2A3A)' : '0.5px solid #e0e0e0', cursor: 'pointer' }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: isSel ? '#EFF6FF' : '#F9FAFB', borderRadius: '8px', border: isSel ? '1px solid #1E2A3A' : '1px solid #E8E9EB', cursor: 'pointer' }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '18px', height: '18px', borderRadius: '4px', border: `2px solid ${isSel ? 'var(--primary, #1E2A3A)' : '#ccc'}`, background: isSel ? 'var(--primary, #1E2A3A)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <div style={{ width: '18px', height: '18px', borderRadius: '4px', border: `2px solid ${isSel ? '#1E2A3A' : '#D1D5DB'}`, background: isSel ? '#1E2A3A' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             {isSel && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                           </div>
-                          <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', color: '#1a1a2e' }}>{service.name}</span>
+                          <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', color: '#1E2A3A' }}>{service.name}</span>
                         </div>
-                        <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '14px', color: '#1a1a2e' }}>${service.base_price.toLocaleString('es-AR')}</span>
+                        <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', color: '#1E2A3A' }}>${service.base_price.toLocaleString('es-AR')}</span>
                       </div>
                     )
                   })}
                 </div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#888', marginBottom: '16px', minHeight: '18px' }}>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#6B7280', marginBottom: '16px', minHeight: '18px' }}>
                   {selectedServices.length > 0
                     ? `${selectedServices.length} seleccionado${selectedServices.length !== 1 ? 's' : ''} · $${selectedServices.reduce((s, x) => s + x.base_price, 0).toLocaleString('es-AR')}`
                     : 'Ningún servicio seleccionado'}
@@ -766,7 +709,7 @@ export function Dashboard() {
                 <button
                   onClick={() => setWizardStep(2)}
                   disabled={selectedServices.length === 0}
-                  style={{ width: '100%', height: '48px', background: selectedServices.length > 0 ? 'var(--primary, #1E2A3A)' : '#e0e0e0', color: selectedServices.length > 0 ? '#fff' : '#aaa', border: 'none', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: selectedServices.length > 0 ? 'pointer' : 'not-allowed' }}
+                  style={{ width: '100%', height: '48px', background: selectedServices.length > 0 ? '#1E2A3A' : '#E5E7EB', color: selectedServices.length > 0 ? '#fff' : '#9CA3AF', border: 'none', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: selectedServices.length > 0 ? 'pointer' : 'not-allowed' }}
                 >
                   Siguiente →
                 </button>
@@ -776,18 +719,18 @@ export function Dashboard() {
             {/* ── Step 2: Payment method ── */}
             {wizardStep === 2 && (
               <>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 2 de 5 · Método de pago</div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '24px', color: '#1a1a2e', marginBottom: '24px' }}>Método de pago</div>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 2 de 5 · Método de pago</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '24px', color: '#1E2A3A', marginBottom: '24px' }}>Método de pago</div>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <button
                     onClick={() => { setWizardPaymentMethod('efectivo'); setWizardStep(3) }}
-                    style={{ flex: 1, padding: '20px 12px', borderRadius: '10px', border: wizardPaymentMethod === 'efectivo' ? 'none' : '0.5px solid #e0e0e0', background: wizardPaymentMethod === 'efectivo' ? 'var(--primary, #1E2A3A)' : '#f8f8f8', color: wizardPaymentMethod === 'efectivo' ? '#fff' : '#1a1a2e', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
+                    style={{ flex: 1, padding: '20px 12px', borderRadius: '10px', border: wizardPaymentMethod === 'efectivo' ? 'none' : '1px solid #E8E9EB', background: wizardPaymentMethod === 'efectivo' ? '#1E2A3A' : '#F9FAFB', color: wizardPaymentMethod === 'efectivo' ? '#fff' : '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
                   >
                     💵 Efectivo
                   </button>
                   <button
                     onClick={() => { setWizardPaymentMethod('transferencia'); setWizardStep(3) }}
-                    style={{ flex: 1, padding: '20px 12px', borderRadius: '10px', border: wizardPaymentMethod === 'transferencia' ? 'none' : '0.5px solid #e0e0e0', background: wizardPaymentMethod === 'transferencia' ? 'var(--primary, #1E2A3A)' : '#f8f8f8', color: wizardPaymentMethod === 'transferencia' ? '#fff' : '#1a1a2e', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
+                    style={{ flex: 1, padding: '20px 12px', borderRadius: '10px', border: wizardPaymentMethod === 'transferencia' ? 'none' : '1px solid #E8E9EB', background: wizardPaymentMethod === 'transferencia' ? '#1E2A3A' : '#F9FAFB', color: wizardPaymentMethod === 'transferencia' ? '#fff' : '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
                   >
                     📲 Transferencia
                   </button>
@@ -798,40 +741,25 @@ export function Dashboard() {
             {/* ── Step 3: Tip ── */}
             {wizardStep === 3 && (
               <>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 3 de 5 · Propina</div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '24px', color: '#1a1a2e', marginBottom: '6px' }}>Propina</div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#888', marginBottom: '24px' }}>La propina es 100% para el barbero</div>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 3 de 5 · Propina</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '24px', color: '#1E2A3A', marginBottom: '6px' }}>Propina</div>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#6B7280', marginBottom: '24px' }}>La propina es 100% para el barbero</div>
                 {!wizardTipEnabled ? (
                   <div style={{ display: 'flex', gap: '12px' }}>
-                    <button
-                      onClick={() => setWizardTipEnabled(true)}
-                      style={{ flex: 1, padding: '16px', borderRadius: '10px', border: '0.5px solid #e0e0e0', background: '#f8f8f8', color: '#1a1a2e', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
-                    >
+                    <button onClick={() => setWizardTipEnabled(true)} style={{ flex: 1, padding: '16px', borderRadius: '10px', border: '1px solid #E8E9EB', background: '#F9FAFB', color: '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
                       Sí, hubo propina
                     </button>
-                    <button
-                      onClick={() => { setWizardTip(''); setWizardStep(4) }}
-                      style={{ flex: 1, padding: '16px', borderRadius: '10px', border: 'none', background: 'var(--primary, #1E2A3A)', color: '#fff', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
-                    >
+                    <button onClick={() => { setWizardTip(''); setWizardStep(4) }} style={{ flex: 1, padding: '16px', borderRadius: '10px', border: 'none', background: '#1E2A3A', color: '#fff', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
                       No, continuar →
                     </button>
                   </div>
                 ) : (
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                      <span style={{ fontSize: '20px', fontWeight: 700, color: '#1a1a2e', fontFamily: 'Space Grotesk, sans-serif' }}>$</span>
-                      <input
-                        type="number"
-                        placeholder="0"
-                        value={wizardTip}
-                        onChange={e => setWizardTip(e.target.value)}
-                        style={{ flex: 1, border: '0.5px solid #e0e0e0', borderRadius: '8px', padding: '12px', fontSize: '16px', background: '#f8f8f8', color: '#1a1a2e', outline: 'none', fontFamily: 'Space Grotesk, sans-serif' }}
-                      />
+                      <span style={{ fontSize: '20px', fontWeight: 700, color: '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif' }}>$</span>
+                      <input type="number" placeholder="0" value={wizardTip} onChange={e => setWizardTip(e.target.value)} style={{ flex: 1, border: '1px solid #E8E9EB', borderRadius: '8px', padding: '12px', fontSize: '16px', background: '#F9FAFB', color: '#1E2A3A', outline: 'none', fontFamily: 'Space Grotesk, sans-serif' }} />
                     </div>
-                    <button
-                      onClick={() => setWizardStep(4)}
-                      style={{ width: '100%', height: '48px', background: 'var(--primary, #1E2A3A)', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
-                    >
+                    <button onClick={() => setWizardStep(4)} style={{ width: '100%', height: '48px', background: '#1E2A3A', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}>
                       Siguiente →
                     </button>
                   </>
@@ -842,40 +770,25 @@ export function Dashboard() {
             {/* ── Step 4: Others ── */}
             {wizardStep === 4 && (
               <>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 4 de 5 · Otros</div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '24px', color: '#1a1a2e', marginBottom: '6px' }}>Otros</div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#888', marginBottom: '24px' }}>Ceras, bebidas, etc. Van 100% al dueño</div>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 4 de 5 · Otros</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '24px', color: '#1E2A3A', marginBottom: '6px' }}>Otros</div>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#6B7280', marginBottom: '24px' }}>Ceras, bebidas, etc. Van 100% al dueño</div>
                 {!wizardOthersEnabled ? (
                   <div style={{ display: 'flex', gap: '12px' }}>
-                    <button
-                      onClick={() => setWizardOthersEnabled(true)}
-                      style={{ flex: 1, padding: '16px', borderRadius: '10px', border: '0.5px solid #e0e0e0', background: '#f8f8f8', color: '#1a1a2e', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
-                    >
+                    <button onClick={() => setWizardOthersEnabled(true)} style={{ flex: 1, padding: '16px', borderRadius: '10px', border: '1px solid #E8E9EB', background: '#F9FAFB', color: '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
                       Sí, hubo otros
                     </button>
-                    <button
-                      onClick={() => { setWizardOthers(''); setWizardStep(5) }}
-                      style={{ flex: 1, padding: '16px', borderRadius: '10px', border: 'none', background: 'var(--primary, #1E2A3A)', color: '#fff', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
-                    >
+                    <button onClick={() => { setWizardOthers(''); setWizardStep(5) }} style={{ flex: 1, padding: '16px', borderRadius: '10px', border: 'none', background: '#1E2A3A', color: '#fff', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
                       No, continuar →
                     </button>
                   </div>
                 ) : (
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                      <span style={{ fontSize: '20px', fontWeight: 700, color: '#1a1a2e', fontFamily: 'Space Grotesk, sans-serif' }}>$</span>
-                      <input
-                        type="number"
-                        placeholder="0"
-                        value={wizardOthers}
-                        onChange={e => setWizardOthers(e.target.value)}
-                        style={{ flex: 1, border: '0.5px solid #e0e0e0', borderRadius: '8px', padding: '12px', fontSize: '16px', background: '#f8f8f8', color: '#1a1a2e', outline: 'none', fontFamily: 'Space Grotesk, sans-serif' }}
-                      />
+                      <span style={{ fontSize: '20px', fontWeight: 700, color: '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif' }}>$</span>
+                      <input type="number" placeholder="0" value={wizardOthers} onChange={e => setWizardOthers(e.target.value)} style={{ flex: 1, border: '1px solid #E8E9EB', borderRadius: '8px', padding: '12px', fontSize: '16px', background: '#F9FAFB', color: '#1E2A3A', outline: 'none', fontFamily: 'Space Grotesk, sans-serif' }} />
                     </div>
-                    <button
-                      onClick={() => setWizardStep(5)}
-                      style={{ width: '100%', height: '48px', background: 'var(--primary, #1E2A3A)', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
-                    >
+                    <button onClick={() => setWizardStep(5)} style={{ width: '100%', height: '48px', background: '#1E2A3A', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}>
                       Siguiente →
                     </button>
                   </>
@@ -886,40 +799,40 @@ export function Dashboard() {
             {/* ── Step 5: Summary & confirm ── */}
             {wizardStep === 5 && (
               <>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '20px', marginTop: '8px' }}>Confirmar atención</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1E2A3A', marginBottom: '20px', marginTop: '8px' }}>Confirmar atención</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
                   {selectedServices.map(s => (
-                    <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#1a1a2e', fontFamily: 'Space Grotesk, sans-serif' }}>
+                    <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif' }}>
                       <span>{s.name}</span>
                       <span style={{ fontWeight: 500 }}>${s.base_price.toLocaleString('es-AR')}</span>
                     </div>
                   ))}
                 </div>
-                <div style={{ borderTop: '0.5px solid #f0f0f0', paddingTop: '12px', marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#666' }}>
+                <div style={{ borderTop: '1px solid #F3F4F6', paddingTop: '12px', marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#6B7280' }}>
                     Método de pago: {wizardPaymentMethod === 'transferencia' ? '📲 Transferencia' : '💵 Efectivo'}
                   </div>
                   {(parseFloat(wizardTip) || 0) > 0 && (
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#666' }}>
-                      Propina: <span style={{ color: 'var(--secondary, #D4A853)', fontWeight: 600 }}>${(parseFloat(wizardTip) || 0).toLocaleString('es-AR')}</span> <span style={{ color: '#aaa' }}>(100% para vos)</span>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#6B7280' }}>
+                      Propina: <span style={{ color: '#D4A853', fontWeight: 600 }}>${(parseFloat(wizardTip) || 0).toLocaleString('es-AR')}</span> <span style={{ color: '#9CA3AF' }}>(100% para vos)</span>
                     </div>
                   )}
                   {(parseFloat(wizardOthers) || 0) > 0 && (
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#666' }}>
-                      Otros: <span style={{ color: 'var(--secondary, #D4A853)', fontWeight: 600 }}>${(parseFloat(wizardOthers) || 0).toLocaleString('es-AR')}</span> <span style={{ color: '#aaa' }}>(100% para el dueño)</span>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#6B7280' }}>
+                      Otros: <span style={{ color: '#D4A853', fontWeight: 600 }}>${(parseFloat(wizardOthers) || 0).toLocaleString('es-AR')}</span> <span style={{ color: '#9CA3AF' }}>(100% para el dueño)</span>
                     </div>
                   )}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f8f8f8', borderRadius: '8px', marginBottom: '20px' }}>
-                  <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '14px', color: '#1a1a2e' }}>Total</span>
-                  <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: 'var(--secondary, #D4A853)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', background: '#F9FAFB', borderRadius: '8px', marginBottom: '20px', border: '1px solid #E8E9EB' }}>
+                  <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '14px', color: '#1E2A3A' }}>Total</span>
+                  <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: '#D4A853' }}>
                     ${(selectedServices.reduce((s, x) => s + x.base_price, 0) + (parseFloat(wizardTip) || 0) + (parseFloat(wizardOthers) || 0)).toLocaleString('es-AR')}
                   </span>
                 </div>
                 <button
                   onClick={confirmAttention}
                   disabled={processing}
-                  style={{ width: '100%', height: '52px', background: 'var(--primary, #1E2A3A)', color: '#fff', border: 'none', borderRadius: '12px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: processing ? 'not-allowed' : 'pointer', opacity: processing ? 0.7 : 1 }}
+                  style={{ width: '100%', height: '52px', background: '#1E2A3A', color: '#fff', border: 'none', borderRadius: '12px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: processing ? 'not-allowed' : 'pointer', opacity: processing ? 0.7 : 1 }}
                 >
                   {processing ? 'Procesando...' : '✓ Confirmar y Registrar'}
                 </button>
