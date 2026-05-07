@@ -87,6 +87,7 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
                 </div>
                 {(() => {
                   const totalTip = appointment.services.reduce((sum, s) => sum + (s.tip_amount ?? 0), 0)
+                  const totalOthers = appointment.services.reduce((sum, s) => sum + (s.others_amount ?? 0), 0)
                   const earningWithoutTip = appointment.total_barber_earning - totalTip
                   const barberPct = appointment.total_price > 0 ? Math.round(earningWithoutTip / appointment.total_price * 100) : 0
                   const ownerPct = appointment.total_price > 0 ? Math.round(appointment.total_owner_earning / appointment.total_price * 100) : 0
@@ -111,6 +112,13 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
                           <div style={{ fontSize: '12px', color: '#D4A853' }}>+${totalTip.toLocaleString()} propina</div>
                           <div style={{ fontSize: '12px', color: '#6B7280' }}>100% barbero</div>
                           <div />
+                        </div>
+                      )}
+                      {totalOthers > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', paddingTop: '6px', borderTop: '0.5px solid #f0f0f0' }}>
+                          <div style={{ fontSize: '12px', color: '#6B7280' }}>${totalOthers.toLocaleString()} otros</div>
+                          <div />
+                          <div style={{ fontSize: '12px', color: '#F97316' }}>100% dueño</div>
                         </div>
                       )}
                     </div>

@@ -104,7 +104,7 @@ export function LivePanel() {
 
   // Calculate totals
   const totalDay = logs.reduce((sum, log) => sum + log.price_charged, 0)
-  const ownerEarning = logs.reduce((sum, log) => sum + log.owner_earning, 0)
+  const ownerEarning = logs.reduce((sum, log) => sum + log.owner_earning + (log.others_amount ?? 0), 0)
   const totalServices = logs.length
   const efectivoTotal = logs
     .filter(log => (log.payment_method || 'efectivo') === 'efectivo')
