@@ -85,22 +85,37 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
                     <div style={{ fontSize: '11px', color: '#aaa' }}>{appointment.services.length} servicio{appointment.services.length !== 1 ? 's' : ''}</div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', padding: '8px', background: '#fff', borderRadius: '6px', border: '0.5px solid #eeeeee' }}>
-                  <div>
-                    <div style={{ fontSize: '11px', color: '#aaa' }}>Barbero</div>
-                    <div style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a2e' }}>${appointment.total_barber_earning.toLocaleString()}</div>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '11px', color: '#aaa' }}>Split</div>
-                    <div style={{ fontSize: '13px', fontWeight: 500, color: '#3D3A8C' }}>
-                      {appointment.total_price > 0 ? Math.round((appointment.total_barber_earning / appointment.total_price) * 100) : 0}% / {appointment.total_price > 0 ? Math.round((appointment.total_owner_earning / appointment.total_price) * 100) : 0}%
+                {(() => {
+                  const totalTip = appointment.services.reduce((sum, s) => sum + (s.tip_amount ?? 0), 0)
+                  const earningWithoutTip = appointment.total_barber_earning - totalTip
+                  const barberPct = appointment.total_price > 0 ? Math.round(earningWithoutTip / appointment.total_price * 100) : 0
+                  const ownerPct = appointment.total_price > 0 ? Math.round(appointment.total_owner_earning / appointment.total_price * 100) : 0
+                  return (
+                    <div style={{ marginTop: '10px', padding: '8px', background: '#fff', borderRadius: '6px', border: '0.5px solid #eeeeee' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ fontSize: '11px', color: '#aaa' }}>Barbero</div>
+                          <div style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a2e' }}>${earningWithoutTip.toLocaleString()}</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '11px', color: '#aaa' }}>Split</div>
+                          <div style={{ fontSize: '13px', fontWeight: 500, color: '#3D3A8C' }}>{barberPct}% / {ownerPct}%</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '11px', color: '#aaa' }}>Owner</div>
+                          <div style={{ fontSize: '13px', fontWeight: 500, color: '#FF8C42' }}>${appointment.total_owner_earning.toLocaleString()}</div>
+                        </div>
+                      </div>
+                      {totalTip > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', paddingTop: '6px', borderTop: '0.5px solid #f0f0f0' }}>
+                          <div style={{ fontSize: '12px', color: '#D4A853' }}>+${totalTip.toLocaleString()} propina</div>
+                          <div style={{ fontSize: '12px', color: '#6B7280' }}>100% barbero</div>
+                          <div />
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '11px', color: '#aaa' }}>Owner</div>
-                    <div style={{ fontSize: '13px', fontWeight: 500, color: '#FF8C42' }}>${appointment.total_owner_earning.toLocaleString()}</div>
-                  </div>
-                </div>
+                  )
+                })()}
                 <div style={{ marginTop: '8px' }}>
                   <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '4px' }}>Servicios:</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
