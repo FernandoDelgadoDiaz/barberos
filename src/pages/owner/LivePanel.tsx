@@ -71,6 +71,7 @@ export function LivePanel() {
   const [logs, setLogs] = useState<ServiceLogWithDetails[]>([])
   const [barbers, setBarbers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
+  const [referenceDate, setReferenceDate] = useState<'today' | 'yesterday'>('today')
   const [highlightBarberId, setHighlightBarberId] = useState<string | null>(null)
   const [currentDate, setCurrentDate] = useState<string>('')
   const [showPaymentBreakdown, setShowPaymentBreakdown] = useState(false)
@@ -167,12 +168,14 @@ export function LivePanel() {
     }
 
     try {
-      // Load today's service logs with barber names
-      const todayArgentina = getArgentinaDateString()
+      // Load service logs for target date
+      const targetDateObj = new Date()
+      if (referenceDate === 'yesterday') targetDateObj.setDate(targetDateObj.getDate() - 1)
+      const targetArgentina = getArgentinaDateString(targetDateObj)
       if (isMounted.current) {
-        setCurrentDate(todayArgentina)
+        setCurrentDate(targetArgentina)
       }
-      const { startUTC, endUTC } = getArgentinaDayRangeUTC()
+      const { startUTC, endUTC } = getArgentinaDayRangeUTC(targetDateObj)
       const { data: logsData, error: logsError } = await supabase
         .from('service_logs')
         .select(`
@@ -215,7 +218,7 @@ export function LivePanel() {
         .from('daily_expenses')
         .select('*')
         .eq('tenant_id', tenantId)
-        .eq('expense_date', todayArgentina)
+        .eq('expense_date', targetArgentina)
         .order('created_at', { ascending: true })
       if (isMounted.current) {
         setExpenses(expensesData || [])
@@ -227,7 +230,7 @@ export function LivePanel() {
         setLoading(false)
       }
     }
-  }, [tenantId])
+  }, [tenantId, referenceDate])
 
   const handleAddExpense = async () => {
     if (!tenantId || !profile) return
@@ -369,6 +372,19 @@ export function LivePanel() {
 
   const { progress: dayProgress, statusText } = getBusinessHoursProgress()
 
+  const argHour = new Date().toLocaleString('en-US', {
+    hour: 'numeric',
+    hour12: false,
+    timeZone: 'America/Argentina/Buenos_Aires'
+  })
+  const showYesterdayToggle = parseInt(argHour) >= 23 || parseInt(argHour) < 6
+
+  const yesterdayLabel = new Date(new Date().setDate(new Date().getDate() - 1))
+    .toLocaleDateString('es-AR', {
+      weekday: 'long', day: 'numeric', month: 'long',
+      timeZone: 'America/Argentina/Buenos_Aires'
+    })
+
   if (loading) {
     return (
       <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '24px', color: '#1a1a2e', textAlign: 'center' }}>
@@ -387,9 +403,31 @@ export function LivePanel() {
           <p style={{ color: '#888', fontSize: '13px', margin: '2px 0 0 0' }}>{tenant?.name || 'Tu barbería'} • Monitoreo en tiempo real</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {showYesterdayToggle && (
+            <div style={{ display: 'flex', borderRadius: '20px', overflow: 'hidden', border: '1px solid #E8E9EB' }}>
+              <button
+                onClick={() => setReferenceDate('today')}
+                style={{ background: referenceDate === 'today' ? '#1E2A3A' : '#fff', color: referenceDate === 'today' ? '#fff' : '#6B7280', border: 'none', padding: '4px 12px', fontSize: '12px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, cursor: 'pointer' }}
+              >
+                Hoy
+              </button>
+              <button
+                onClick={() => setReferenceDate('yesterday')}
+                style={{ background: referenceDate === 'yesterday' ? '#1E2A3A' : '#fff', color: referenceDate === 'yesterday' ? '#fff' : '#6B7280', border: 'none', padding: '4px 12px', fontSize: '12px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, cursor: 'pointer' }}
+              >
+                Ayer
+              </button>
+            </div>
+          )}
           <span style={{ background: '#FF8C42', color: '#fff', fontSize: '11px', padding: '4px 10px', borderRadius: '20px', fontWeight: 500 }}>● EN VIVO</span>
         </div>
       </div>
+
+      {referenceDate === 'yesterday' && (
+        <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '8px', padding: '8px 14px', marginBottom: '8px', fontSize: '13px', color: '#92400E', fontFamily: 'Space Grotesk, sans-serif' }}>
+          Mostrando datos del {yesterdayLabel}
+        </div>
+      )}
 
       {/* Stats row */}
       <div style={{ display: 'grid', gridTemplateColumns: isSmallMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px', marginTop: '20px' }}>
