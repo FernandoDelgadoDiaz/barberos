@@ -138,28 +138,28 @@ export function Summary() {
 
         if (isMounted) setShifts(shiftsData)
 
-        // Load monthly accumulated stats (Argentina timezone)
+        // Load monthly accumulated stats (Argentina timezone UTC-3)
         try {
-          const argNow = new Date()
-          const argToday = argNow.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
-          const [year, month] = argToday.split('-').map(Number)
-          const monthStart = new Date(Date.UTC(year, month - 1, 1, 3, 0, 0)).toISOString()
-          const monthEnd = new Date(Date.UTC(year, month, 1, 2, 59, 59, 999)).toISOString()
-          console.log('[Summary] month range (UTC):', monthStart, '→', monthEnd)
+          const now = new Date()
+          const argOffset = -3 * 60 // UTC-3 en minutos
+          const argNow = new Date(now.getTime() + (argOffset - now.getTimezoneOffset()) * 60000)
+          const firstDayUTC = new Date(Date.UTC(argNow.getFullYear(), argNow.getMonth(), 1, 3, 0, 0))
+          const lastDayUTC = new Date(Date.UTC(argNow.getFullYear(), argNow.getMonth() + 1, 1, 2, 59, 59))
+          console.log('[Summary] month range (UTC):', firstDayUTC.toISOString(), '→', lastDayUTC.toISOString())
           const { data: monthLogs, error: monthError } = await supabase
             .from('service_logs')
             .select('barber_earning')
             .eq('tenant_id', tenant.id)
             .eq('barber_id', profile.id)
             .in('status', ['completed', 'closed'])
-            .gte('started_at', monthStart)
-            .lte('started_at', monthEnd)
+            .gte('created_at', firstDayUTC.toISOString())
+            .lte('created_at', lastDayUTC.toISOString())
           if (monthError) {
             console.warn('[Summary] monthly logs query error (non-blocking):', monthError)
           } else if (isMounted) {
             setTotalServicesMonth((monthLogs || []).length)
             setTotalEarningsMonth((monthLogs || []).reduce((sum, l) => sum + l.barber_earning, 0))
-            setMonthName(argNow.toLocaleDateString('es-AR', { month: 'long', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' }))
+            setMonthName(now.toLocaleDateString('es-AR', { month: 'long', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' }))
           }
         } catch (err) {
           console.warn('[Summary] monthly logs query exception (non-blocking):', err)
