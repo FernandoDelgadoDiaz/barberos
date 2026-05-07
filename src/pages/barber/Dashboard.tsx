@@ -723,8 +723,8 @@ export function Dashboard() {
               <div style={{ height: '100%', width: `${Math.min(wizardStep, 4) / 4 * 100}%`, background: 'var(--primary, #1E2A3A)', transition: 'width 0.3s ease' }} />
             </div>
 
-            {/* Back button (steps 2-4) */}
-            {wizardStep > 1 && wizardStep < 5 && (
+            {/* Back button (steps 2-5) */}
+            {wizardStep > 1 && (
               <button
                 onClick={() => setWizardStep(prev => (prev - 1) as 0|1|2|3|4|5)}
                 style={{ position: 'absolute', top: '16px', left: '16px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#aaa', fontSize: '13px', fontFamily: 'Space Grotesk, sans-serif', display: 'flex', alignItems: 'center', gap: '4px', padding: '4px' }}
@@ -777,7 +777,7 @@ export function Dashboard() {
             {wizardStep === 2 && (
               <>
                 <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 2 de 5 · Método de pago</div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '24px' }}>¿Cómo pagó el cliente?</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '24px', color: '#1a1a2e', marginBottom: '24px' }}>Método de pago</div>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <button
                     onClick={() => { setWizardPaymentMethod('efectivo'); setWizardStep(3) }}
@@ -799,7 +799,7 @@ export function Dashboard() {
             {wizardStep === 3 && (
               <>
                 <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 3 de 5 · Propina</div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '6px' }}>¿Hubo propina?</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '24px', color: '#1a1a2e', marginBottom: '6px' }}>Propina</div>
                 <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#888', marginBottom: '24px' }}>La propina es 100% para el barbero</div>
                 {!wizardTipEnabled ? (
                   <div style={{ display: 'flex', gap: '12px' }}>
@@ -843,7 +843,7 @@ export function Dashboard() {
             {wizardStep === 4 && (
               <>
                 <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 4 de 5 · Otros</div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '6px' }}>¿Hubo otros?</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '24px', color: '#1a1a2e', marginBottom: '6px' }}>Otros</div>
                 <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#888', marginBottom: '24px' }}>Ceras, bebidas, etc. Van 100% al dueño</div>
                 {!wizardOthersEnabled ? (
                   <div style={{ display: 'flex', gap: '12px' }}>
@@ -916,22 +916,13 @@ export function Dashboard() {
                     ${(selectedServices.reduce((s, x) => s + x.base_price, 0) + (parseFloat(wizardTip) || 0) + (parseFloat(wizardOthers) || 0)).toLocaleString('es-AR')}
                   </span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <button
-                    onClick={confirmAttention}
-                    disabled={processing}
-                    style={{ width: '100%', height: '52px', background: 'var(--primary, #1E2A3A)', color: '#fff', border: 'none', borderRadius: '12px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: processing ? 'not-allowed' : 'pointer', opacity: processing ? 0.7 : 1 }}
-                  >
-                    {processing ? 'Procesando...' : '✓ Confirmar y Registrar'}
-                  </button>
-                  <button
-                    onClick={() => setWizardStep(4)}
-                    disabled={processing}
-                    style={{ width: '100%', padding: '12px', background: 'transparent', color: '#aaa', border: 'none', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', cursor: 'pointer' }}
-                  >
-                    ← Volver
-                  </button>
-                </div>
+                <button
+                  onClick={confirmAttention}
+                  disabled={processing}
+                  style={{ width: '100%', height: '52px', background: 'var(--primary, #1E2A3A)', color: '#fff', border: 'none', borderRadius: '12px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: processing ? 'not-allowed' : 'pointer', opacity: processing ? 0.7 : 1 }}
+                >
+                  {processing ? 'Procesando...' : '✓ Confirmar y Registrar'}
+                </button>
               </>
             )}
 

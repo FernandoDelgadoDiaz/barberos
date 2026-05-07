@@ -133,6 +133,7 @@ export function Summary() {
           const [year, month] = argToday.split('-').map(Number)
           const monthStart = new Date(Date.UTC(year, month - 1, 1, 3, 0, 0)).toISOString()
           const monthEnd = new Date(Date.UTC(year, month, 1, 2, 59, 59, 999)).toISOString()
+          console.log('[Summary] month range (UTC):', monthStart, '→', monthEnd)
           const { data: monthLogs, error: monthError } = await supabase
             .from('service_logs')
             .select('barber_earning')
