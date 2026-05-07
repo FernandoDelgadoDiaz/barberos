@@ -433,6 +433,11 @@ export function Summary() {
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '16px', color: '#D4A853' }}>+${log.barber_earning.toLocaleString()}</div>
                   <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#9CA3AF', marginTop: '2px' }}>Ganancia</div>
+                  {(log.tip_amount ?? 0) > 0 && (
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '12px', color: '#D4A853', marginTop: '4px' }}>
+                      +${log.tip_amount.toLocaleString()} Propina
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
