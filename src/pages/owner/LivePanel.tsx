@@ -166,7 +166,6 @@ export function LivePanel() {
   })
 
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
-  const totalBarberEarnings = barberStats.reduce((sum, s) => sum + s.barberEarnings, 0)
   const totalBarberEarningsExTips = logs.reduce((sum, log) => sum + log.barber_earning - (log.tip_amount ?? 0), 0)
 
   // Load today's logs and active barbers
