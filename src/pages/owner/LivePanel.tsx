@@ -22,6 +22,21 @@ function getArgentinaDayRangeUTC(date = new Date()): { startUTC: string; endUTC:
   return { startUTC, endUTC }
 }
 
+function getTargetArgentinaDate(): string {
+  const now = new Date()
+  const argHour = parseInt(now.toLocaleString('en-US', {
+    hour: 'numeric', hour12: false,
+    timeZone: 'America/Argentina/Buenos_Aires'
+  }))
+  const target = new Date(now)
+  if (argHour >= 0 && argHour < 6) {
+    target.setDate(target.getDate() - 1)
+  }
+  return target.toLocaleDateString('en-CA', {
+    timeZone: 'America/Argentina/Buenos_Aires'
+  })
+}
+
 
 type ServiceLogSupabaseResponse = ServiceLog & {
   profiles: { display_name: string }
@@ -71,7 +86,6 @@ export function LivePanel() {
   const [logs, setLogs] = useState<ServiceLogWithDetails[]>([])
   const [barbers, setBarbers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
-  const [referenceDate, setReferenceDate] = useState<'today' | 'yesterday'>('today')
   const [highlightBarberId, setHighlightBarberId] = useState<string | null>(null)
   const [currentDate, setCurrentDate] = useState<string>('')
   const [showPaymentBreakdown, setShowPaymentBreakdown] = useState(false)
@@ -168,9 +182,14 @@ export function LivePanel() {
     }
 
     try {
-      // Load service logs for target date
-      const targetDateObj = new Date()
-      if (referenceDate === 'yesterday') targetDateObj.setDate(targetDateObj.getDate() - 1)
+      // Use target date: if 00:00-05:59 Argentina, use yesterday for post-midnight closing
+      const now = new Date()
+      const argHour = parseInt(now.toLocaleString('en-US', {
+        hour: 'numeric', hour12: false,
+        timeZone: 'America/Argentina/Buenos_Aires'
+      }))
+      const targetDateObj = new Date(now)
+      if (argHour >= 0 && argHour < 6) targetDateObj.setDate(targetDateObj.getDate() - 1)
       const targetArgentina = getArgentinaDateString(targetDateObj)
       if (isMounted.current) {
         setCurrentDate(targetArgentina)
@@ -230,7 +249,7 @@ export function LivePanel() {
         setLoading(false)
       }
     }
-  }, [tenantId, referenceDate])
+  }, [tenantId])
 
   const handleAddExpense = async () => {
     if (!tenantId || !profile) return
@@ -238,7 +257,7 @@ export function LivePanel() {
     if (!expenseForm.description.trim() || isNaN(amount) || amount <= 0) return
     setSavingExpense(true)
     try {
-      const argToday = getArgentinaDateString()
+      const argToday = getTargetArgentinaDate()
       const { data, error } = await supabase
         .from('daily_expenses')
         .insert({
@@ -372,18 +391,13 @@ export function LivePanel() {
 
   const { progress: dayProgress, statusText } = getBusinessHoursProgress()
 
-  const argHour = new Date().toLocaleString('en-US', {
-    hour: 'numeric',
-    hour12: false,
-    timeZone: 'America/Argentina/Buenos_Aires'
-  })
-  const showYesterdayToggle = parseInt(argHour) >= 23 || parseInt(argHour) < 6
-
-  const yesterdayLabel = new Date(new Date().setDate(new Date().getDate() - 1))
-    .toLocaleDateString('es-AR', {
-      weekday: 'long', day: 'numeric', month: 'long',
+  const isPostMidnight = (() => {
+    const h = parseInt(new Date().toLocaleString('en-US', {
+      hour: 'numeric', hour12: false,
       timeZone: 'America/Argentina/Buenos_Aires'
-    })
+    }))
+    return h >= 0 && h < 6
+  })()
 
   if (loading) {
     return (
@@ -403,31 +417,19 @@ export function LivePanel() {
           <p style={{ color: '#888', fontSize: '13px', margin: '2px 0 0 0' }}>{tenant?.name || 'Tu barbería'} • Monitoreo en tiempo real</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {showYesterdayToggle && (
-            <div style={{ display: 'flex', borderRadius: '20px', overflow: 'hidden', border: '1px solid #E8E9EB' }}>
-              <button
-                onClick={() => setReferenceDate('today')}
-                style={{ background: referenceDate === 'today' ? '#1E2A3A' : '#fff', color: referenceDate === 'today' ? '#fff' : '#6B7280', border: 'none', padding: '4px 12px', fontSize: '12px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, cursor: 'pointer' }}
-              >
-                Hoy
-              </button>
-              <button
-                onClick={() => setReferenceDate('yesterday')}
-                style={{ background: referenceDate === 'yesterday' ? '#1E2A3A' : '#fff', color: referenceDate === 'yesterday' ? '#fff' : '#6B7280', border: 'none', padding: '4px 12px', fontSize: '12px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, cursor: 'pointer' }}
-              >
-                Ayer
-              </button>
-            </div>
+          {isPostMidnight && (
+            <button
+              onClick={() => window.location.reload()}
+              style={{ background: '#1E2A3A', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, cursor: 'pointer', transition: 'background 150ms' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#2D3F52' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#1E2A3A' }}
+            >
+              Iniciar nuevo día →
+            </button>
           )}
           <span style={{ background: '#FF8C42', color: '#fff', fontSize: '11px', padding: '4px 10px', borderRadius: '20px', fontWeight: 500 }}>● EN VIVO</span>
         </div>
       </div>
-
-      {referenceDate === 'yesterday' && (
-        <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '8px', padding: '8px 14px', marginBottom: '8px', fontSize: '13px', color: '#92400E', fontFamily: 'Space Grotesk, sans-serif' }}>
-          Mostrando datos del {yesterdayLabel}
-        </div>
-      )}
 
       {/* Stats row */}
       <div style={{ display: 'grid', gridTemplateColumns: isSmallMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px', marginTop: '20px' }}>
