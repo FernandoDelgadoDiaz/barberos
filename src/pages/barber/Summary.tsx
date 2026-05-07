@@ -28,6 +28,7 @@ export function Summary() {
   const [totalServicesMonth, setTotalServicesMonth] = useState(0)
   const [totalEarningsMonth, setTotalEarningsMonth] = useState(0)
   const [monthName, setMonthName] = useState('')
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   const activeLogs = logs.filter(log => log.status === 'completed')
 
@@ -35,6 +36,17 @@ export function Summary() {
   useEffect(() => {
     let isMounted = true
     let timeoutId: ReturnType<typeof setTimeout> | null = null
+
+    if (!tenant?.id || !profile?.id) {
+      setLoading(false)
+      const retryId = setTimeout(() => {
+        if (isMounted) setRefreshTrigger(prev => prev + 1)
+      }, 500)
+      return () => {
+        isMounted = false
+        clearTimeout(retryId)
+      }
+    }
 
     const loadTodayLogs = async () => {
       if (!tenant?.id || !profile?.id) return
@@ -195,7 +207,7 @@ export function Summary() {
       isMounted = false
       if (timeoutId) clearTimeout(timeoutId)
     }
-  }, [tenant, profile])
+  }, [tenant, profile, refreshTrigger])
 
   const handleCloseDay = async () => {
     if (!profile?.id || !tenant?.id) return
