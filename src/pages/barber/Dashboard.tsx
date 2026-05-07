@@ -176,7 +176,7 @@ export function Dashboard() {
     }
 
     loadData()
-    return () => { isMounted = false }
+    return () => { isMounted = false; setLoading(false) }
   }, [tenant, profile, setActiveShiftId, refreshTrigger])
 
   const totalEarningsToday = todayLogs.reduce((sum, log) => sum + log.barber_earning, 0)
