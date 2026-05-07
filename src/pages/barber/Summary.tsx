@@ -435,7 +435,7 @@ export function Summary() {
                   <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#9CA3AF', marginTop: '2px' }}>Ganancia</div>
                   {(log.tip_amount ?? 0) > 0 && (
                     <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '12px', color: '#D4A853', marginTop: '4px' }}>
-                      +${log.tip_amount.toLocaleString()} Propina
+                      +${(log.tip_amount ?? 0).toLocaleString()} Propina
                     </div>
                   )}
                 </div>
