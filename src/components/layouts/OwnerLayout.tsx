@@ -17,6 +17,12 @@ const NavIcon = ({ label }: { label: string }) => {
       <polyline points="1,13 5,8 9,10 15,3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   )
+  if (label === 'Historial') return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="2" y="3" width="12" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M11 1.5v3M5 1.5v3M2 7h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  )
   if (label === 'Barberos') return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
       <circle cx="6" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
@@ -43,6 +49,7 @@ const NavIcon = ({ label }: { label: string }) => {
 const SHORT_LABELS: Record<string, string> = {
   'Panel en vivo': 'Live',
   'Métricas': 'Métricas',
+  'Historial': 'Historial',
   'Configuración': 'Config',
   'Barberos': 'Barberos',
   'Servicios': 'Servicios',
@@ -73,6 +80,7 @@ export function OwnerLayout() {
   const navItems = [
     { to: '/owner/live', label: 'Panel en vivo' },
     { to: '/owner/metrics', label: 'Métricas' },
+    { to: '/owner/history', label: 'Historial' },
     { to: '/owner/settings', label: 'Configuración' },
     { to: '/owner/barbers', label: 'Barberos' },
     { to: '/owner/services', label: 'Servicios' },
@@ -100,13 +108,14 @@ export function OwnerLayout() {
         </div>
 
         {/* Mobile bottom nav */}
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', background: 'var(--primary, #1E2A3A)', display: 'flex', alignItems: 'center', zIndex: 100 }}>
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', background: 'var(--primary, #1E2A3A)', display: 'flex', alignItems: 'center', zIndex: 100, overflowX: 'auto' }}>
           {navItems.map(({ to, label }) => (
             <NavLink
               key={to}
               to={to}
               style={({ isActive }) => ({
-                flex: 1,
+                flex: '1 0 auto',
+                minWidth: '60px',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',

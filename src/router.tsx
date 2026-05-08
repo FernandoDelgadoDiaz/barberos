@@ -12,6 +12,7 @@ import { Metrics } from './pages/owner/Metrics'
 import { Settings } from './pages/owner/Settings'
 import { Barbers } from './pages/owner/Barbers'
 import { Services } from './pages/owner/Services'
+import { History } from './pages/owner/History'
 import { Tenants } from './pages/superadmin/Tenants'
 
 export const router = createBrowserRouter([
@@ -64,6 +65,10 @@ export const router = createBrowserRouter([
           {
             path: 'metrics',
             element: <Metrics />
+          },
+          {
+            path: 'history',
+            element: <History />
           },
           {
             path: 'settings',
