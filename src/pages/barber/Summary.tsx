@@ -32,6 +32,19 @@ export function Summary() {
 
   const activeLogs = logs.filter(log => log.status === 'completed')
 
+  const clientGroups = (() => {
+    const groupMap = new Map<string, ServiceLog[]>()
+    activeLogs.forEach(log => {
+      const key = log.appointment_id ?? log.started_at.substring(0, 16)
+      const existing = groupMap.get(key)
+      if (existing) existing.push(log)
+      else groupMap.set(key, [log])
+    })
+    return Array.from(groupMap.values()).sort(
+      (a, b) => new Date(a[0].started_at).getTime() - new Date(b[0].started_at).getTime()
+    )
+  })()
+
   // Load today's logs
   useEffect(() => {
     let isMounted = true
@@ -394,9 +407,9 @@ export function Summary() {
       {/* Services history */}
       <div style={{ background: '#fff', border: '1px solid #E8E9EB', borderRadius: '12px', overflow: 'hidden', marginBottom: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #F3F4F6' }}>
-          <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#1E2A3A', margin: 0 }}>Historial de servicios hoy</h2>
+          <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#1E2A3A', margin: 0 }}>Historial de clientes hoy</h2>
         </div>
-        {logs.length === 0 ? (
+        {clientGroups.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '48px 24px', gap: '12px', textAlign: 'center' }}>
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#D4A853" strokeWidth="1.5" style={{ opacity: 0.6 }}>
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
@@ -408,45 +421,51 @@ export function Summary() {
           </div>
         ) : (
           <div>
-            {logs.map((log) => (
-              <div
-                key={log.id}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid #F3F4F6', transition: 'background 150ms' }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#FAFAFA' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-              >
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '14px', color: '#1E2A3A', marginBottom: '4px' }}>
-                    Servicio #{log.service_number_today}
+            {clientGroups.map((group, idx) => {
+              const firstLog = group[0]
+              const tipTotal = group.reduce((sum, l) => sum + (l.tip_amount ?? 0), 0)
+              const earningsTotal = group.reduce((sum, l) => sum + l.barber_earning, 0)
+              const paymentMethod = firstLog.payment_method
+              return (
+                <div key={firstLog.id} style={{ padding: '16px 24px', borderBottom: '1px solid #F3F4F6' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', color: '#1E2A3A' }}>
+                      Cliente #{idx + 1}
+                    </div>
+                    <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#6B7280' }}>
+                      {formatTime(firstLog.started_at)}
+                    </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#6B7280' }}>{formatTime(log.started_at)}</span>
-                    <span style={{ color: '#D1D5DB' }}>·</span>
-                    <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#6B7280' }}>${log.price_charged.toLocaleString()}</span>
-                    {log.payment_method && (
-                      <span style={{ fontSize: '11px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, padding: '2px 8px', borderRadius: '20px', background: log.payment_method === 'efectivo' ? '#F0FDF4' : '#EFF6FF', color: log.payment_method === 'efectivo' ? '#16A34A' : '#3B82F6' }}>
-                        {log.payment_method === 'efectivo' ? 'Efectivo' : 'Transferencia'}
+                  {paymentMethod && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <span style={{ fontSize: '11px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, padding: '2px 8px', borderRadius: '20px', background: paymentMethod === 'efectivo' ? '#F0FDF4' : '#EFF6FF', color: paymentMethod === 'efectivo' ? '#16A34A' : '#3B82F6' }}>
+                        {paymentMethod === 'efectivo' ? '💵 Efectivo' : '📲 Transferencia'}
                       </span>
-                    )}
+                    </div>
+                  )}
+                  <div style={{ borderTop: '1px solid #F3F4F6', marginBottom: '8px' }} />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '8px' }}>
+                    {group.map(log => (
+                      <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#374151', fontFamily: 'Space Grotesk, sans-serif' }}>
+                        <span>· Servicio</span>
+                        <span>${log.price_charged.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ borderTop: '1px solid #F3F4F6', marginBottom: '8px' }} />
+                  {tipTotal > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontFamily: 'Space Grotesk, sans-serif', marginBottom: '6px' }}>
+                      <span style={{ color: '#6B7280' }}>Propina:</span>
+                      <span style={{ color: '#D4A853', fontWeight: 600 }}>${tipTotal.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#6B7280' }}>Total ganancia:</span>
+                    <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: '#D4A853' }}>+${earningsTotal.toLocaleString()}</span>
                   </div>
                 </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  {(log.tip_amount ?? 0) > 0 ? (
-                    <>
-                      <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '14px', color: '#D4A853' }}>+${log.barber_earning.toLocaleString()} Total</div>
-                      <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#9CA3AF', marginTop: '2px' }}>
-                        ${(log.barber_earning - (log.tip_amount ?? 0)).toLocaleString()} servicio · ${(log.tip_amount ?? 0).toLocaleString()} propina
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '16px', color: '#D4A853' }}>+${log.barber_earning.toLocaleString()}</div>
-                      <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#9CA3AF', marginTop: '2px' }}>Ganancia</div>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

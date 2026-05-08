@@ -584,7 +584,7 @@ export function Dashboard() {
 
         {/* Mi ganancia — highlighted */}
         <div
-          style={{ background: '#fff', borderTop: '3px solid #D4A853', borderLeft: '1.5px solid #D4A853', borderRight: '1.5px solid #D4A853', borderBottom: '1.5px solid #D4A853', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', transition: 'box-shadow 200ms', cursor: 'default' }}
+          style={{ background: '#fff', borderTop: '3px solid #D4A853', borderLeft: '1.5px solid #D4A853', borderRight: '1.5px solid #D4A853', borderBottom: '1.5px solid #D4A853', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', transition: 'box-shadow 200ms', cursor: 'default', overflow: 'hidden' }}
           onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(212,168,83,0.15)' }}
           onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)' }}
         >
