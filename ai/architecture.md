@@ -23,3 +23,21 @@ Cliente → POST /api/log-service → Netlify Function
 ## RLS
 - Functions usan service_role key (sin RLS)
 - Cliente usa anon key (con RLS)
+
+## Cálculos financieros (validados Mayo 2026)
+
+### Campos en service_logs
+- `price_charged` — precio del servicio, SIN propina ni otros
+- `barber_earning` — comisión del barbero + `tip_amount` (propina incluida)
+- `owner_earning` — comisión del dueño + `others_amount` (otros incluidos)
+- `tip_amount` — propina, va 100% al barbero
+- `others_amount` — extras (ceras, bebidas), van 100% al dueño
+
+### Fórmulas de display
+- Ganancia dueño = `Σ owner_earning` — NO sumar `others_amount` por separado, ya está incluido
+- Liquidación dueño = `totalDay - Σ(barber_earning - tip_amount) - gastos`
+- Split % barbero = `(barber_earning - tip_amount) / price_charged * 100`
+- Split % dueño = `owner_earning / price_charged * 100`
+
+### Invariante clave
+`price_charged = (barber_earning - tip_amount) + (owner_earning - others_amount)`
