@@ -195,14 +195,17 @@ export function History() {
       let startDateAR: string
       let endDateAR: string
 
-      if (mode === 'day') {
-        const [y, m, d] = selectedDate.split('-').map(Number)
-        const refDate = new Date(Date.UTC(y, m - 1, d, 15)) // noon-ish AR
+      const effMode = mode === 'range' && rangeStart === rangeEnd ? 'day' : mode
+      const effDate = effMode === 'day' && mode === 'range' ? rangeStart : selectedDate
+
+      if (effMode === 'day') {
+        const [y, mo, d] = effDate.split('-').map(Number)
+        const refDate = new Date(Date.UTC(y, mo - 1, d, 15)) // noon-ish AR
         const range = getArgentinaDayRangeUTC(refDate)
         startUTC = range.startUTC
         endUTC = range.endUTC
-        startDateAR = selectedDate
-        endDateAR = selectedDate
+        startDateAR = effDate
+        endDateAR = effDate
       } else {
         // Validate / normalize range (start <= end)
         const s = rangeStart <= rangeEnd ? rangeStart : rangeEnd
@@ -261,6 +264,9 @@ export function History() {
   // ----------------------------------------------------------------------
   // Render
   // ----------------------------------------------------------------------
+  const effectiveMode = mode === 'range' && rangeStart === rangeEnd ? 'day' : mode
+  const effectiveDayDate = effectiveMode === 'day' && mode === 'range' ? rangeStart : selectedDate
+
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: isMobile ? '4px' : '8px' }}>
       <Header
@@ -292,9 +298,9 @@ export function History() {
         <LoadingSpinner />
       ) : logs.length === 0 && expenses.length === 0 ? (
         <EmptyState />
-      ) : mode === 'day' ? (
+      ) : effectiveMode === 'day' ? (
         <DayView
-          dateAR={selectedDate}
+          dateAR={effectiveDayDate}
           logs={logs}
           expenses={expenses}
           isMobile={isMobile}
