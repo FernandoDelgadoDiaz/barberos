@@ -351,7 +351,7 @@ export function Dashboard() {
       setWizardOthers('')
       setWizardOthersEnabled(false)
 
-      setSuccessMessage(`¡Atención registrada! ${result.message || ''}`)
+      setSuccessMessage(`¡Cliente registrado! ${result.message || ''}`)
       setTimeout(() => setSuccessMessage(null), 5000)
     } catch (err: unknown) {
       console.error('Error confirming attention:', err)
@@ -374,7 +374,7 @@ export function Dashboard() {
   }
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+    <div style={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
 
       {/* Success toast */}
       {successMessage && (
@@ -395,7 +395,7 @@ export function Dashboard() {
         background: '#1E2A3A',
         backgroundImage: 'repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 10px)',
         borderRadius: '14px', padding: '28px 32px', marginBottom: '20px',
-        position: 'relative', overflow: 'hidden',
+        position: 'relative', overflow: 'hidden', width: '100%',
       }}>
         {/* Shift status badge */}
         <div style={{ position: 'absolute', top: '20px', right: '24px' }}>
@@ -440,7 +440,7 @@ export function Dashboard() {
             </svg>
             <div>
               <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '18px', color: '#1E2A3A' }}>No hay turno activo</div>
-              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', color: '#6B7280', marginTop: '4px' }}>Iniciá tu turno para comenzar a registrar atenciones</div>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', color: '#6B7280', marginTop: '4px' }}>Iniciá tu turno para comenzar a registrar clientes</div>
             </div>
             <button
               onClick={handleOpenShift}
@@ -559,7 +559,7 @@ export function Dashboard() {
       )}
 
       {/* Stat cards */}
-      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
+      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px', marginBottom: '20px' }}>
 
         {/* Servicios */}
         <div
@@ -610,7 +610,7 @@ export function Dashboard() {
         >
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div>
-              <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '11px', color: '#9CA3AF', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>Atenciones</h3>
+              <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, fontSize: '11px', color: '#9CA3AF', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>Clientes</h3>
               <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '36px', color: '#1E2A3A', marginTop: '8px', lineHeight: 1 }}>{appointmentsCount}</div>
             </div>
             <div style={{ background: '#F0FDF4', borderRadius: '10px', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -639,7 +639,7 @@ export function Dashboard() {
           onMouseDown={e => { e.currentTarget.style.transform = 'translateY(0)' }}
         >
           <span style={{ color: '#D4A853', fontSize: '22px', fontWeight: 700, lineHeight: 1 }}>+</span>
-          Registrar atención
+          Registrar cliente
         </button>
       ) : (
         <div>
@@ -648,7 +648,7 @@ export function Dashboard() {
             style={{ width: '100%', height: '56px', background: '#F3F4F6', color: '#9CA3AF', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', border: 'none', borderRadius: '10px', cursor: 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
           >
             <span style={{ fontSize: '22px', fontWeight: 700, lineHeight: 1 }}>+</span>
-            Registrar atención
+            Registrar cliente
           </button>
           <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: '12px', fontFamily: 'Space Grotesk, sans-serif', marginTop: '8px' }}>
             Inicia un turno para registrar
@@ -799,7 +799,7 @@ export function Dashboard() {
             {/* ── Step 5: Summary & confirm ── */}
             {wizardStep === 5 && (
               <>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1E2A3A', marginBottom: '20px', marginTop: '8px' }}>Confirmar atención</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1E2A3A', marginBottom: '20px', marginTop: '8px' }}>Confirmar cliente</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
                   {selectedServices.map(s => (
                     <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif' }}>

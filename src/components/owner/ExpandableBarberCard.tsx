@@ -30,7 +30,7 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
               {stats.isActive && <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#2ecc71', display: 'inline-block', flexShrink: 0 }} />}
             </div>
             <div style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>
-              {stats.servicesCount} servicio{stats.servicesCount !== 1 ? 's' : ''} · ${stats.totalGenerated.toLocaleString()}
+              {stats.appointments.length} cliente{stats.appointments.length !== 1 ? 's' : ''} · ${stats.totalGenerated.toLocaleString()}
             </div>
           </div>
         </div>
@@ -43,7 +43,7 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
             <div style={{ width: '1px', height: '20px', background: '#e0e0e0' }} />
             <div>
               <div style={{ fontSize: '16px', fontWeight: 700, color: '#FF8C42' }}>${stats.ownerCommission.toLocaleString()}</div>
-              <div style={{ fontSize: '10px', color: '#aaa', letterSpacing: '0.5px' }}>OWNER</div>
+              <div style={{ fontSize: '10px', color: '#aaa', letterSpacing: '0.5px' }}>DUEÑO</div>
             </div>
           </div>
           <div style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s ease' }}>
@@ -56,14 +56,14 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
 
       {isExpanded && stats.appointments.length > 0 && (
         <div style={{ borderTop: '0.5px solid #f0f0f0', padding: '16px' }}>
-          <div style={{ fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>Detalle de atenciones</div>
+          <div style={{ fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>Detalle de clientes</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {stats.appointments.map((appointment) => (
               <div key={appointment.appointment_id} style={{ background: '#f8f8f8', borderRadius: '8px', padding: '12px', border: '0.5px solid #eeeeee' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <div style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a2e' }}>
-                      Atención #{appointment.services[0]?.service_number_today || '?'}
+                      Cliente #{appointment.services[0]?.service_number_today || '?'}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
                       <span style={{ fontSize: '11px', color: '#aaa' }}>
