@@ -124,7 +124,7 @@ type ServiceLogWithBarber = ServiceLog & {
   barber_name: string
 }
 
-type ShortcutKey = 'today' | 'week' | 'fortnight' | 'month' | 'custom'
+type ShortcutKey = 'week' | 'fortnight' | 'month' | 'custom'
 
 // =============================================================================
 // Component
@@ -135,11 +135,11 @@ export function History() {
 
   const todayAR = useMemo(() => getArgentinaDateString(new Date()), [])
 
-  const [mode, setMode] = useState<'day' | 'range'>('day')
-  const [activeShortcut, setActiveShortcut] = useState<ShortcutKey>('today')
+  const [mode, setMode] = useState<'day' | 'range'>('range')
+  const [activeShortcut, setActiveShortcut] = useState<ShortcutKey>('week')
   const [selectedDate, setSelectedDate] = useState<string>(todayAR)
-  const [rangeStart, setRangeStart] = useState<string>(todayAR)
-  const [rangeEnd, setRangeEnd] = useState<string>(todayAR)
+  const [rangeStart, setRangeStart] = useState<string>(() => getMondayOfWeek(getArgentinaDateString(new Date())))
+  const [rangeEnd, setRangeEnd] = useState<string>(() => getArgentinaDateString(new Date()))
 
   const [logs, setLogs] = useState<ServiceLogWithBarber[]>([])
   const [expenses, setExpenses] = useState<DailyExpense[]>([])
@@ -160,10 +160,7 @@ export function History() {
   const applyShortcut = (key: ShortcutKey) => {
     setActiveShortcut(key)
     const today = getArgentinaDateString(new Date())
-    if (key === 'today') {
-      setMode('day')
-      setSelectedDate(today)
-    } else if (key === 'week') {
+    if (key === 'week') {
       setMode('range')
       setRangeStart(getMondayOfWeek(today))
       setRangeEnd(today)
@@ -347,7 +344,6 @@ function Header({
   onRangeEnd,
 }: HeaderProps) {
   const shortcuts: { key: ShortcutKey; label: string }[] = [
-    { key: 'today', label: 'Hoy' },
     { key: 'week', label: 'Esta semana' },
     { key: 'fortnight', label: 'Últimas 2 semanas' },
     { key: 'month', label: 'Este mes' },
