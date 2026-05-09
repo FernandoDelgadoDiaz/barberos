@@ -13,6 +13,7 @@ interface RequestBody {
   owner_password: string
   primary_color?: string
   secondary_color?: string
+  contact_phone?: string
 }
 
 interface TenantInsert {
@@ -30,6 +31,7 @@ interface TenantInsert {
     resets_daily: boolean
   }
   is_active: boolean
+  contact_phone?: string | null
 }
 
 interface NetlifyFunctionEvent {
@@ -91,6 +93,15 @@ export const handler = async (event: NetlifyFunctionEvent) => {
         statusCode: 400,
         headers,
         body: JSON.stringify({ error: 'Missing required fields' }),
+      }
+    }
+
+    // Validate contact_phone (required, min 8 chars)
+    if (!body.contact_phone || body.contact_phone.trim().length < 8) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'contact_phone is required and must be at least 8 characters' }),
       }
     }
 
@@ -159,7 +170,8 @@ export const handler = async (event: NetlifyFunctionEvent) => {
         primary_color: body.primary_color || '#1a1a2e',
         secondary_color: body.secondary_color || '#C8A97E',
         commission_rules: defaultCommissionRules,
-        is_active: true
+        is_active: true,
+        contact_phone: body.contact_phone || null
       }
 
       const { data: newTenant, error: tenantError } = await supabase

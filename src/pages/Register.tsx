@@ -18,6 +18,7 @@ export function Register() {
 
   // Step 2: Owner
   const [ownerName, setOwnerName] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
   const [ownerEmail, setOwnerEmail] = useState('')
   const [ownerPassword, setOwnerPassword] = useState('')
   const [ownerPasswordConfirm, setOwnerPasswordConfirm] = useState('')
@@ -54,6 +55,10 @@ export function Register() {
   const validateStep2 = (): boolean => {
     if (!ownerName.trim()) {
       setError('Ingresá tu nombre completo')
+      return false
+    }
+    if (!contactPhone.trim() || contactPhone.trim().length < 8) {
+      setError('Ingresá tu teléfono de contacto (mínimo 8 caracteres)')
       return false
     }
     if (!ownerEmail.trim()) {
@@ -116,6 +121,7 @@ export function Register() {
           owner_password: ownerPassword,
           primary_color: primaryColor,
           secondary_color: secondaryColor,
+          contact_phone: contactPhone,
         }),
       })
 
@@ -332,6 +338,24 @@ export function Register() {
                     onChange={(e) => setOwnerName(e.target.value)}
                     style={{ width: '100%', padding: '14px 16px', background: '#f8f8f8', border: '0.5px solid #e0e0e0', borderRadius: '8px', color: '#1a1a2e', fontSize: '16px', outline: 'none', transition: 'all 0.2s', height: '48px' }}
                     placeholder="Ej: Juan Pérez"
+                    required
+                    disabled={isLoading}
+                    onFocus={(e) => e.target.style.borderColor = '#1E2A3A'}
+                    onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="contactPhone" style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#aaa', marginBottom: '12px' }}>
+                    Teléfono de contacto *
+                  </label>
+                  <input
+                    id="contactPhone"
+                    type="tel"
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value)}
+                    style={{ width: '100%', padding: '14px 16px', background: '#f8f8f8', border: '0.5px solid #e0e0e0', borderRadius: '8px', color: '#1a1a2e', fontSize: '16px', outline: 'none', transition: 'all 0.2s', height: '48px' }}
+                    placeholder="+54 9 11 1234-5678"
                     required
                     disabled={isLoading}
                     onFocus={(e) => e.target.style.borderColor = '#1E2A3A'}

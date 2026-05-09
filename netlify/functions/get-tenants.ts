@@ -14,6 +14,10 @@ interface TenantWithStats {
   secondary_color: string
   is_active: boolean
   created_at: string
+  contact_phone?: string | null
+  trial_days?: number | null
+  trial_ends_at?: string | null
+  is_exempt_trial?: boolean
   total_barberos: number
   total_servicios: number
   total_facturado: number
@@ -91,10 +95,10 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
-    // Fetch all tenants
+    // Fetch all tenants (includes contact_phone, trial_days, trial_ends_at, is_exempt_trial via *)
     const { data: tenants, error: tenantsError } = await supabase
       .from('tenants')
-      .select('*')
+      .select('*, contact_phone, trial_days, trial_ends_at, is_exempt_trial')
       .order('created_at', { ascending: false })
 
     if (tenantsError) {

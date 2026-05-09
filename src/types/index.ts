@@ -24,6 +24,10 @@ export type Tenant = {
   opening_time?: string
   closing_time?: string
   created_at: string
+  contact_phone?: string | null
+  trial_days?: number | null
+  trial_ends_at?: string | null
+  is_exempt_trial?: boolean
 }
 
 export type Profile = {

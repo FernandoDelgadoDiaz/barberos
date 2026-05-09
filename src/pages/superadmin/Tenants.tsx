@@ -112,6 +112,40 @@ type TenantDetails = Tenant & {
   }
 }
 
+type TrialBadge = {
+  label: string
+  color: string
+  bg: string
+  border: string
+  days?: number
+}
+
+const getTrialBadge = (tenant: TenantWithStats): TrialBadge | null => {
+  if (tenant.is_exempt_trial) {
+    return { label: 'Exento', color: '#aaa', bg: 'rgba(170,170,170,0.15)', border: 'rgba(170,170,170,0.3)' }
+  }
+  if (!tenant.trial_ends_at) return null
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const trialEnd = new Date(tenant.trial_ends_at)
+  trialEnd.setHours(0, 0, 0, 0)
+  const diffMs = trialEnd.getTime() - today.getTime()
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+  if (diffDays > 5) {
+    return { label: 'Activo', color: 'rgba(34,197,94,0.9)', bg: 'rgba(34,197,94,0.15)', border: 'rgba(34,197,94,0.3)', days: diffDays }
+  }
+  if (diffDays >= 1) {
+    return { label: 'Por vencer', color: 'rgba(234,179,8,0.9)', bg: 'rgba(234,179,8,0.15)', border: 'rgba(234,179,8,0.3)', days: diffDays }
+  }
+  return { label: 'Vencido', color: 'rgba(239,68,68,0.9)', bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)', days: diffDays }
+}
+
+const formatDate = (dateStr: string | null | undefined): string => {
+  if (!dateStr) return '—'
+  const d = new Date(dateStr)
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
+}
+
 export function Tenants() {
   const [tenants, setTenants] = useState<TenantWithStats[]>([])
   const [loading, setLoading] = useState(true)
@@ -520,6 +554,68 @@ export function Tenants() {
           ),
         },
         {
+          key: 'contact_phone',
+          label: 'Teléfono',
+          width: '1fr',
+          render: (value) => (
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
+              {value || '—'}
+            </div>
+          ),
+        },
+        {
+          key: 'created_at',
+          label: 'Registro',
+          width: '0.9fr',
+          render: (value) => (
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
+              {formatDate(value)}
+            </div>
+          ),
+        },
+        {
+          key: 'trial_ends_at',
+          label: 'Trial hasta',
+          width: '0.9fr',
+          render: (value) => (
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
+              {formatDate(value)}
+            </div>
+          ),
+        },
+        {
+          key: 'is_exempt_trial',
+          label: 'Días / Estado',
+          width: '1fr',
+          align: 'center',
+          render: (_, row) => {
+            const badge = getTrialBadge(row)
+            if (!badge) {
+              return (
+                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', textAlign: 'center' }}>—</div>
+              )
+            }
+            return (
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <span
+                  style={{
+                    padding: '4px 10px',
+                    background: badge.bg,
+                    color: badge.color,
+                    border: `1px solid ${badge.border}`,
+                    borderRadius: '9999px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {typeof badge.days === 'number' ? `${badge.days}d • ${badge.label}` : badge.label}
+                </span>
+              </div>
+            )
+          },
+        },
+        {
           key: 'is_active',
           label: 'Estado',
           width: '0.8fr',
@@ -550,16 +646,6 @@ export function Tenants() {
             >
               {value ? 'Activo' : 'Inactivo'}
             </button>
-          ),
-        },
-        {
-          key: 'created_at',
-          label: 'Creado',
-          width: '0.9fr',
-          render: (value) => (
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
-              {new Date(value).toLocaleDateString('es-AR')}
-            </div>
           ),
         },
         {
