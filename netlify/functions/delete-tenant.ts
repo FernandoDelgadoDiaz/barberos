@@ -87,15 +87,14 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
-    if (!body.tenant_id) {
+    const tenantId = body.tenant_id
+    if (!tenantId || typeof tenantId !== 'string' || tenantId.trim() === '') {
       return {
         statusCode: 400,
         headers,
         body: JSON.stringify({ error: 'Missing required field: tenant_id' }),
       }
     }
-
-    const tenantId = body.tenant_id
 
     // 1. Verificar que el tenant existe y está inactivo
     const { data: tenant, error: tenantError } = await supabase
@@ -149,7 +148,32 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
-    // 3. Eliminar tenant (ON DELETE CASCADE eliminará registros relacionados)
+    // 3. Eliminar en orden respetando foreign keys
+    const deletionSteps: Array<{ table: string; label: string }> = [
+      { table: 'service_logs',     label: 'service_logs' },
+      { table: 'appointments',     label: 'appointments' },
+      { table: 'daily_expenses',   label: 'daily_expenses' },
+      { table: 'daily_summaries',  label: 'daily_summaries' },
+      { table: 'shifts',           label: 'shifts' },
+      { table: 'services_catalog', label: 'services_catalog' },
+      { table: 'profiles',         label: 'profiles' },
+    ]
+
+    for (const step of deletionSteps) {
+      const { error: stepError } = await supabase
+        .from(step.table)
+        .delete()
+        .eq('tenant_id', tenantId)
+      if (stepError) {
+        console.error(`Delete ${step.label} error:`, stepError)
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: `Failed to delete ${step.label}` }),
+        }
+      }
+    }
+
     const { error: deleteError } = await supabase
       .from('tenants')
       .delete()
