@@ -124,7 +124,7 @@ type ServiceLogWithBarber = ServiceLog & {
   barber_name: string
 }
 
-type ShortcutKey = 'week' | 'fortnight' | 'month' | 'custom'
+type ShortcutKey = 'week' | 'month' | 'custom'
 
 // =============================================================================
 // Component
@@ -163,10 +163,6 @@ export function History() {
     if (key === 'week') {
       setMode('range')
       setRangeStart(getMondayOfWeek(today))
-      setRangeEnd(today)
-    } else if (key === 'fortnight') {
-      setMode('range')
-      setRangeStart(addDaysISO(today, -13))
       setRangeEnd(today)
     } else if (key === 'month') {
       setMode('range')
@@ -345,7 +341,6 @@ function Header({
 }: HeaderProps) {
   const shortcuts: { key: ShortcutKey; label: string }[] = [
     { key: 'week', label: 'Esta semana' },
-    { key: 'fortnight', label: 'Últimas 2 semanas' },
     { key: 'month', label: 'Este mes' },
     { key: 'custom', label: 'Personalizado' },
   ]
