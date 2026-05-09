@@ -70,7 +70,7 @@ export function TrialExpiredGuard({ children }: Props) {
         </p>
 
         <a
-          href="https://wa.me/549296600000"
+          href="https://wa.me/542966785213"
           target="_blank"
           rel="noopener noreferrer"
           style={{
@@ -96,7 +96,7 @@ export function TrialExpiredGuard({ children }: Props) {
         </a>
 
         <p style={{ marginTop: '24px', fontSize: '14px', color: '#aaa' }}>
-          +54 9 2966 XXXXXX
+          +54 2966 785213
         </p>
       </div>
     </div>
