@@ -575,7 +575,8 @@ function DayView({ dateAR, logs, expenses, isMobile }: DayViewProps) {
     (s, l) => s + (l.barber_earning || 0) - (l.tip_amount || 0),
     0
   )
-  const ownerEarning = totalDay - totalBarberEarningsExTips - totalExpenses
+  const totalOthers = logs.reduce((s, l) => s + (l.others_amount || 0), 0)
+  const ownerEarning = totalDay - totalBarberEarningsExTips + totalOthers - totalExpenses
 
   // Unique appointments count
   const uniqueAppointments = new Set(
@@ -747,7 +748,7 @@ function DayView({ dateAR, logs, expenses, isMobile }: DayViewProps) {
                 Ganancia real del dueño
               </span>
               <span style={{ fontSize: '18px', fontWeight: 700, color: '#D4A853' }}>
-                {fmtMoney(totalDay - totalBarberEarningsExTips - totalExpenses)}
+                {fmtMoney(totalDay - totalBarberEarningsExTips + totalOthers - totalExpenses)}
               </span>
             </div>
           </div>
