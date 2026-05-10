@@ -578,6 +578,14 @@ function DayView({ dateAR, logs, expenses, isMobile }: DayViewProps) {
   const totalOthers = logs.reduce((s, l) => s + (l.others_amount || 0), 0)
   const ownerEarning = totalDay - totalBarberEarningsExTips + totalOthers - totalExpenses
 
+  // Payment method breakdown
+  const efectivo = logs
+    .filter((l) => (l.payment_method || 'efectivo') === 'efectivo')
+    .reduce((s, l) => s + (l.price_charged || 0), 0)
+  const transferencia = logs
+    .filter((l) => l.payment_method === 'transferencia')
+    .reduce((s, l) => s + (l.price_charged || 0), 0)
+
   // Unique appointments count
   const uniqueAppointments = new Set(
     logs.map((l) => l.appointment_id || `${l.barber_id}-${l.started_at}`)
@@ -750,6 +758,29 @@ function DayView({ dateAR, logs, expenses, isMobile }: DayViewProps) {
               <span style={{ fontSize: '18px', fontWeight: 700, color: '#D4A853' }}>
                 {fmtMoney(ownerEarning)}
               </span>
+            </div>
+            <div
+              style={{
+                borderTop: '1px solid rgba(255,255,255,0.1)',
+                marginTop: '12px',
+                paddingTop: '12px',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '11px',
+                  color: 'rgba(255,255,255,0.5)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  marginBottom: '8px',
+                }}
+              >
+                Métodos de pago
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <RowDark label="Efectivo" value={fmtMoney(efectivo)} />
+                <RowDark label="Transferencia" value={fmtMoney(transferencia)} />
+              </div>
             </div>
           </div>
         </div>
@@ -1002,7 +1033,7 @@ function BarberDayCard({ group }: { group: BarberGroupView }) {
                   )}
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '13px', color: '#6B7280' }}>Dueño</span>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#D4A853' }}>{fmtMoney(ownerE)}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#D4A853' }}>{fmtMoney(ownerE - othersTotal)}</span>
                   </div>
                   {othersTotal > 0 && (
                     <div style={{ fontSize: '12px', color: '#F97316', textAlign: 'right' }}>
