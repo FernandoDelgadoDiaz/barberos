@@ -748,7 +748,7 @@ function DayView({ dateAR, logs, expenses, isMobile }: DayViewProps) {
                 Ganancia real del dueño
               </span>
               <span style={{ fontSize: '18px', fontWeight: 700, color: '#D4A853' }}>
-                {fmtMoney(totalDay - totalBarberEarningsExTips + totalOthers - totalExpenses)}
+                {fmtMoney(ownerEarning)}
               </span>
             </div>
           </div>
