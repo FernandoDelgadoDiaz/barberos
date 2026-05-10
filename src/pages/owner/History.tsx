@@ -570,12 +570,12 @@ type DayViewProps = {
 function DayView({ dateAR, logs, expenses, isMobile }: DayViewProps) {
   // Aggregate totals
   const totalDay = logs.reduce((s, l) => s + (l.price_charged || 0), 0)
-  const ownerEarning = logs.reduce((s, l) => s + (l.owner_earning || 0), 0)
   const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0)
   const totalBarberEarningsExTips = logs.reduce(
     (s, l) => s + (l.barber_earning || 0) - (l.tip_amount || 0),
     0
   )
+  const ownerEarning = totalDay - totalBarberEarningsExTips - totalExpenses
 
   // Unique appointments count
   const uniqueAppointments = new Set(
