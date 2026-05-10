@@ -992,7 +992,7 @@ function BarberDayCard({ group }: { group: BarberGroupView }) {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '13px', color: '#6B7280' }}>Barbero</span>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#1E2A3A' }}>{fmtMoney(barberE)}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#1E2A3A' }}>{fmtMoney(barberE - tipTotal)}</span>
                   </div>
                   {tipTotal > 0 && (
                     <div style={{ fontSize: '12px', color: '#D4A853', textAlign: 'right' }}>
