@@ -941,64 +941,73 @@ function BarberDayCard({ group }: { group: BarberGroupView }) {
             const total = a.logs.reduce((s, l) => s + (l.price_charged || 0), 0)
             const barberE = a.logs.reduce((s, l) => s + (l.barber_earning || 0), 0)
             const ownerE = a.logs.reduce((s, l) => s + (l.owner_earning || 0), 0)
+            const tipTotal = a.logs.reduce((s, l) => s + (l.tip_amount || 0), 0)
+            const othersTotal = a.logs.reduce((s, l) => s + (l.others_amount || 0), 0)
             const time = formatTimeAR(a.logs[0].started_at)
             const payment = a.logs[0].payment_method || 'efectivo'
+            const paymentLabel = payment === 'transferencia' ? 'Transferencia' : 'Efectivo'
             return (
               <div
                 key={a.key}
                 style={{
-                  background: '#FAFAFA',
-                  borderRadius: '8px',
-                  padding: '12px 14px',
-                  border: '1px solid #F3F4F6',
+                  background: '#fff',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  border: '1px solid #E8E9EB',
+                  marginBottom: '8px',
                 }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#FAFAFA')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'baseline',
-                    marginBottom: '6px',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      color: '#1E2A3A',
-                      fontFamily: 'Space Grotesk, sans-serif',
-                    }}
-                  >
+                {/* Header: Cliente #N — hora */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '15px', color: '#1E2A3A' }}>
                     Cliente #{idx + 1}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#6B7280' }}>
-                    {time} · {payment === 'transferencia' ? 'Transferencia' : 'Efectivo'}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    fontSize: '12px',
-                    color: '#6B7280',
-                    marginBottom: '6px',
-                  }}
-                >
-                  {a.logs.length} {a.logs.length === 1 ? 'servicio' : 'servicios'}
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    fontSize: '12px',
-                    color: '#374151',
-                  }}
-                >
-                  <span>Total: {fmtMoney(total)}</span>
-                  <span>
-                    Barbero: {fmtMoney(barberE)} · Dueño:{' '}
-                    <span style={{ color: '#D4A853', fontWeight: 600 }}>
-                      {fmtMoney(ownerE)}
-                    </span>
                   </span>
+                  <span style={{ fontSize: '13px', color: '#6B7280' }}>{time}</span>
+                </div>
+                {/* Subheader: método badge + servicios */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: '20px',
+                    background: payment === 'transferencia' ? '#DBEAFE' : '#D1FAE5',
+                    color: payment === 'transferencia' ? '#1D4ED8' : '#065F46',
+                  }}>
+                    {paymentLabel}
+                  </span>
+                  <span style={{ fontSize: '12px', color: '#9CA3AF' }}>
+                    {a.logs.length} {a.logs.length === 1 ? 'servicio' : 'servicios'}
+                  </span>
+                </div>
+                {/* Separator */}
+                <div style={{ borderTop: '1px solid #F3F4F6', margin: '8px 0' }} />
+                {/* Data rows */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '13px', color: '#6B7280' }}>Total cobrado</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#1E2A3A' }}>{fmtMoney(total)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '13px', color: '#6B7280' }}>Barbero</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#1E2A3A' }}>{fmtMoney(barberE)}</span>
+                  </div>
+                  {tipTotal > 0 && (
+                    <div style={{ fontSize: '12px', color: '#D4A853', textAlign: 'right' }}>
+                      +{fmtMoney(tipTotal)} propina · 100% barbero
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '13px', color: '#6B7280' }}>Dueño</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#D4A853' }}>{fmtMoney(ownerE)}</span>
+                  </div>
+                  {othersTotal > 0 && (
+                    <div style={{ fontSize: '12px', color: '#F97316', textAlign: 'right' }}>
+                      +{fmtMoney(othersTotal)} otros · 100% dueño
+                    </div>
+                  )}
                 </div>
               </div>
             )
