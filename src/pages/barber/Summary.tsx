@@ -75,7 +75,13 @@ export function Summary() {
       }, 10000)
 
       try {
-        const today = new Date().toISOString().split('T')[0]
+        // Argentina timezone (UTC-3): the day starts at 03:00 UTC and ends at 02:59:59 UTC next day.
+        const now = new Date()
+        const argOffset = -3 * 60
+        const argNow = new Date(now.getTime() + (argOffset - now.getTimezoneOffset()) * 60000)
+        const startUTC = new Date(Date.UTC(argNow.getFullYear(), argNow.getMonth(), argNow.getDate(), 3, 0, 0))
+        const endUTC = new Date(Date.UTC(argNow.getFullYear(), argNow.getMonth(), argNow.getDate() + 1, 2, 59, 59))
+        const today = `${argNow.getFullYear()}-${String(argNow.getMonth() + 1).padStart(2, '0')}-${String(argNow.getDate()).padStart(2, '0')}`
 
         // Check if day already closed (optional query, continue even if fails)
         let dailySummary = null
@@ -112,8 +118,8 @@ export function Summary() {
             .select('*')
             .eq('tenant_id', tenant.id)
             .eq('barber_id', profile.id)
-            .gte('started_at', `${today}T00:00:00`)
-            .lte('started_at', `${today}T23:59:59`)
+            .gte('created_at', startUTC.toISOString())
+            .lte('created_at', endUTC.toISOString())
             .order('started_at', { ascending: false })
 
           if (logsError) {
@@ -136,8 +142,8 @@ export function Summary() {
             .eq('tenant_id', tenant.id)
             .eq('barber_id', profile.id)
             .eq('status', 'closed')
-            .gte('started_at', `${today}T00:00:00`)
-            .lte('started_at', `${today}T23:59:59`)
+            .gte('created_at', startUTC.toISOString())
+            .lte('created_at', endUTC.toISOString())
             .order('started_at', { ascending: true })
 
           if (shiftsError) {
@@ -153,9 +159,6 @@ export function Summary() {
 
         // Load monthly accumulated stats (Argentina timezone UTC-3)
         try {
-          const now = new Date()
-          const argOffset = -3 * 60 // UTC-3 en minutos
-          const argNow = new Date(now.getTime() + (argOffset - now.getTimezoneOffset()) * 60000)
           const firstDayUTC = new Date(Date.UTC(argNow.getFullYear(), argNow.getMonth(), 1, 3, 0, 0))
           const lastDayUTC = new Date(Date.UTC(argNow.getFullYear(), argNow.getMonth() + 1, 1, 2, 59, 59))
           console.log('[Summary] month range (UTC):', firstDayUTC.toISOString(), '→', lastDayUTC.toISOString())
@@ -229,7 +232,13 @@ export function Summary() {
     setError(null)
 
     try {
-      const today = new Date().toISOString().split('T')[0]
+      // Argentina timezone (UTC-3): compute the current Argentina calendar date and UTC range.
+      const now = new Date()
+      const argOffset = -3 * 60
+      const argNow = new Date(now.getTime() + (argOffset - now.getTimezoneOffset()) * 60000)
+      const startUTC = new Date(Date.UTC(argNow.getFullYear(), argNow.getMonth(), argNow.getDate(), 3, 0, 0))
+      const endUTC = new Date(Date.UTC(argNow.getFullYear(), argNow.getMonth(), argNow.getDate() + 1, 2, 59, 59))
+      const today = `${argNow.getFullYear()}-${String(argNow.getMonth() + 1).padStart(2, '0')}-${String(argNow.getDate()).padStart(2, '0')}`
       const response = await fetch('/api/close-day', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -262,8 +271,8 @@ export function Summary() {
         .select('*')
         .eq('tenant_id', tenant.id)
         .eq('barber_id', profile.id)
-        .gte('started_at', `${today}T00:00:00`)
-        .lte('started_at', `${today}T23:59:59`)
+        .gte('created_at', startUTC.toISOString())
+        .lte('created_at', endUTC.toISOString())
         .order('started_at', { ascending: false })
 
       setLogs(data || [])
