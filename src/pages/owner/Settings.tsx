@@ -204,8 +204,8 @@ export function Settings() {
         </div>
       )}
 
-      {/* Error message */}
-      {error && (
+      {/* Error message — hidden when modal is open (error is shown inside modal instead) */}
+      {error && !showAddRule && (
         <div style={{
           background: '#fff5f5',
           border: '0.5px solid #ffcccc',
@@ -538,7 +538,25 @@ export function Settings() {
       </div>
 
       {/* Save button */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px' }}>
+        {success && (
+          <span style={{
+            fontFamily: 'Space Grotesk, sans-serif',
+            fontSize: '13px',
+            color: '#2ecc71',
+          }}>
+            ✓ {success}
+          </span>
+        )}
+        {error && !showAddRule && (
+          <span style={{
+            fontFamily: 'Space Grotesk, sans-serif',
+            fontSize: '13px',
+            color: '#cc3333',
+          }}>
+            {error}
+          </span>
+        )}
         <button
           onClick={handleSaveTenant}
           disabled={saving}
@@ -567,7 +585,7 @@ export function Settings() {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0,0,0,0.8)',
+          background: 'rgba(0,0,0,0.5)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -580,10 +598,28 @@ export function Settings() {
             padding: '32px',
             width: '100%',
             maxWidth: '480px',
+            position: 'relative',
+            zIndex: 1001,
           }}>
             <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '24px' }}>
               Agregar regla de comisión
             </h2>
+
+            {/* Error banner inside modal — visible even with backdrop active */}
+            {error && (
+              <div style={{
+                background: '#fff5f5',
+                border: '0.5px solid #ffcccc',
+                borderRadius: '8px',
+                padding: '10px 14px',
+                marginBottom: '16px',
+                color: '#cc3333',
+                fontFamily: 'Space Grotesk, sans-serif',
+                fontSize: '13px',
+              }}>
+                {error}
+              </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
