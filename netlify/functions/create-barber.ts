@@ -15,13 +15,14 @@ interface RequestBody {
 interface NetlifyFunctionEvent {
   httpMethod: string
   body: string
+  headers: Record<string, string>
 }
 
 export const handler = async (event: NetlifyFunctionEvent) => {
   // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json',
   }
@@ -45,6 +46,17 @@ export const handler = async (event: NetlifyFunctionEvent) => {
   }
 
   try {
+    // --- JWT validation ---
+    const authHeader = event.headers.authorization || event.headers.Authorization
+    if (!authHeader?.startsWith('Bearer ')) {
+      return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) }
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user) {
+      return { statusCode: 401, headers, body: JSON.stringify({ error: 'Invalid token' }) }
+    }
+
     const body: RequestBody = JSON.parse(event.body)
 
     // Validate required fields
@@ -56,19 +68,31 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
+    // Verify caller is an owner of the specified tenant
+    const { data: ownerProfile, error: ownerCheckError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('tenant_id', body.tenant_id)
+      .eq('role', 'owner')
+      .single()
+    if (ownerCheckError || !ownerProfile) {
+      return { statusCode: 403, headers, body: JSON.stringify({ error: 'Forbidden' }) }
+    }
+
     // 1. Create user in Auth
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    const { data: authData, error: createUserError } = await supabase.auth.admin.createUser({
       email: body.email,
       password: body.password,
       email_confirm: true,
     })
 
-    if (authError) {
-      console.error('Auth error:', authError)
+    if (createUserError) {
+      console.error('Auth error:', createUserError)
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Failed to create user: ' + authError.message }),
+        body: JSON.stringify({ error: 'Failed to create user: ' + createUserError.message }),
       }
     }
 

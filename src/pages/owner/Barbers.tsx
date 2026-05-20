@@ -3,6 +3,12 @@ import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 import type { Profile } from '../../types'
 
+async function getAuthHeader(): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) throw new Error('No authenticated session')
+  return `Bearer ${session.access_token}`
+}
+
 interface Barber extends Profile {
   avatar_color: string
 }
@@ -124,9 +130,10 @@ export function Barbers() {
         setBarbers(barbers.map(b => b.id === editingBarber.id ? { ...b, display_name: displayName.trim() } : b))
         setShowModal(false)
       } else {
+        const authHeader = await getAuthHeader()
         const response = await fetch('/api/create-barber', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
           body: JSON.stringify({
             display_name: displayName.trim(),
             email: email.trim(),

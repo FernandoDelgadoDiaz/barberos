@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useTenantStore } from '../../stores/tenantStore'
+import { supabase } from '../../config/supabase'
+
+async function getAuthHeader(): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) throw new Error('No authenticated session')
+  return `Bearer ${session.access_token}`
+}
 
 function useMobile() {
   const [isMobile, setIsMobile] = useState(false)
@@ -154,7 +161,10 @@ export function Metrics() {
       setLoading(true)
       setError(null)
       try {
-        const response = await fetch(`/api/get-metrics?tenant_id=${tenant.id}`)
+        const authHeader = await getAuthHeader()
+        const response = await fetch(`/api/get-metrics?tenant_id=${tenant.id}`, {
+          headers: { 'Authorization': authHeader },
+        })
         if (!response.ok) {
           throw new Error(`Error ${response.status}: ${response.statusText}`)
         }

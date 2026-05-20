@@ -3,6 +3,12 @@ import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 import type { ServiceCatalog, ServiceLog, CommissionRules, Shift } from '../../types'
 
+async function getAuthHeader(): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) throw new Error('No authenticated session')
+  return `Bearer ${session.access_token}`
+}
+
 interface ServiceWithEstimation extends ServiceCatalog {
   estimatedEarning: number
 }
@@ -186,9 +192,10 @@ export function Dashboard() {
     setShiftLoading(true)
     setError(null)
     try {
+      const authHeader = await getAuthHeader()
       const response = await fetch('/api/open-shift', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
         body: JSON.stringify({
           barber_id: profile.id,
           tenant_id: tenant.id,
@@ -220,9 +227,10 @@ export function Dashboard() {
     setShiftLoading(true)
     setError(null)
     try {
+      const authHeader = await getAuthHeader()
       const response = await fetch('/api/close-shift', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
         body: JSON.stringify({
           shift_id: currentShift.id,
           tenant_id: tenant.id,
@@ -254,9 +262,10 @@ export function Dashboard() {
     setShiftLoading(true)
     setError(null)
     try {
+      const authHeader = await getAuthHeader()
       const response = await fetch('/api/pause-shift', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
         body: JSON.stringify({
           shift_id: currentShift.id,
           tenant_id: tenant.id,
@@ -316,9 +325,10 @@ export function Dashboard() {
         price_charged: s.base_price,
       }))
 
+      const authHeader = await getAuthHeader()
       const response = await fetch('/.netlify/functions/log-service', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
         body: JSON.stringify({
           barber_id: profile.id,
           tenant_id: tenant.id,

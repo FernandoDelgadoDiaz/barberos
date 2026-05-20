@@ -165,6 +165,7 @@ interface MetricsResponse {
 
 interface NetlifyFunctionEvent {
   httpMethod: string
+  headers: Record<string, string>
   queryStringParameters: {
     tenant_id?: string
     from?: string
@@ -190,7 +191,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
   // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Content-Type': 'application/json',
   }
@@ -214,6 +215,17 @@ export const handler = async (event: NetlifyFunctionEvent) => {
   }
 
   try {
+    // --- JWT validation ---
+    const authHeader = event.headers.authorization || event.headers.Authorization
+    if (!authHeader?.startsWith('Bearer ')) {
+      return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) }
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user) {
+      return { statusCode: 401, headers, body: JSON.stringify({ error: 'Invalid token' }) }
+    }
+
     const { tenant_id, from, to } = event.queryStringParameters || {}
 
     if (!tenant_id) {
@@ -238,6 +250,20 @@ export const handler = async (event: NetlifyFunctionEvent) => {
         headers,
         body: JSON.stringify({ error: 'Tenant not found' }),
       }
+    }
+
+    // Verify caller is an owner or superadmin of this tenant
+    const { data: callerProfile, error: callerError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('tenant_id', tenant_id)
+      .single()
+
+    const isSuperadmin = !callerError && callerProfile?.role === 'superadmin'
+    const isOwner = !callerError && callerProfile?.role === 'owner'
+    if (!isSuperadmin && !isOwner) {
+      return { statusCode: 403, headers, body: JSON.stringify({ error: 'Forbidden' }) }
     }
 
     // Helper to execute queries

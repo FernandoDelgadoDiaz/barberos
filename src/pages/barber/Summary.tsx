@@ -3,6 +3,12 @@ import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 import type { ServiceLog, DailySummary as BackendDailySummary, Shift } from '../../types'
 
+async function getAuthHeader(): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) throw new Error('No authenticated session')
+  return `Bearer ${session.access_token}`
+}
+
 interface TodaySummary {
   totalServices: number
   totalRevenue: number
@@ -239,9 +245,10 @@ export function Summary() {
       const startUTC = new Date(Date.UTC(argNow.getFullYear(), argNow.getMonth(), argNow.getDate(), 3, 0, 0))
       const endUTC = new Date(Date.UTC(argNow.getFullYear(), argNow.getMonth(), argNow.getDate() + 1, 2, 59, 59))
       const today = `${argNow.getFullYear()}-${String(argNow.getMonth() + 1).padStart(2, '0')}-${String(argNow.getDate()).padStart(2, '0')}`
+      const authHeader = await getAuthHeader()
       const response = await fetch('/api/close-day', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
         body: JSON.stringify({
           barber_id: profile.id,
           date: today,

@@ -134,13 +134,14 @@ function applyCommission(rules: CommissionRule[], serviceNumber: number, price: 
 interface NetlifyFunctionEvent {
   httpMethod: string
   body: string
+  headers: Record<string, string>
 }
 
 export const handler = async (event: NetlifyFunctionEvent) => {
   // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json',
   }
@@ -173,6 +174,18 @@ export const handler = async (event: NetlifyFunctionEvent) => {
         body: JSON.stringify({ error: 'Server configuration error' }),
       }
     }
+
+    // --- JWT validation ---
+    const authHeader = event.headers.authorization || event.headers.Authorization
+    if (!authHeader?.startsWith('Bearer ')) {
+      return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) }
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user) {
+      return { statusCode: 401, headers, body: JSON.stringify({ error: 'Invalid token' }) }
+    }
+
     const body: RequestBody = JSON.parse(event.body)
     const paymentMethod: 'efectivo' | 'transferencia' =
       body.payment_method === 'transferencia' ? 'transferencia' : 'efectivo'
@@ -215,11 +228,12 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     // Convertir started_at a UTC (asume hora Argentina si no tiene offset)
     const startedAtUTC = convertToUTC(body.started_at)
 
-    // 1. Get barber profile to obtain tenant_id
+    // 1. Get barber profile to obtain tenant_id — also verifies ownership via user_id
     const { data: barberProfile, error: barberError } = await supabase
       .from('profiles')
       .select('tenant_id')
       .eq('id', body.barber_id)
+      .eq('user_id', user.id)
       .single()
 
     if (barberError || !barberProfile) {

@@ -30,13 +30,14 @@ interface Shift {
 interface NetlifyFunctionEvent {
   httpMethod: string
   body: string
+  headers: Record<string, string>
 }
 
 export const handler = async (event: NetlifyFunctionEvent) => {
   // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json',
   }
@@ -60,6 +61,17 @@ export const handler = async (event: NetlifyFunctionEvent) => {
   }
 
   try {
+    // --- JWT validation ---
+    const authHeader = event.headers.authorization || event.headers.Authorization
+    if (!authHeader?.startsWith('Bearer ')) {
+      return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) }
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user) {
+      return { statusCode: 401, headers, body: JSON.stringify({ error: 'Invalid token' }) }
+    }
+
     const body: RequestBody = JSON.parse(event.body)
 
     // Validate required fields
@@ -69,6 +81,17 @@ export const handler = async (event: NetlifyFunctionEvent) => {
         headers,
         body: JSON.stringify({ error: 'Missing required fields: shift_id, tenant_id, barber_id' }),
       }
+    }
+
+    // Verify barber_id belongs to the authenticated user
+    const { data: profileCheck, error: profileCheckError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', body.barber_id)
+      .eq('user_id', user.id)
+      .single()
+    if (profileCheckError || !profileCheck) {
+      return { statusCode: 403, headers, body: JSON.stringify({ error: 'Forbidden' }) }
     }
 
     // 1. Verify shift exists and belongs to the given barber & tenant
