@@ -8,8 +8,10 @@ import { GlassTable, type Column } from '../../components/ui/GlassTable'
 
 async function getAuthHeader(): Promise<string> {
   const { data: { session } } = await supabase.auth.getSession()
-  if (!session?.access_token) {
-    throw new Error('No authenticated session')
+  if (!session) {
+    const { data: { session: refreshed } } = await supabase.auth.refreshSession()
+    if (!refreshed?.access_token) throw new Error('No session')
+    return `Bearer ${refreshed.access_token}`
   }
   return `Bearer ${session.access_token}`
 }
