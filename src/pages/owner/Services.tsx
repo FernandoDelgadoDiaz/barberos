@@ -211,6 +211,147 @@ export function Services() {
     )
   }
 
+  const renderItemCard = (service: ServiceCatalog) => (
+    <div
+      key={service.id}
+      className="responsive-row"
+      style={{
+        background: '#fff',
+        border: '0.5px solid #e0e0e0',
+        borderRadius: '10px',
+        padding: '20px',
+      }}
+    >
+      <div className="responsive-row-left">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '10px', background: '#eeedf8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={service.is_active ? 'var(--primary, #3D3A8C)' : '#ccc'} strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+            </svg>
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#1a1a2e' }}>
+                {service.name}
+              </span>
+              {service.category === 'producto' ? (
+                <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '11px', color: '#fff', background: '#F97316', borderRadius: '6px', padding: '2px 8px' }}>
+                  Producto
+                </span>
+              ) : (
+                <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '11px', color: '#6B7280', background: '#F3F4F6', borderRadius: '6px', padding: '2px 8px' }}>
+                  Servicio
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa' }}>
+              <span style={{ color: 'var(--primary, #3D3A8C)' }}>${service.base_price.toLocaleString()}</span>
+              {service.category !== 'producto' && (
+                <>
+                  <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#aaa' }} />
+                  <span>{service.duration_min} min</span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="responsive-row-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <button
+          onClick={() => handleEdit(service)}
+          style={{
+            background: 'transparent',
+            border: '0.5px solid #e0e0e0',
+            borderRadius: '6px',
+            padding: '8px 12px',
+            fontFamily: 'Space Grotesk, sans-serif',
+            fontWeight: 500,
+            fontSize: '12px',
+            color: '#aaa',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          Editar
+        </button>
+
+        <button
+          onClick={() => handleDelete(service)}
+          style={{
+            background: 'transparent',
+            border: '0.5px solid #ffcccc',
+            borderRadius: '6px',
+            padding: '8px 12px',
+            fontFamily: 'Space Grotesk, sans-serif',
+            fontWeight: 500,
+            fontSize: '12px',
+            color: '#e74c3c',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          Eliminar
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: service.is_active ? 'var(--primary, #3D3A8C)' : '#aaa' }}>
+            {service.is_active ? 'Activo' : 'Inactivo'}
+          </div>
+          <div
+            onClick={() => handleToggleActive(service)}
+            style={{
+              width: '36px',
+              height: '20px',
+              borderRadius: '10px',
+              background: service.is_active ? 'var(--primary, #3D3A8C)' : '#e0e0e0',
+              position: 'relative',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{
+              width: '16px',
+              height: '16px',
+              borderRadius: '50%',
+              background: '#fff',
+              position: 'absolute',
+              top: '2px',
+              left: service.is_active ? '18px' : '2px',
+              transition: 'left 0.2s',
+            }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  const sectionTitleStyle = {
+    fontFamily: 'Space Grotesk, sans-serif',
+    fontWeight: 600,
+    fontSize: '14px',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.1em',
+    color: '#6B7280',
+    marginBottom: '12px',
+  }
+
+  const servicioItems = services
+    .filter((s) => s.category === 'servicio')
+    .sort((a, b) => a.name.localeCompare(b.name))
+  const productoItems = services
+    .filter((s) => s.category === 'producto')
+    .sort((a, b) => a.name.localeCompare(b.name))
+
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div className="mobile-stack" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap' }}>
@@ -239,7 +380,7 @@ export function Services() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>
-          Agregar servicio
+          Agregar
         </button>
       </div>
 
@@ -259,146 +400,40 @@ export function Services() {
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {services.length === 0 ? (
-          <div style={{
-            background: '#fff',
-            border: '0.5px solid #e0e0e0',
-            borderRadius: '10px',
-            padding: '60px 40px',
-            textAlign: 'center',
-            color: '#aaa',
-            fontFamily: 'Space Grotesk, sans-serif',
-            fontSize: '14px',
-          }}>
-            No hay servicios configurados. Agrega tu primer servicio.
-          </div>
-        ) : (
-          services.map((service) => (
-            <div
-              key={service.id}
-              className="responsive-row"
-              style={{
-                background: '#fff',
-                border: '0.5px solid #e0e0e0',
-                borderRadius: '10px',
-                padding: '20px',
-              }}
-            >
-              <div className="responsive-row-left">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '10px', background: '#eeedf8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={service.is_active ? 'var(--primary, #3D3A8C)' : '#ccc'} strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                      <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#1a1a2e' }}>
-                        {service.name}
-                      </span>
-                      {service.category === 'producto' ? (
-                        <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '11px', color: '#fff', background: '#F97316', borderRadius: '6px', padding: '2px 8px' }}>
-                          Producto
-                        </span>
-                      ) : (
-                        <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '11px', color: '#6B7280', background: '#F3F4F6', borderRadius: '6px', padding: '2px 8px' }}>
-                          Servicio
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa' }}>
-                      <span style={{ color: 'var(--primary, #3D3A8C)' }}>${service.base_price.toLocaleString()}</span>
-                      {service.category !== 'producto' && (
-                        <>
-                          <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#aaa' }} />
-                          <span>{service.duration_min} min</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
+      {services.length === 0 ? (
+        <div style={{
+          background: '#fff',
+          border: '0.5px solid #e0e0e0',
+          borderRadius: '10px',
+          padding: '60px 40px',
+          textAlign: 'center',
+          color: '#aaa',
+          fontFamily: 'Space Grotesk, sans-serif',
+          fontSize: '14px',
+        }}>
+          No hay servicios configurados. Agrega tu primer servicio.
+        </div>
+      ) : (
+        <>
+          {servicioItems.length > 0 && (
+            <section>
+              <h2 style={sectionTitleStyle}>SERVICIOS</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {servicioItems.map(renderItemCard)}
               </div>
+            </section>
+          )}
 
-              <div className="responsive-row-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button
-                  onClick={() => handleEdit(service)}
-                  style={{
-                    background: 'transparent',
-                    border: '0.5px solid #e0e0e0',
-                    borderRadius: '6px',
-                    padding: '8px 12px',
-                    fontFamily: 'Space Grotesk, sans-serif',
-                    fontWeight: 500,
-                    fontSize: '12px',
-                    color: '#aaa',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  Editar
-                </button>
-
-                <button
-                  onClick={() => handleDelete(service)}
-                  style={{
-                    background: 'transparent',
-                    border: '0.5px solid #ffcccc',
-                    borderRadius: '6px',
-                    padding: '8px 12px',
-                    fontFamily: 'Space Grotesk, sans-serif',
-                    fontWeight: 500,
-                    fontSize: '12px',
-                    color: '#e74c3c',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  Eliminar
-                </button>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: service.is_active ? 'var(--primary, #3D3A8C)' : '#aaa' }}>
-                    {service.is_active ? 'Activo' : 'Inactivo'}
-                  </div>
-                  <div
-                    onClick={() => handleToggleActive(service)}
-                    style={{
-                      width: '36px',
-                      height: '20px',
-                      borderRadius: '10px',
-                      background: service.is_active ? 'var(--primary, #3D3A8C)' : '#e0e0e0',
-                      position: 'relative',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <div style={{
-                      width: '16px',
-                      height: '16px',
-                      borderRadius: '50%',
-                      background: '#fff',
-                      position: 'absolute',
-                      top: '2px',
-                      left: service.is_active ? '18px' : '2px',
-                      transition: 'left 0.2s',
-                    }} />
-                  </div>
-                </div>
+          {productoItems.length > 0 && (
+            <section style={{ marginTop: '24px' }}>
+              <h2 style={sectionTitleStyle}>PRODUCTOS</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {productoItems.map(renderItemCard)}
               </div>
-            </div>
-          ))
-        )}
-      </div>
+            </section>
+          )}
+        </>
+      )}
 
       {/* Modal */}
       {showModal && (
