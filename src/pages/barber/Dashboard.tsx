@@ -29,18 +29,18 @@ function applyCommission(rules: CommissionRules['rules'], serviceNumber: number,
 export function Dashboard() {
   const { tenant, profile, activeShiftId, setActiveShiftId } = useTenantStore()
   const [services, setServices] = useState<ServiceWithEstimation[]>([])
+  const [products, setProducts] = useState<ServiceCatalog[]>([])
   const [todayLogs, setTodayLogs] = useState<ServiceLog[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [shiftStatus, setShiftStatus] = useState<'loading' | 'no_shift' | 'open' | 'paused' | 'closed'>('loading')
   const [currentShift, setCurrentShift] = useState<Shift | null>(null)
   const [selectedServices, setSelectedServices] = useState<ServiceWithEstimation[]>([])
+  const [selectedProducts, setSelectedProducts] = useState<ServiceCatalog[]>([])
   const [wizardStep, setWizardStep] = useState<0|1|2|3|4|5>(0)
   const [wizardPaymentMethod, setWizardPaymentMethod] = useState<'efectivo'|'transferencia'>('efectivo')
   const [wizardTip, setWizardTip] = useState('')
   const [wizardTipEnabled, setWizardTipEnabled] = useState(false)
-  const [wizardOthers, setWizardOthers] = useState('')
-  const [wizardOthersEnabled, setWizardOthersEnabled] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [shiftLoading, setShiftLoading] = useState(false)
@@ -147,10 +147,15 @@ export function Dashboard() {
           logsData = logsDataQuery || []
         }
 
+        // Split catalog into services (commission-based) and products (100% owner)
+        const catalog = servicesData || []
+        const servicesOnly = catalog.filter(s => s.category === 'servicio')
+        const productsOnly = catalog.filter(s => s.category === 'producto')
+
         // Calculate estimated earnings for each service based on next service number
         const nextServiceNumber = (logsData?.length || 0) + 1
         const commissionRules = tenant.commission_rules?.rules || []
-        const servicesWithEstimation: ServiceWithEstimation[] = (servicesData || []).map(service => ({
+        const servicesWithEstimation: ServiceWithEstimation[] = servicesOnly.map(service => ({
           ...service,
           estimatedEarning: applyCommission(commissionRules, nextServiceNumber, service.base_price),
         }))
@@ -173,6 +178,7 @@ export function Dashboard() {
 
         if (isMounted) {
           setServices(servicesWithEstimation)
+          setProducts(productsOnly)
           setTodayLogs(logsData || [])
           setAppointmentsCount(appointmentsCount)
         }
@@ -313,6 +319,17 @@ export function Dashboard() {
     })
   }
 
+  const toggleProductSelection = (product: ServiceCatalog) => {
+    setSelectedProducts(prev => {
+      const existing = prev.find(p => p.id === product.id)
+      if (existing) {
+        return prev.filter(p => p.id !== product.id)
+      } else {
+        return [...prev, product]
+      }
+    })
+  }
+
   const confirmAttention = async () => {
     if (!tenant || !profile || selectedServices.length === 0) return
     if (shiftStatus !== 'open') {
@@ -342,7 +359,7 @@ export function Dashboard() {
           payment_method: wizardPaymentMethod,
           tip_amount: parseFloat(wizardTip) || 0,
           tip_payment_method: wizardPaymentMethod,
-          others_amount: parseFloat(wizardOthers) || 0,
+          others_amount: selectedProducts.reduce((sum, p) => sum + p.base_price, 0),
           others_payment_method: wizardPaymentMethod,
         }),
       })
@@ -359,11 +376,10 @@ export function Dashboard() {
       // Reset wizard
       setWizardStep(0)
       setSelectedServices([])
+      setSelectedProducts([])
       setWizardPaymentMethod('efectivo')
       setWizardTip('')
       setWizardTipEnabled(false)
-      setWizardOthers('')
-      setWizardOthersEnabled(false)
 
       setSuccessMessage(`¡Cliente registrado! ${result.message || ''}`)
       setTimeout(() => setSuccessMessage(null), 5000)
@@ -646,7 +662,7 @@ export function Dashboard() {
       {/* Register attention button */}
       {shiftStatus === 'open' ? (
         <button
-          onClick={() => { setSelectedServices([]); setWizardStep(1) }}
+          onClick={() => { setSelectedServices([]); setSelectedProducts([]); setWizardStep(1) }}
           style={{ width: '100%', height: '56px', background: '#1E2A3A', color: '#fff', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', letterSpacing: '0.01em', border: 'none', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 150ms ease' }}
           onMouseEnter={e => { e.currentTarget.style.background = '#2D3F52'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(30,42,58,0.25)' }}
           onMouseLeave={e => { e.currentTarget.style.background = '#1E2A3A'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
@@ -696,6 +712,11 @@ export function Dashboard() {
                 <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '8px' }}>Paso 1 de 5 · Servicios</div>
                 <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1E2A3A', marginBottom: '20px' }}>¿Qué servicios?</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto', marginBottom: '12px' }}>
+                  {services.length === 0 && (
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#9CA3AF', textAlign: 'center', padding: '12px' }}>
+                      No hay servicios en el catálogo
+                    </div>
+                  )}
                   {services.map(service => {
                     const isSel = selectedServices.some(s => s.id === service.id)
                     return (
@@ -781,26 +802,47 @@ export function Dashboard() {
               </>
             )}
 
-            {/* ── Step 4: Others ── */}
+            {/* ── Step 4: Products ── */}
             {wizardStep === 4 && (
               <>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 4 de 5 · Otros</div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '24px', color: '#1E2A3A', marginBottom: '6px' }}>Otros</div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#6B7280', marginBottom: '24px' }}>Ceras, bebidas, etc. Van 100% al dueño</div>
-                {!wizardOthersEnabled ? (
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <button onClick={() => setWizardOthersEnabled(true)} style={{ flex: 1, padding: '16px', borderRadius: '10px', border: '1px solid #E8E9EB', background: '#F9FAFB', color: '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
-                      Sí, hubo otros
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '28px' }}>Paso 4 de 5 · Productos</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '24px', color: '#1E2A3A', marginBottom: '6px' }}>¿Vendiste algún producto?</div>
+                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#6B7280', marginBottom: '20px' }}>Ceras, bebidas, etc. Van 100% al dueño</div>
+                {products.length === 0 ? (
+                  <>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#9CA3AF', marginBottom: '16px', textAlign: 'center', padding: '12px' }}>
+                      No hay productos en el catálogo
+                    </div>
+                    <button onClick={() => setWizardStep(5)} style={{ width: '100%', height: '48px', background: '#1E2A3A', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}>
+                      Continuar →
                     </button>
-                    <button onClick={() => { setWizardOthers(''); setWizardStep(5) }} style={{ flex: 1, padding: '16px', borderRadius: '10px', border: 'none', background: '#1E2A3A', color: '#fff', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
-                      No, continuar →
-                    </button>
-                  </div>
+                  </>
                 ) : (
                   <>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                      <span style={{ fontSize: '20px', fontWeight: 700, color: '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif' }}>$</span>
-                      <input type="number" placeholder="0" value={wizardOthers} onChange={e => setWizardOthers(e.target.value)} style={{ flex: 1, border: '1px solid #E8E9EB', borderRadius: '8px', padding: '12px', fontSize: '16px', background: '#F9FAFB', color: '#1E2A3A', outline: 'none', fontFamily: 'Space Grotesk, sans-serif' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto', marginBottom: '12px' }}>
+                      {products.map(product => {
+                        const isSel = selectedProducts.some(p => p.id === product.id)
+                        return (
+                          <div
+                            key={product.id}
+                            onClick={() => toggleProductSelection(product)}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: isSel ? '#FFF7ED' : '#F9FAFB', borderRadius: '8px', border: isSel ? '1px solid #F97316' : '1px solid #E8E9EB', cursor: 'pointer' }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div style={{ width: '18px', height: '18px', borderRadius: '4px', border: `2px solid ${isSel ? '#F97316' : '#D1D5DB'}`, background: isSel ? '#F97316' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                {isSel && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                              </div>
+                              <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', color: '#1E2A3A' }}>{product.name}</span>
+                            </div>
+                            <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', color: '#1E2A3A' }}>${product.base_price.toLocaleString('es-AR')}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#6B7280', marginBottom: '16px', minHeight: '18px' }}>
+                      {selectedProducts.length > 0
+                        ? `${selectedProducts.length} seleccionado${selectedProducts.length !== 1 ? 's' : ''} · $${selectedProducts.reduce((s, x) => s + x.base_price, 0).toLocaleString('es-AR')}`
+                        : 'Ningún producto seleccionado'}
                     </div>
                     <button onClick={() => setWizardStep(5)} style={{ width: '100%', height: '48px', background: '#1E2A3A', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}>
                       Siguiente →
@@ -822,6 +864,19 @@ export function Dashboard() {
                     </div>
                   ))}
                 </div>
+                {selectedProducts.length > 0 && (
+                  <div style={{ borderTop: '1px solid #F3F4F6', paddingTop: '12px', marginBottom: '16px' }}>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Productos (100% dueño)</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {selectedProducts.map(p => (
+                        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif' }}>
+                          <span>{p.name}</span>
+                          <span style={{ fontWeight: 500 }}>${p.base_price.toLocaleString('es-AR')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div style={{ borderTop: '1px solid #F3F4F6', paddingTop: '12px', marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#6B7280' }}>
                     Método de pago: {wizardPaymentMethod === 'transferencia' ? '📲 Transferencia' : '💵 Efectivo'}
@@ -831,16 +886,11 @@ export function Dashboard() {
                       Propina: <span style={{ color: '#D4A853', fontWeight: 600 }}>${(parseFloat(wizardTip) || 0).toLocaleString('es-AR')}</span> <span style={{ color: '#9CA3AF' }}>(100% para vos)</span>
                     </div>
                   )}
-                  {(parseFloat(wizardOthers) || 0) > 0 && (
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#6B7280' }}>
-                      Otros: <span style={{ color: '#D4A853', fontWeight: 600 }}>${(parseFloat(wizardOthers) || 0).toLocaleString('es-AR')}</span> <span style={{ color: '#9CA3AF' }}>(100% para el dueño)</span>
-                    </div>
-                  )}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', background: '#F9FAFB', borderRadius: '8px', marginBottom: '20px', border: '1px solid #E8E9EB' }}>
                   <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '14px', color: '#1E2A3A' }}>Total</span>
                   <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: '#D4A853' }}>
-                    ${(selectedServices.reduce((s, x) => s + x.base_price, 0) + (parseFloat(wizardTip) || 0) + (parseFloat(wizardOthers) || 0)).toLocaleString('es-AR')}
+                    ${(selectedServices.reduce((s, x) => s + x.base_price, 0) + (parseFloat(wizardTip) || 0) + selectedProducts.reduce((s, x) => s + x.base_price, 0)).toLocaleString('es-AR')}
                   </span>
                 </div>
                 <button

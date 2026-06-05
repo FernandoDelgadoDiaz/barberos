@@ -47,6 +47,7 @@ export type ServiceCatalog = {
   base_price: number
   duration_min: number
   is_active: boolean
+  category: 'servicio' | 'producto'
 }
 
 export type ServiceLog = {

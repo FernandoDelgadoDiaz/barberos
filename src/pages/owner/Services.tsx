@@ -15,6 +15,7 @@ export function Services() {
     base_price: '',
     duration_min: '',
     is_active: true,
+    category: 'servicio' as 'servicio' | 'producto',
   })
   const [saving, setSaving] = useState(false)
 
@@ -82,6 +83,7 @@ export function Services() {
       base_price: service.base_price.toString(),
       duration_min: service.duration_min.toString(),
       is_active: service.is_active,
+      category: service.category,
     })
     setShowModal(true)
   }
@@ -93,6 +95,7 @@ export function Services() {
       base_price: '',
       duration_min: '',
       is_active: true,
+      category: 'servicio',
     })
     setShowModal(true)
   }
@@ -102,19 +105,21 @@ export function Services() {
       setError('No hay tenant seleccionado')
       return
     }
-    if (!formData.name || !formData.base_price || !formData.duration_min) {
+    const isProduct = formData.category === 'producto'
+    if (!formData.name || !formData.base_price || (!isProduct && !formData.duration_min)) {
       setError('Por favor completa todos los campos')
       return
     }
 
     // Validación numérica
     const basePrice = parseFloat(formData.base_price)
-    const durationMin = parseInt(formData.duration_min)
+    // Productos no tienen duración: se persiste 0
+    const durationMin = isProduct ? 0 : parseInt(formData.duration_min)
     if (isNaN(basePrice) || basePrice < 0) {
       setError('El precio debe ser un número válido y mayor o igual a 0')
       return
     }
-    if (isNaN(durationMin) || durationMin <= 0) {
+    if (!isProduct && (isNaN(durationMin) || durationMin <= 0)) {
       setError('La duración debe ser un número entero positivo')
       return
     }
@@ -129,6 +134,7 @@ export function Services() {
         base_price: basePrice,
         duration_min: durationMin,
         is_active: editingService ? formData.is_active : true,
+        category: formData.category,
       }
 
       if (editingService) {
@@ -138,6 +144,7 @@ export function Services() {
           base_price: basePrice,
           duration_min: durationMin,
           is_active: formData.is_active,
+          category: formData.category,
         }
         const { error } = await supabase
           .from('services_catalog')
@@ -286,13 +293,28 @@ export function Services() {
                     </svg>
                   </div>
                   <div>
-                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#1a1a2e', marginBottom: '4px' }}>
-                      {service.name}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                      <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', color: '#1a1a2e' }}>
+                        {service.name}
+                      </span>
+                      {service.category === 'producto' ? (
+                        <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '11px', color: '#fff', background: '#F97316', borderRadius: '6px', padding: '2px 8px' }}>
+                          Producto
+                        </span>
+                      ) : (
+                        <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '11px', color: '#6B7280', background: '#F3F4F6', borderRadius: '6px', padding: '2px 8px' }}>
+                          Servicio
+                        </span>
+                      )}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa' }}>
                       <span style={{ color: 'var(--primary, #3D3A8C)' }}>${service.base_price.toLocaleString()}</span>
-                      <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#aaa' }} />
-                      <span>{service.duration_min} min</span>
+                      {service.category !== 'producto' && (
+                        <>
+                          <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#aaa' }} />
+                          <span>{service.duration_min} min</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -408,6 +430,38 @@ export function Services() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
+                  Tipo
+                </label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {(['servicio', 'producto'] as const).map((cat) => {
+                    const selected = formData.category === cat
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, category: cat })}
+                        style={{
+                          flex: 1,
+                          padding: '10px 12px',
+                          borderRadius: '6px',
+                          border: selected ? 'none' : '0.5px solid #e0e0e0',
+                          background: selected ? 'var(--primary, #3D3A8C)' : '#f8f8f8',
+                          color: selected ? '#fff' : '#aaa',
+                          fontFamily: 'Space Grotesk, sans-serif',
+                          fontWeight: 600,
+                          fontSize: '14px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {cat === 'servicio' ? 'Servicio' : 'Producto'}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
                   Nombre
                 </label>
                 <input
@@ -451,27 +505,29 @@ export function Services() {
                   />
                 </div>
 
-                <div>
-                  <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
-                    Duración (min)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.duration_min}
-                    onChange={(e) => setFormData({ ...formData, duration_min: e.target.value })}
-                    style={{
-                      width: '100%',
-                      background: '#f8f8f8',
-                      border: '0.5px solid #e0e0e0',
-                      borderRadius: '6px',
-                      padding: '12px',
-                      fontFamily: 'Space Grotesk, sans-serif',
-                      fontWeight: 400,
-                      fontSize: '14px',
-                      color: '#1a1a2e',
-                    }}
-                  />
-                </div>
+                {formData.category !== 'producto' && (
+                  <div>
+                    <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
+                      Duración (min)
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.duration_min}
+                      onChange={(e) => setFormData({ ...formData, duration_min: e.target.value })}
+                      style={{
+                        width: '100%',
+                        background: '#f8f8f8',
+                        border: '0.5px solid #e0e0e0',
+                        borderRadius: '6px',
+                        padding: '12px',
+                        fontFamily: 'Space Grotesk, sans-serif',
+                        fontWeight: 400,
+                        fontSize: '14px',
+                        color: '#1a1a2e',
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
               {editingService && (
