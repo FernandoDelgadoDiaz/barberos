@@ -247,16 +247,20 @@ export const handler = async (event: NetlifyFunctionEvent) => {
 
     const tenantId = barberProfile.tenant_id
 
-    // 1b. Verify tenant is active — block suspended tenants from writing data
-    const { data: tenantStatus } = await supabase
+    // 1b. Fetch tenant once: verify it's active (block suspended tenants) and
+    // grab the commission rules used below. Fail-closed: a missing/failed lookup
+    // also blocks.
+    const { data: tenant } = await supabase
       .from('tenants')
-      .select('is_active')
+      .select('is_active, commission_rules')
       .eq('id', tenantId)
       .single()
 
-    if (!tenantStatus?.is_active) {
+    if (!tenant?.is_active) {
       return { statusCode: 403, headers, body: JSON.stringify({ error: 'Tenant suspendido' }) }
     }
+
+    const commissionRules = tenant.commission_rules as CommissionRules
 
     // 2. Validate shift if provided
     if (body.shift_id) {
@@ -279,25 +283,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
-    // 3. Get tenant commission rules
-    const { data: tenant, error: tenantError } = await supabase
-      .from('tenants')
-      .select('commission_rules')
-      .eq('id', tenantId)
-      .single()
-
-    if (tenantError || !tenant) {
-      console.error('Tenant error:', tenantError)
-      return {
-        statusCode: 404,
-        headers,
-        body: JSON.stringify({ error: 'Tenant not found' }),
-      }
-    }
-
-    const commissionRules = tenant.commission_rules as CommissionRules
-
-    // 4. Calculate attention_number (número de atención en el turno o día)
+    // 3. Calculate attention_number (número de atención en el turno o día)
     let attentionQuery = supabase
       .from('appointments')
       .select('*', { count: 'exact', head: true })
