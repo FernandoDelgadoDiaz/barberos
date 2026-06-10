@@ -247,6 +247,17 @@ export const handler = async (event: NetlifyFunctionEvent) => {
 
     const tenantId = barberProfile.tenant_id
 
+    // 1b. Verify tenant is active — block suspended tenants from writing data
+    const { data: tenantStatus } = await supabase
+      .from('tenants')
+      .select('is_active')
+      .eq('id', tenantId)
+      .single()
+
+    if (!tenantStatus?.is_active) {
+      return { statusCode: 403, headers, body: JSON.stringify({ error: 'Tenant suspendido' }) }
+    }
+
     // 2. Validate shift if provided
     if (body.shift_id) {
       const { data: shift, error: shiftError } = await supabase

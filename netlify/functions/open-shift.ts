@@ -126,6 +126,17 @@ export const handler = async (event: NetlifyFunctionEvent) => {
 
     const tenantId = barberProfile.tenant_id
 
+    // Verify tenant is active — block suspended tenants from writing data
+    const { data: tenantStatus } = await supabase
+      .from('tenants')
+      .select('is_active')
+      .eq('id', tenantId)
+      .single()
+
+    if (!tenantStatus?.is_active) {
+      return { statusCode: 403, headers, body: JSON.stringify({ error: 'Tenant suspendido' }) }
+    }
+
     // Validate tenant_id if provided (must match barber's tenant)
     if (body.tenant_id && body.tenant_id !== tenantId) {
       return {

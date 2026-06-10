@@ -86,12 +86,23 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     // Verify barber_id belongs to the authenticated user
     const { data: profileCheck, error: profileCheckError } = await supabase
       .from('profiles')
-      .select('id')
+      .select('id, tenant_id')
       .eq('id', body.barber_id)
       .eq('user_id', user.id)
       .single()
     if (profileCheckError || !profileCheck) {
       return { statusCode: 403, headers, body: JSON.stringify({ error: 'Forbidden' }) }
+    }
+
+    // Verify tenant is active — block suspended tenants from writing data
+    const { data: tenantStatus } = await supabase
+      .from('tenants')
+      .select('is_active')
+      .eq('id', profileCheck.tenant_id)
+      .single()
+
+    if (!tenantStatus?.is_active) {
+      return { statusCode: 403, headers, body: JSON.stringify({ error: 'Tenant suspendido' }) }
     }
 
     // 1. Verify shift exists and belongs to the given barber & tenant
