@@ -13,6 +13,30 @@ async function getAuthHeader(): Promise<string> {
   return `Bearer ${session.access_token}`
 }
 
+/**
+ * Safely parse a fetch Response's JSON body.
+ * Some non-OK responses (502, network proxies, empty bodies) are not valid JSON
+ * and would cause response.json() to throw — masking the real HTTP error and
+ * leaving the user trapped in a "loop". This returns null on any parse failure.
+ */
+async function safeJson(response: Response): Promise<unknown> {
+  try {
+    const text = await response.text()
+    if (!text) return null
+    return JSON.parse(text) as unknown
+  } catch {
+    return null
+  }
+}
+
+function extractErrorMessage(payload: unknown, fallback: string): string {
+  if (payload && typeof payload === 'object' && 'error' in payload) {
+    const value = (payload as { error: unknown }).error
+    if (typeof value === 'string' && value.length > 0) return value
+  }
+  return fallback
+}
+
 interface ServiceWithEstimation extends ServiceCatalog {
   estimatedEarning: number
 }
@@ -48,6 +72,22 @@ export function Dashboard() {
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [appointmentsCount, setAppointmentsCount] = useState<number>(0)
   const [lastShiftDate, setLastShiftDate] = useState<string | null>(null)
+  // Inline error shown INSIDE the wizard modal. Critical: when confirmAttention fails,
+  // the page-level error banner is hidden behind the modal overlay (zIndex: 1000),
+  // so users perceive an infinite loop. This state makes the failure visible in-modal
+  // and the new escape button below it guarantees the user can always exit.
+  const [wizardError, setWizardError] = useState<string | null>(null)
+
+  const resetWizard = () => {
+    setWizardStep(0)
+    setSelectedServices([])
+    setSelectedProducts([])
+    setWizardPaymentMethod('efectivo')
+    setWizardTip('')
+    setWizardTipEnabled(false)
+    setWizardError(null)
+    setProcessing(false)
+  }
 
 
   useEffect(() => {
@@ -133,7 +173,7 @@ export function Dashboard() {
         }
 
         // Load service logs for the resolved shift (empty if no shift found)
-        let logsData: any[] = []
+        let logsData: ServiceLog[] = []
         if (shiftIdForLogs) {
           const { data: logsDataQuery, error: logsError } = await supabase
             .from('service_logs')
@@ -144,7 +184,7 @@ export function Dashboard() {
             .eq('shift_id', shiftIdForLogs)
             .order('started_at', { ascending: false })
           if (logsError) throw logsError
-          logsData = logsDataQuery || []
+          logsData = (logsDataQuery as ServiceLog[] | null) || []
         }
 
         // Split catalog into services (commission-based) and products (100% owner)
@@ -333,12 +373,13 @@ export function Dashboard() {
   const confirmAttention = async () => {
     if (!tenant || !profile || selectedServices.length === 0) return
     if (shiftStatus !== 'open') {
-      setError('No hay un turno abierto. Inicia un turno para registrar servicios.')
+      setWizardError('No hay un turno abierto. Inicia un turno para registrar servicios.')
       return
     }
 
     setProcessing(true)
     setError(null)
+    setWizardError(null)
 
     try {
       const servicesPayload = selectedServices.map(s => ({
@@ -365,29 +406,37 @@ export function Dashboard() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Error al registrar atención')
+        // Use safeJson because some failure modes (502, empty body, HTML error pages
+        // from proxies) make response.json() throw — which previously masked the real
+        // HTTP status code from the user and contributed to the "stuck on confirm" UX.
+        const errorPayload = await safeJson(response)
+        const message = extractErrorMessage(
+          errorPayload,
+          `Error al registrar atención (HTTP ${response.status})`
+        )
+        throw new Error(message)
       }
 
-      const result = await response.json()
+      const result = (await safeJson(response)) as { message?: string } | null
 
-      // Refresh data
+      // Success path: refresh data, then fully reset the wizard so the user is never
+      // left with stale selections/state.
       setRefreshTrigger(prev => prev + 1)
-      // Reset wizard
-      setWizardStep(0)
-      setSelectedServices([])
-      setSelectedProducts([])
-      setWizardPaymentMethod('efectivo')
-      setWizardTip('')
-      setWizardTipEnabled(false)
+      resetWizard()
 
-      setSuccessMessage(`¡Cliente registrado! ${result.message || ''}`)
+      setSuccessMessage(`¡Cliente registrado! ${result?.message ?? ''}`.trim())
       setTimeout(() => setSuccessMessage(null), 5000)
     } catch (err: unknown) {
       console.error('Error confirming attention:', err)
       const errorMessage = err instanceof Error ? err.message : 'Error al registrar atención'
+      // Show the error BOTH inline (inside the modal, where the user is looking) AND
+      // at the page level (visible after they close the modal). The wizard stays open
+      // so the user can read the message and either retry or close — never stuck.
+      setWizardError(errorMessage)
       setError(errorMessage)
     } finally {
+      // Always re-enable the button. Critical: never leave processing=true on an
+      // unrecoverable error or the user perceives an infinite loop.
       setProcessing(false)
     }
   }
@@ -662,7 +711,7 @@ export function Dashboard() {
       {/* Register attention button */}
       {shiftStatus === 'open' ? (
         <button
-          onClick={() => { setSelectedServices([]); setSelectedProducts([]); setWizardStep(1) }}
+          onClick={() => { setSelectedServices([]); setSelectedProducts([]); setWizardError(null); setWizardStep(1) }}
           style={{ width: '100%', height: '56px', background: '#1E2A3A', color: '#fff', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', letterSpacing: '0.01em', border: 'none', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 150ms ease' }}
           onMouseEnter={e => { e.currentTarget.style.background = '#2D3F52'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(30,42,58,0.25)' }}
           onMouseLeave={e => { e.currentTarget.style.background = '#1E2A3A'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
@@ -699,12 +748,23 @@ export function Dashboard() {
             {/* Back button (steps 2-5) */}
             {wizardStep > 1 && (
               <button
-                onClick={() => setWizardStep(prev => (prev - 1) as 0|1|2|3|4|5)}
-                style={{ position: 'absolute', top: '16px', left: '16px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#9CA3AF', fontSize: '13px', fontFamily: 'Space Grotesk, sans-serif', display: 'flex', alignItems: 'center', gap: '4px', padding: '4px' }}
+                onClick={() => { setWizardError(null); setWizardStep(prev => (prev - 1) as 0|1|2|3|4|5) }}
+                disabled={processing}
+                style={{ position: 'absolute', top: '16px', left: '16px', background: 'transparent', border: 'none', cursor: processing ? 'not-allowed' : 'pointer', color: '#9CA3AF', fontSize: '13px', fontFamily: 'Space Grotesk, sans-serif', display: 'flex', alignItems: 'center', gap: '4px', padding: '4px', opacity: processing ? 0.5 : 1 }}
               >
                 ← Volver
               </button>
             )}
+
+            {/* Close (X) button — always available so the user can never get trapped */}
+            <button
+              onClick={resetWizard}
+              disabled={processing}
+              aria-label="Cerrar"
+              style={{ position: 'absolute', top: '12px', right: '12px', background: 'transparent', border: 'none', cursor: processing ? 'not-allowed' : 'pointer', color: '#9CA3AF', fontSize: '22px', lineHeight: 1, padding: '4px 10px', fontFamily: 'Space Grotesk, sans-serif', opacity: processing ? 0.5 : 1 }}
+            >
+              ×
+            </button>
 
             {/* ── Step 1: Services ── */}
             {wizardStep === 1 && (
@@ -893,13 +953,33 @@ export function Dashboard() {
                     ${(selectedServices.reduce((s, x) => s + x.base_price, 0) + (parseFloat(wizardTip) || 0) + selectedProducts.reduce((s, x) => s + x.base_price, 0)).toLocaleString('es-AR')}
                   </span>
                 </div>
+
+                {/* Inline wizard error — critical: page-level error banner is hidden
+                    behind the modal overlay, so any failure MUST be displayed here. */}
+                {wizardError && (
+                  <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', padding: '12px 14px', marginBottom: '12px', color: '#DC2626', fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', lineHeight: 1.4 }}>
+                    {wizardError}
+                  </div>
+                )}
+
                 <button
                   onClick={confirmAttention}
                   disabled={processing}
                   style={{ width: '100%', height: '52px', background: '#1E2A3A', color: '#fff', border: 'none', borderRadius: '12px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: processing ? 'not-allowed' : 'pointer', opacity: processing ? 0.7 : 1 }}
                 >
-                  {processing ? 'Procesando...' : '✓ Confirmar y Registrar'}
+                  {processing ? 'Procesando...' : wizardError ? '↻ Reintentar' : '✓ Confirmar y Registrar'}
                 </button>
+
+                {/* Escape hatch: always allow the user to abandon the wizard,
+                    especially after a failure. Prevents the "infinite loop" UX. */}
+                {wizardError && !processing && (
+                  <button
+                    onClick={resetWizard}
+                    style={{ width: '100%', height: '44px', marginTop: '10px', background: 'transparent', color: '#6B7280', border: '1px solid #E8E9EB', borderRadius: '10px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
+                  >
+                    Cancelar y cerrar
+                  </button>
+                )}
               </>
             )}
 
