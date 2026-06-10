@@ -2,6 +2,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useTenantStore } from '../../stores/tenantStore'
 import { useAuth } from '../../hooks/useAuth'
 import { TrialExpiredGuard } from '../TrialExpiredGuard'
+import { SuspendedGuard } from '../SuspendedGuard'
 
 const ScissorsIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -62,9 +63,11 @@ export function BarberLayout() {
         ))}
       </nav>
       <main className="barber-main" style={{ padding: '20px', background: '#F4F5F7' }}>
-        <TrialExpiredGuard>
-          <Outlet />
-        </TrialExpiredGuard>
+        <SuspendedGuard>
+          <TrialExpiredGuard>
+            <Outlet />
+          </TrialExpiredGuard>
+        </SuspendedGuard>
       </main>
     </div>
   )

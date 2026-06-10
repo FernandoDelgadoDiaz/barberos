@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useTenantStore } from '../../stores/tenantStore'
 import { useAuth } from '../../hooks/useAuth'
 import { TrialExpiredGuard } from '../TrialExpiredGuard'
+import { SuspendedGuard } from '../SuspendedGuard'
 
 const NavIcon = ({ label }: { label: string }) => {
   if (label === 'Panel en vivo') return (
@@ -105,9 +106,11 @@ export function OwnerLayout() {
 
         {/* Content */}
         <div style={{ marginTop: '52px', flex: 1, padding: '24px', paddingBottom: '80px', overflow: 'auto' }}>
-          <TrialExpiredGuard>
-            <Outlet />
-          </TrialExpiredGuard>
+          <SuspendedGuard>
+            <TrialExpiredGuard>
+              <Outlet />
+            </TrialExpiredGuard>
+          </SuspendedGuard>
         </div>
 
         {/* Mobile bottom nav */}
@@ -196,9 +199,11 @@ export function OwnerLayout() {
 
       {/* Main content */}
       <div style={{ marginLeft: '210px', flex: 1, background: '#F4F5F7', minHeight: '100vh', overflow: 'auto', padding: '24px' }}>
-        <TrialExpiredGuard>
-          <Outlet />
-        </TrialExpiredGuard>
+        <SuspendedGuard>
+          <TrialExpiredGuard>
+            <Outlet />
+          </TrialExpiredGuard>
+        </SuspendedGuard>
       </div>
     </div>
   )
