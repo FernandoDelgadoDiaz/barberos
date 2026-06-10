@@ -252,10 +252,13 @@ export function Dashboard() {
         }),
       })
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Error al abrir turno')
+        // safeJson: 502/empty-body/HTML proxy errors make response.json() throw,
+        // masking the real HTTP status and trapping the user (same fix as confirmAttention).
+        const errorPayload = await safeJson(response)
+        throw new Error(extractErrorMessage(errorPayload, `Error al abrir turno (HTTP ${response.status})`))
       }
-      const result = await response.json()
+      const result = (await safeJson(response)) as { shift: Shift } | null
+      if (!result?.shift) throw new Error('Respuesta inválida del servidor al abrir turno')
       // Update local state
       setShiftStatus('open')
       setCurrentShift(result.shift)
@@ -288,8 +291,10 @@ export function Dashboard() {
         }),
       })
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Error al cerrar turno')
+        // safeJson: 502/empty-body/HTML proxy errors make response.json() throw,
+        // masking the real HTTP status and trapping the user (same fix as confirmAttention).
+        const errorPayload = await safeJson(response)
+        throw new Error(extractErrorMessage(errorPayload, `Error al cerrar turno (HTTP ${response.status})`))
       }
       // Update local state
       setShiftStatus('closed')
@@ -323,10 +328,13 @@ export function Dashboard() {
         }),
       })
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Error al pausar/reanudar turno')
+        // safeJson: 502/empty-body/HTML proxy errors make response.json() throw,
+        // masking the real HTTP status and trapping the user (same fix as confirmAttention).
+        const errorPayload = await safeJson(response)
+        throw new Error(extractErrorMessage(errorPayload, `Error al pausar/reanudar turno (HTTP ${response.status})`))
       }
-      const result = await response.json()
+      const result = (await safeJson(response)) as { shift: Shift; message?: string } | null
+      if (!result?.shift) throw new Error('Respuesta inválida del servidor al pausar/reanudar turno')
       // Update local state
       setShiftStatus(result.shift.status) // 'open' or 'paused'
       setCurrentShift(result.shift)
