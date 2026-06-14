@@ -401,144 +401,92 @@ export function LivePanel() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#F8FAFC', padding: '24px' }}>
-        <div style={{ maxWidth: '1180px', margin: '0 auto' }}>
-          <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '32px', padding: '32px', boxShadow: '0 24px 70px rgba(15,23,42,0.08)' }}>
-            <div style={{ width: '160px', height: '16px', borderRadius: '999px', background: '#E2E8F0', marginBottom: '18px', animation: 'pulse 1.4s infinite' }} />
-            <div style={{ width: '280px', maxWidth: '80%', height: '44px', borderRadius: '18px', background: '#E2E8F0', marginBottom: '18px', animation: 'pulse 1.4s infinite' }} />
-            <div style={{ width: '70%', height: '14px', borderRadius: '999px', background: '#E2E8F0', animation: 'pulse 1.4s infinite' }} />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: isSmallMobile ? '1fr' : 'repeat(3, 1fr)', gap: '16px', marginTop: '18px' }}>
-            {[1, 2, 3].map(item => (
-              <div key={item} style={{ height: '132px', borderRadius: '28px', background: '#FFFFFF', border: '1px solid #E2E8F0', boxShadow: '0 18px 45px rgba(15,23,42,0.06)', animation: 'pulse 1.4s infinite' }} />
-            ))}
-          </div>
-        </div>
+      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '24px', color: '#1a1a2e', textAlign: 'center' }}>
+        Cargando panel en vivo...
       </div>
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F8FAFC', color: '#0F172A', padding: isSmallMobile ? '12px' : '24px' }}>
-      <div style={{ maxWidth: '1180px', margin: '0 auto', position: 'relative' }}>
+    <div style={{ maxWidth: '1000px', margin: '0 auto', position: 'relative', padding: '8px' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginBottom: '22px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
         <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#2563EB', background: '#EFF6FF', border: '1px solid #DBEAFE', borderRadius: '999px', padding: '8px 12px', fontSize: '12px', fontWeight: 700, marginBottom: '12px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981', boxShadow: '0 0 0 5px rgba(16,185,129,0.12)' }} />
-            Jornada activa
-          </div>
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: isSmallMobile ? '28px' : '38px', color: '#0F172A', margin: 0, letterSpacing: '0' }}>Buen día</h1>
-          <p style={{ color: '#64748B', fontSize: '15px', margin: '6px 0 0 0', fontWeight: 500 }}>{tenant?.name || 'Tu barbería'} · Datos actualizados en tiempo real</p>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: '#1a1a2e', margin: 0 }}>Panel en vivo</h1>
+          <p style={{ color: '#888', fontSize: '13px', margin: '2px 0 0 0' }}>{tenant?.name || 'Tu barbería'} • Monitoreo en tiempo real</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {isPostMidnight && (
             <button
               onClick={() => window.location.reload()}
-              style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: '999px', padding: '12px 18px', fontSize: '13px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, cursor: 'pointer', boxShadow: '0 14px 30px rgba(37,99,235,0.24)' }}
+              style={{ background: '#1E2A3A', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500, cursor: 'pointer', transition: 'background 150ms' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#2D3F52' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#1E2A3A' }}
             >
-              Iniciar nuevo día
+              Iniciar nuevo día →
             </button>
           )}
-          <span style={{ background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0', fontSize: '12px', padding: '9px 13px', borderRadius: '999px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10B981' }} />
-            EN VIVO
-          </span>
-        </div>
-      </div>
-
-      {/* Hero */}
-      <div style={{ background: 'linear-gradient(135deg, #FFFFFF 0%, #F0F9FF 52%, #ECFDF5 100%)', border: '1px solid #DCEBFA', borderRadius: '32px', padding: isSmallMobile ? '24px' : '34px', boxShadow: '0 30px 80px rgba(15,23,42,0.09)', marginBottom: '18px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', right: '-70px', top: '-80px', width: '220px', height: '220px', borderRadius: '50%', background: 'rgba(6,182,212,0.16)' }} />
-        <div style={{ position: 'absolute', right: '70px', bottom: '-110px', width: '220px', height: '220px', borderRadius: '50%', background: 'rgba(37,99,235,0.12)' }} />
-        <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: isSmallMobile ? '1fr' : 'minmax(0, 1.45fr) minmax(260px, 0.8fr)', gap: '24px', alignItems: 'end' }}>
-          <div>
-            <div style={{ color: '#2563EB', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>Resumen del día</div>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: isSmallMobile ? '40px' : '58px', lineHeight: 1, color: '#0F172A', letterSpacing: '0' }}>${totalDay.toLocaleString()}</div>
-            <p style={{ color: '#475569', fontSize: '15px', lineHeight: 1.6, maxWidth: '520px', margin: '14px 0 0' }}>
-              Información generada con datos reales del negocio. Seguimiento activo de la jornada.
-            </p>
-          </div>
-          <div style={{ background: 'rgba(255,255,255,0.78)', border: '1px solid rgba(226,232,240,0.9)', borderRadius: '28px', padding: '18px', boxShadow: '0 18px 45px rgba(15,23,42,0.08)', backdropFilter: 'blur(14px)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '14px', marginBottom: '14px' }}>
-              <div>
-                <div style={{ color: '#64748B', fontSize: '12px', fontWeight: 700 }}>Ganancia dueño</div>
-                <div style={{ color: '#10B981', fontSize: '26px', fontWeight: 800 }}>${ownerEarning.toLocaleString()}</div>
-              </div>
-              <div style={{ width: '46px', height: '46px', borderRadius: '16px', background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10B981' }}>
-                <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18M17 7.5c-.9-1-2.2-1.5-3.8-1.5-2.1 0-3.7 1-3.7 2.7 0 3.7 8 1.8 8 5.8 0 1.8-1.7 3-4.1 3-1.8 0-3.4-.6-4.4-1.8" />
-                </svg>
-              </div>
-            </div>
-            <div style={{ height: '10px', borderRadius: '999px', background: '#E2E8F0', overflow: 'hidden' }}>
-              <div style={{ width: `${dayProgress}%`, height: '100%', background: 'linear-gradient(90deg, #2563EB, #06B6D4, #10B981)', borderRadius: '999px', transition: 'width 0.5s ease' }} />
-            </div>
-            <div style={{ color: '#64748B', fontSize: '12px', fontWeight: 600, marginTop: '9px' }}>{statusText}</div>
-          </div>
+          <span style={{ background: '#FF8C42', color: '#fff', fontSize: '11px', padding: '4px 10px', borderRadius: '20px', fontWeight: 500 }}>● EN VIVO</span>
         </div>
       </div>
 
       {/* Stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: isSmallMobile ? '1fr' : 'repeat(5, minmax(0, 1fr))', gap: '14px', marginBottom: '18px' }}>
-        {[
-          { label: 'Servicios hoy', value: totalServices, color: '#2563EB', bg: '#EFF6FF' },
-          { label: 'Ganancias hoy', value: `$${ownerEarning.toLocaleString()}`, color: '#10B981', bg: '#ECFDF5' },
-          { label: 'Barbería', value: `$${totalDay.toLocaleString()}`, color: '#06B6D4', bg: '#ECFEFF' },
-          { label: 'Barberos activos', value: barberStats.filter(stats => stats.isActive).length, color: '#F59E0B', bg: '#FFFBEB' },
-          { label: 'Ticket promedio', value: totalServices > 0 ? `$${Math.round(totalDay / totalServices).toLocaleString()}` : '$0', color: '#2563EB', bg: '#EFF6FF' },
-        ].map(card => (
-          <div key={card.label} style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '28px', padding: '18px', boxShadow: '0 18px 45px rgba(15,23,42,0.06)', minHeight: '132px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div style={{ width: '42px', height: '42px', borderRadius: '16px', background: card.bg, color: card.color, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 10px 24px ${card.color}22` }}>
-              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 17l6-6 4 4 6-8" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 7h5v5" />
+      <div style={{ display: 'grid', gridTemplateColumns: isSmallMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px', marginTop: '20px' }}>
+        <div style={{ background: '#fff', borderRadius: '10px', padding: '16px', border: '0.5px solid #e0e0e0', position: 'relative' }}>
+          <div style={{ fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Total del día</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ fontSize: '22px', fontWeight: 500, color: '#1a1a2e' }}>${totalDay.toLocaleString()}</div>
+            <button
+              onClick={() => setShowPaymentBreakdown(prev => !prev)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: '#888', display: 'flex', alignItems: 'center' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d={showPaymentBreakdown ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} />
               </svg>
-            </div>
-            <div>
-              <div style={{ fontSize: '12px', color: '#64748B', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>{card.label}</div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '24px', lineHeight: 1.05, color: '#0F172A', fontWeight: 800 }}>{card.value}</div>
-            </div>
+            </button>
           </div>
-        ))}
+          {showPaymentBreakdown && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              marginTop: '4px',
+              background: '#fff',
+              border: '0.5px solid #e0e0e0',
+              borderRadius: '8px',
+              padding: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              zIndex: 10,
+            }}>
+              <div style={{ fontSize: '13px', color: '#555', marginBottom: '6px' }}>💵 Efectivo: <strong>${efectivoTotal.toLocaleString()}</strong></div>
+              <div style={{ fontSize: '13px', color: '#555' }}>📲 Transferencia: <strong>${transferenciaTotal.toLocaleString()}</strong></div>
+            </div>
+          )}
+        </div>
+        <div style={{ background: '#fff', borderRadius: '10px', padding: '16px', border: '0.5px solid #e0e0e0' }}>
+          <div style={{ fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Tu ganancia</div>
+          <div style={{ fontSize: '22px', fontWeight: 500, color: '#FF8C42' }}>${ownerEarning.toLocaleString()}</div>
+        </div>
+        <div style={{ background: '#fff', borderRadius: '10px', padding: '16px', border: '0.5px solid #e0e0e0' }}>
+          <div style={{ fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Servicios</div>
+          <div style={{ fontSize: '22px', fontWeight: 500, color: '#1a1a2e' }}>{totalServices}</div>
+          <div style={{ height: '3px', background: '#f0f0f0', borderRadius: '2px', marginTop: '8px', overflow: 'hidden' }}>
+            <div style={{ width: `${dayProgress}%`, height: '100%', background: 'linear-gradient(90deg, #3D3A8C, #FF8C42)', borderRadius: '2px', transition: 'width 0.5s ease' }} />
+          </div>
+          <div style={{ fontSize: '10px', color: '#aaa', marginTop: '4px' }}>{statusText}</div>
+        </div>
       </div>
 
       {/* Barbers list */}
-      <div style={{ background: '#FFFFFF', borderRadius: '32px', padding: isSmallMobile ? '18px' : '24px', border: '1px solid #E2E8F0', marginBottom: '18px', boxShadow: '0 24px 70px rgba(15,23,42,0.07)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', alignItems: 'flex-start', marginBottom: '18px', flexWrap: 'wrap' }}>
-          <div>
-            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '21px', color: '#0F172A', margin: 0 }}>Equipo en vivo</h2>
-            <p style={{ color: '#64748B', fontSize: '13px', margin: '5px 0 0', fontWeight: 600 }}>Servicios del día por barbero</p>
-          </div>
-          <button
-            onClick={() => setShowPaymentBreakdown(prev => !prev)}
-            style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#2563EB', borderRadius: '999px', padding: '10px 14px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px' }}
-          >
-            Medios de pago
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d={showPaymentBreakdown ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} />
-            </svg>
-          </button>
-        </div>
-
-        {showPaymentBreakdown && (
-          <div style={{ display: 'grid', gridTemplateColumns: isSmallMobile ? '1fr' : '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
-            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '22px', padding: '14px' }}>
-              <div style={{ color: '#64748B', fontSize: '12px', fontWeight: 700 }}>Efectivo</div>
-              <div style={{ color: '#0F172A', fontSize: '20px', fontWeight: 800 }}>${efectivoTotal.toLocaleString()}</div>
-            </div>
-            <div style={{ background: '#ECFEFF', border: '1px solid #CFFAFE', borderRadius: '22px', padding: '14px' }}>
-              <div style={{ color: '#0E7490', fontSize: '12px', fontWeight: 700 }}>Transferencia</div>
-              <div style={{ color: '#0F172A', fontSize: '20px', fontWeight: 800 }}>${transferenciaTotal.toLocaleString()}</div>
-            </div>
-          </div>
-        )}
+      <div style={{ background: '#fff', borderRadius: '10px', padding: '20px', border: '0.5px solid #e0e0e0', marginBottom: '16px' }}>
+        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '14px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 16px 0' }}>Tu equipo</h2>
 
         {barberStats.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '54px 20px', color: '#64748B', border: '1px dashed #CBD5E1', borderRadius: '28px', background: '#F8FAFC' }}>
-            <p style={{ fontSize: '17px', color: '#0F172A', fontWeight: 800, margin: '0 0 6px' }}>No hay barberos</p>
-            <p style={{ fontSize: '14px', margin: 0 }}>Agrega barberos en la configuración</p>
+          <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
+            <p style={{ fontSize: '16px', marginBottom: '8px' }}>No hay barberos</p>
+            <p style={{ fontSize: '14px' }}>Agrega barberos en la configuración</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -549,86 +497,71 @@ export function LivePanel() {
         )}
 
         {logs.length === 0 && barberStats.length > 0 && (
-          <div style={{ marginTop: '18px', padding: '16px', borderRadius: '22px', background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#64748B', fontSize: '13px', textAlign: 'center', fontWeight: 700 }}>
-            Esperando el primer servicio del día...
+          <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '0.5px solid #f0f0f0', color: '#aaa', fontSize: '12px', textAlign: 'center' }}>
+            <p>Esperando el primer servicio del día...</p>
           </div>
         )}
 
         {logs.length > 0 && (
-          <div style={{ marginTop: '18px', padding: '16px', borderRadius: '22px', background: '#ECFDF5', border: '1px solid #A7F3D0', color: '#047857', fontSize: '13px', textAlign: 'center', fontWeight: 800 }}>
-            Actualizado en tiempo real · Último servicio: {new Date(logs[0].started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '0.5px solid #f0f0f0', color: '#aaa', fontSize: '12px', textAlign: 'center' }}>
+            <p>Actualizado en tiempo real • Último servicio: {new Date(logs[0].started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
           </div>
         )}
       </div>
 
       {/* Expenses section */}
-      <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '32px', padding: isSmallMobile ? '18px' : '22px', marginBottom: '18px', boxShadow: '0 24px 70px rgba(15,23,42,0.07)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '14px', marginBottom: expenses.length > 0 ? '16px' : '0', flexWrap: 'wrap' }}>
-          <div>
-            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '19px', color: '#0F172A', margin: 0 }}>Gastos del día</h2>
-            <p style={{ color: '#64748B', fontSize: '12px', margin: '4px 0 0', fontWeight: 600 }}>Insumos y gastos operativos</p>
-          </div>
+      <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '20px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: expenses.length > 0 ? '12px' : '0' }}>
+          <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '14px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>GASTOS DEL DÍA</h2>
           <button
             onClick={() => setShowExpenseModal(true)}
-            style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: '999px', padding: '11px 15px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 14px 30px rgba(37,99,235,0.22)', whiteSpace: 'nowrap' }}
+            style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 16px', fontSize: '13px', cursor: 'pointer' }}
           >
-            Agregar gasto
+            ＋ Agregar gasto
           </button>
         </div>
-        {expenses.length > 0 ? (
+        {expenses.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {expenses.map(expense => (
-              <div key={expense.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '14px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '18px', padding: '11px 12px' }}>
-                <span style={{ color: '#334155', fontWeight: 700 }}>{expense.description}</span>
-                <span style={{ color: '#F59E0B', fontWeight: 900 }}>-${expense.amount.toLocaleString()}</span>
+              <div key={expense.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                <span style={{ color: '#444' }}>{expense.description}</span>
+                <span style={{ color: '#e74c3c', fontWeight: 500 }}>-${expense.amount.toLocaleString()}</span>
               </div>
             ))}
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: 900, borderTop: '1px solid #E2E8F0', paddingTop: '12px', marginTop: '4px' }}>
-              <span style={{ color: '#0F172A' }}>Total gastos</span>
-              <span style={{ color: '#F59E0B' }}>-${totalExpenses.toLocaleString()}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 700, borderTop: '0.5px solid #f0f0f0', paddingTop: '8px', marginTop: '4px' }}>
+              <span style={{ color: '#1a1a2e' }}>Total gastos</span>
+              <span style={{ color: '#e74c3c' }}>-${totalExpenses.toLocaleString()}</span>
             </div>
-          </div>
-        ) : (
-          <div style={{ marginTop: '16px', border: '1px dashed #CBD5E1', background: '#F8FAFC', color: '#64748B', borderRadius: '22px', padding: '20px', fontSize: '13px', fontWeight: 700, textAlign: 'center' }}>
-            Sin gastos cargados para esta jornada
           </div>
         )}
       </div>
 
       {/* Settlement summary */}
       {barberStats.length > 0 && logs.length > 0 && (
-        <div style={{ background: '#FFFFFF', border: '1px solid #DCEBFA', borderRadius: '32px', padding: isSmallMobile ? '18px' : '22px', boxShadow: '0 24px 70px rgba(15,23,42,0.08)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-            <div style={{ width: '44px', height: '44px', borderRadius: '16px', background: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 8h12M6 12h12M6 16h8M5 4h14a1 1 0 0 1 1 1v14l-3-2-3 2-3-2-3 2-3-2-3 2V5a1 1 0 0 1 1-1Z" />
-              </svg>
-            </div>
-            <div>
-              <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '19px', color: '#0F172A', margin: 0 }}>Liquidación del día</h2>
-              <p style={{ color: '#64748B', fontSize: '12px', margin: '4px 0 0', fontWeight: 600 }}>Resumen para cierre de caja</p>
-            </div>
+        <div style={{ background: '#3D3A8C', borderRadius: '10px', padding: '20px' }}>
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
+            Liquidación del día
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '12px 0', borderBottom: '1px solid #E2E8F0' }}>
-              <span style={{ fontSize: '13px', color: '#64748B', fontWeight: 800 }}>Total Barbería</span>
-              <span style={{ fontSize: '15px', fontWeight: 900, color: '#0F172A' }}>${totalDay.toLocaleString()}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+              <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Total Barbería</span>
+              <span style={{ fontSize: '14px', fontWeight: 500, color: '#fff' }}>${totalDay.toLocaleString()}</span>
             </div>
             {barberStats.map((stats) => (
-              <div key={stats.barber.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', paddingBottom: '10px', borderBottom: '1px solid #F1F5F9' }}>
-                <span style={{ fontSize: '13px', color: '#64748B', fontWeight: 700 }}>{stats.barber.display_name}</span>
-                <span style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A' }}>${stats.barberEarnings.toLocaleString()}</span>
+              <div key={stats.barber.id} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>{stats.barber.display_name}</span>
+                <span style={{ fontSize: '14px', fontWeight: 500, color: '#fff' }}>${stats.barberEarnings.toLocaleString()}</span>
               </div>
             ))}
             {totalExpenses > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', paddingBottom: '10px' }}>
-                <span style={{ fontSize: '13px', color: '#64748B', fontWeight: 700 }}>Insumos del día</span>
-                <span style={{ fontSize: '14px', fontWeight: 900, color: '#F59E0B' }}>-${totalExpenses.toLocaleString()}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px' }}>
+                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Insumos del día</span>
+                <span style={{ fontSize: '14px', fontWeight: 500, color: '#FF6B6B' }}>-${totalExpenses.toLocaleString()}</span>
               </div>
             )}
-            <div style={{ borderTop: '1px solid #DCEBFA', paddingTop: '14px', marginTop: '4px', display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'baseline', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '14px', color: '#0F172A', fontWeight: 900 }}>Ganancia real del dueño</span>
-              <span style={{ fontSize: '23px', fontWeight: 900, color: '#10B981', fontFamily: 'Syne, sans-serif' }}>${(totalDay - totalBarberEarningsExTips - totalExpenses).toLocaleString()}</span>
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '14px', color: '#fff', fontWeight: 600 }}>Ganancia real del dueño</span>
+              <span style={{ fontSize: '18px', fontWeight: 700, color: '#FF8C42' }}>${(totalDay - totalBarberEarningsExTips - totalExpenses).toLocaleString()}</span>
             </div>
           </div>
         </div>
@@ -636,37 +569,36 @@ export function LivePanel() {
 
       {/* Expense modal */}
       {showExpenseModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '18px', backdropFilter: 'blur(10px)' }}>
-          <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '32px', padding: '28px', maxWidth: '430px', width: '100%', color: '#0F172A', boxShadow: '0 30px 90px rgba(15,23,42,0.18)' }}>
-            <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '22px', color: '#0F172A', margin: '0 0 8px 0' }}>Agregar gasto</h3>
-            <p style={{ color: '#64748B', fontSize: '13px', fontWeight: 600, margin: '0 0 22px' }}>Registrá un gasto real de la jornada.</p>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '12px', padding: '32px', maxWidth: '400px', width: '90%', color: '#1a1a2e' }}>
+            <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#1a1a2e', margin: '0 0 24px 0' }}>Agregar gasto</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
               <input
                 type="text"
                 placeholder="Ej: Shampoo, toallas, etc."
                 value={expenseForm.description}
                 onChange={e => setExpenseForm(prev => ({ ...prev, description: e.target.value }))}
-                style={{ border: '1px solid #E2E8F0', borderRadius: '18px', padding: '14px 16px', fontSize: '14px', outline: 'none', backgroundColor: '#F8FAFC', color: '#0F172A', width: '100%', boxSizing: 'border-box', fontWeight: 600 }}
+                style={{ border: '0.5px solid #e0e0e0', borderRadius: '8px', padding: '12px', fontSize: '14px', outline: 'none', backgroundColor: '#f8f8f8', color: '#1a1a2e', width: '100%', boxSizing: 'border-box' }}
               />
               <input
                 type="number"
                 placeholder="0"
                 value={expenseForm.amount}
                 onChange={e => setExpenseForm(prev => ({ ...prev, amount: e.target.value }))}
-                style={{ border: '1px solid #E2E8F0', borderRadius: '18px', padding: '14px 16px', fontSize: '14px', outline: 'none', backgroundColor: '#F8FAFC', color: '#0F172A', width: '100%', boxSizing: 'border-box', fontWeight: 600 }}
+                style={{ border: '0.5px solid #e0e0e0', borderRadius: '8px', padding: '12px', fontSize: '14px', outline: 'none', backgroundColor: '#f8f8f8', color: '#1a1a2e', width: '100%', boxSizing: 'border-box' }}
               />
             </div>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => { setShowExpenseModal(false); setExpenseForm({ description: '', amount: '' }) }}
-                style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '999px', padding: '11px 18px', fontSize: '14px', cursor: 'pointer', color: '#64748B', fontWeight: 800 }}
+                style={{ background: 'none', border: '0.5px solid #e0e0e0', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', cursor: 'pointer', color: '#666' }}
               >
                 Cancelar
               </button>
               <button
                 onClick={handleAddExpense}
                 disabled={savingExpense}
-                style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: '999px', padding: '11px 20px', fontSize: '14px', cursor: savingExpense ? 'not-allowed' : 'pointer', opacity: savingExpense ? 0.7 : 1, fontWeight: 900, boxShadow: '0 14px 30px rgba(37,99,235,0.22)' }}
+                style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', cursor: savingExpense ? 'not-allowed' : 'pointer', opacity: savingExpense ? 0.7 : 1 }}
               >
                 {savingExpense ? 'Guardando...' : 'Guardar'}
               </button>
@@ -681,7 +613,6 @@ export function LivePanel() {
           50% { opacity: 0.5; }
         }
       `}</style>
-      </div>
     </div>
   )
 }
