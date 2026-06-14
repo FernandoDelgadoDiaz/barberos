@@ -167,6 +167,7 @@ export function LivePanel() {
 
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
   const totalBarberEarningsExTips = logs.reduce((sum, log) => sum + log.barber_earning - (log.tip_amount ?? 0), 0)
+  const totalOthers = logs.reduce((sum, log) => sum + (log.others_amount ?? 0), 0)
 
   // Load today's logs and active barbers
   const loadInitialData = useCallback(async () => {
@@ -561,7 +562,7 @@ export function LivePanel() {
             )}
             <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ fontSize: '14px', color: '#fff', fontWeight: 600 }}>Ganancia real del dueño</span>
-              <span style={{ fontSize: '18px', fontWeight: 700, color: '#FF8C42' }}>${(totalDay - totalBarberEarningsExTips - totalExpenses).toLocaleString()}</span>
+              <span style={{ fontSize: '18px', fontWeight: 700, color: '#FF8C42' }}>${(totalDay - totalBarberEarningsExTips + totalOthers - totalExpenses).toLocaleString()}</span>
             </div>
           </div>
         </div>
