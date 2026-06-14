@@ -30,11 +30,11 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
   const statusBg = stats.isActive ? '#DBEAFE' : '#DCFCE7'
 
   return (
-    <div style={{ borderTop: '1px solid #EEF2F7' }}>
+    <div style={{ borderTop: '1px solid #EEF2F7', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
       <button
         type="button"
         onClick={toggleExpand}
-        style={{ width: '100%', background: 'transparent', border: 'none', padding: '18px 0', display: 'grid', gridTemplateColumns: '64px 1fr auto 18px', gap: '14px', alignItems: 'center', textAlign: 'left', cursor: 'pointer' }}
+        style={{ width: '100%', minWidth: 0, background: 'transparent', border: 'none', padding: '18px 0', display: 'grid', gridTemplateColumns: '58px minmax(0, 1fr) 18px', gap: '14px', alignItems: 'center', textAlign: 'left', cursor: 'pointer', boxSizing: 'border-box' }}
       >
         <div style={{ position: 'relative', width: '58px', height: '58px', borderRadius: '22px', background: avatarStyles.background, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', fontWeight: 900, boxShadow: '0 14px 28px rgba(37,99,235,0.22)' }}>
           <span style={{ position: 'absolute', top: '8px', fontSize: '12px', opacity: 0.85 }}>{avatarStyles.mark}</span>
@@ -52,12 +52,15 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
               <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: statusColor, marginRight: '6px', verticalAlign: 'middle' }} />{statusLabel}
             </span>
           </div>
-          <div style={{ marginTop: '7px', color: '#94A3B8', fontSize: '12px', fontWeight: 700 }}>{stats.servicesCount} servicio{stats.servicesCount !== 1 ? 's' : ''} · Total {stats.totalGenerated.toLocaleString()}</div>
-        </div>
-
-        <div style={{ textAlign: 'right', minWidth: '78px' }}>
-          <div style={{ color: '#64748B', fontSize: '12px', fontWeight: 800, marginBottom: '5px' }}>Ingresos hoy</div>
-          <div style={{ color: '#070B1D', fontSize: '20px', fontWeight: 900 }}>${stats.totalGenerated.toLocaleString()}</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'flex-end', marginTop: '8px', minWidth: 0 }}>
+            <span style={{ color: '#94A3B8', fontSize: '12px', fontWeight: 700, minWidth: 0 }}>
+              {stats.servicesCount} servicio{stats.servicesCount !== 1 ? 's' : ''}
+            </span>
+            <span style={{ textAlign: 'right', minWidth: 0 }}>
+              <span style={{ display: 'block', color: '#64748B', fontSize: '11px', fontWeight: 800, marginBottom: '4px' }}>Ingresos hoy</span>
+              <span style={{ display: 'block', color: '#070B1D', fontSize: '18px', fontWeight: 900, overflowWrap: 'anywhere' }}>${stats.totalGenerated.toLocaleString()}</span>
+            </span>
+          </div>
         </div>
 
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 180ms ease' }}>
@@ -66,7 +69,7 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
       </button>
 
       {isExpanded && stats.appointments.length > 0 && (
-        <div style={{ padding: '0 0 18px 78px' }}>
+        <div style={{ padding: '0 0 18px 0', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
             <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '10px' }}>
               <div style={{ color: '#64748B', fontSize: '11px', fontWeight: 800 }}>Barbero</div>
@@ -80,16 +83,16 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {stats.appointments.map((appointment) => (
-              <div key={appointment.appointment_id} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '18px', padding: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start' }}>
+              <div key={appointment.appointment_id} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '18px', padding: '12px', minWidth: 0, boxSizing: 'border-box' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start', minWidth: 0 }}>
                   <div>
                     <div style={{ color: '#070B1D', fontSize: '14px', fontWeight: 900 }}>Cliente #{appointment.services[0]?.service_number_today || '?'}</div>
                     <div style={{ color: '#64748B', fontSize: '12px', fontWeight: 700, marginTop: '4px' }}>
                       {new Date(appointment.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ color: '#070B1D', fontSize: '16px', fontWeight: 900 }}>${appointment.total_price.toLocaleString()}</div>
+                  <div style={{ textAlign: 'right', minWidth: 0 }}>
+                    <div style={{ color: '#070B1D', fontSize: '16px', fontWeight: 900, overflowWrap: 'anywhere' }}>${appointment.total_price.toLocaleString()}</div>
                     <div style={{ color: '#64748B', fontSize: '12px', fontWeight: 700 }}>{appointment.services.length} servicio{appointment.services.length !== 1 ? 's' : ''}</div>
                   </div>
                 </div>
@@ -102,7 +105,7 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
                   const ownerPct = appointment.total_price > 0 ? Math.round(appointment.total_owner_earning / appointment.total_price * 100) : 0
                   return (
                     <div style={{ marginTop: '10px', background: '#FFFFFF', borderRadius: '14px', padding: '10px', border: '1px solid #E2E8F0' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '12px', fontWeight: 800 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '12px', fontWeight: 800, flexWrap: 'wrap' }}>
                         <span style={{ color: '#070B1D' }}>Barbero ${earningWithoutTip.toLocaleString()}</span>
                         <span style={{ color: '#2563EB' }}>{barberPct}% / {ownerPct}%</span>
                         <span style={{ color: '#F59E0B' }}>Dueño ${appointment.total_owner_earning.toLocaleString()}</span>
@@ -115,9 +118,9 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
 
                 <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {appointment.services.map((service, index) => (
-                    <div key={index} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '8px 9px', fontSize: '12px', fontWeight: 800 }}>
-                      <span style={{ color: '#070B1D' }}>Servicio · ${service.price_charged.toLocaleString()}</span>
-                      <span style={{ color: service.payment_method === 'transferencia' ? '#2563EB' : '#16A34A' }}>{service.payment_method === 'transferencia' ? 'Transferencia' : 'Efectivo'}</span>
+                    <div key={index} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '8px 9px', fontSize: '12px', fontWeight: 800, flexWrap: 'wrap' }}>
+                      <span style={{ color: '#070B1D', minWidth: 0 }}>Servicio · ${service.price_charged.toLocaleString()}</span>
+                      <span style={{ color: service.payment_method === 'transferencia' ? '#2563EB' : '#16A34A', whiteSpace: 'nowrap' }}>{service.payment_method === 'transferencia' ? 'Transferencia' : 'Efectivo'}</span>
                     </div>
                   ))}
                 </div>

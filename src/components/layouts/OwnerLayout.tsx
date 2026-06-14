@@ -92,8 +92,8 @@ export function OwnerLayout() {
     const mobileNavItems = navItems.filter(item => item.label !== 'Configuración')
 
     return (
-      <div style={{ minHeight: '100vh', background: '#F8FAFC' }}>
-        <div style={{ minHeight: '100vh', paddingBottom: '98px', overflow: 'auto' }}>
+      <div style={{ minHeight: '100vh', background: '#F8FAFC', overflowX: 'hidden' }}>
+        <div style={{ minHeight: '100vh', paddingBottom: '128px', overflowX: 'hidden' }}>
           <SuspendedGuard>
             <TrialExpiredGuard>
               <Outlet />
@@ -101,7 +101,7 @@ export function OwnerLayout() {
           </SuspendedGuard>
         </div>
 
-        <nav style={{ position: 'fixed', left: '50%', bottom: '16px', transform: 'translateX(-50%)', width: 'calc(100% - 28px)', maxWidth: '398px', height: '76px', background: '#FFFFFF', border: '1px solid rgba(226,232,240,0.78)', borderRadius: '22px', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'center', zIndex: 100, boxShadow: '0 18px 48px rgba(15,23,42,0.12)' }}>
+        <nav style={{ position: 'fixed', left: '14px', right: '14px', bottom: '16px', margin: '0 auto', width: 'auto', maxWidth: '398px', height: '76px', background: '#FFFFFF', border: '1px solid rgba(226,232,240,0.78)', borderRadius: '22px', display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', alignItems: 'center', zIndex: 100, boxShadow: '0 18px 48px rgba(15,23,42,0.12)', boxSizing: 'border-box', overflow: 'hidden' }}>
           {mobileNavItems.map(({ to, label }) => (
             <NavLink
               key={to}

@@ -416,8 +416,8 @@ export function LivePanel() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#F8FAFC', padding: '22px 14px 120px' }}>
-        <div style={{ maxWidth: '430px', margin: '0 auto' }}>
+      <div style={{ minHeight: '100vh', background: '#F8FAFC', padding: '22px 24px 132px', boxSizing: 'border-box', overflowX: 'hidden' }}>
+        <div style={{ width: '100%', maxWidth: '430px', margin: '0 auto', boxSizing: 'border-box' }}>
           <div style={{ height: '116px', borderRadius: '30px', background: '#FFFFFF', boxShadow: '0 18px 48px rgba(15,23,42,0.08)', border: '1px solid rgba(226,232,240,0.72)' }} />
           <div style={{ height: '214px', borderRadius: '28px', background: 'linear-gradient(135deg, #2563EB, #38BDF8)', marginTop: '22px', boxShadow: '0 20px 48px rgba(37,99,235,0.24)' }} />
         </div>
@@ -426,50 +426,50 @@ export function LivePanel() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F8FAFC', color: '#070B1D', padding: isSmallMobile ? '18px 14px 118px' : '24px 18px 118px', fontFamily: 'Space Grotesk, system-ui, sans-serif' }}>
-      <div style={{ maxWidth: '430px', margin: '0 auto' }}>
-        <header style={{ display: 'grid', gridTemplateColumns: '62px 1fr 52px 52px', gap: '10px', alignItems: 'center', marginBottom: '20px' }}>
+    <div style={{ minHeight: '100vh', background: '#F8FAFC', color: '#070B1D', padding: isSmallMobile ? '18px 24px 132px' : '24px 24px 132px', fontFamily: 'Space Grotesk, system-ui, sans-serif', boxSizing: 'border-box', overflowX: 'hidden' }}>
+      <div style={{ width: '100%', maxWidth: '430px', margin: '0 auto', boxSizing: 'border-box' }}>
+        <header style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '20px', width: '100%', minWidth: 0 }}>
           <button type="button" style={{ width: '56px', height: '56px', borderRadius: '18px', border: '1px solid rgba(226,232,240,0.72)', background: '#FFFFFF', boxShadow: '0 16px 34px rgba(15,23,42,0.08)', color: '#0F172A', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }} aria-label="Menu">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" /></svg>
           </button>
-          <div style={{ minWidth: 0 }}>
+          <div style={{ minWidth: 0, flex: '1 1 auto' }}>
             <h1 style={{ margin: 0, color: '#070B1D', fontSize: '24px', lineHeight: 1.05, fontWeight: 900 }}>{tenant?.name || 'La Barbería'} 💈</h1>
             <p style={{ margin: '6px 0 0', color: '#334155', fontSize: '16px', lineHeight: 1.15, fontWeight: 700 }}>
               ¡Buenos días{ownerFirstName ? ', ' : ''}<span style={{ color: '#2563EB' }}>{ownerFirstName || ''}</span>{ownerFirstName ? '! 👋' : '!'}
             </p>
           </div>
-          <button type="button" style={{ position: 'relative', width: '48px', height: '48px', borderRadius: '17px', border: '1px solid rgba(226,232,240,0.72)', background: '#FFFFFF', boxShadow: '0 16px 34px rgba(15,23,42,0.08)', color: '#0F172A', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }} aria-label="Notificaciones">
+          <button type="button" style={{ position: 'relative', flex: '0 0 48px', width: '48px', height: '48px', borderRadius: '17px', border: '1px solid rgba(226,232,240,0.72)', background: '#FFFFFF', boxShadow: '0 16px 34px rgba(15,23,42,0.08)', color: '#0F172A', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }} aria-label="Notificaciones">
             <span style={{ position: 'absolute', top: '9px', right: '11px', width: '7px', height: '7px', borderRadius: '50%', background: '#2563EB' }} />
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M18 8a6 6 0 0 0-12 0c0 7-3 6-3 8h18c0-2-3-1-3-8"/><path strokeLinecap="round" d="M10 20h4"/></svg>
           </button>
-          <button type="button" style={{ width: '48px', height: '48px', borderRadius: '17px', border: '1px solid rgba(226,232,240,0.72)', background: '#FFFFFF', boxShadow: '0 16px 34px rgba(15,23,42,0.08)', color: '#0F172A', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }} aria-label="Mensajes">
+          <button type="button" style={{ flex: '0 0 48px', width: '48px', height: '48px', borderRadius: '17px', border: '1px solid rgba(226,232,240,0.72)', background: '#FFFFFF', boxShadow: '0 16px 34px rgba(15,23,42,0.08)', color: '#0F172A', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }} aria-label="Mensajes">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.3-4A8 8 0 1 1 21 12Z"/><path strokeLinecap="round" d="M8 12h.01M12 12h.01M16 12h.01"/></svg>
           </button>
         </header>
 
-        <section style={{ background: '#FFFFFF', borderRadius: '22px', border: '1px solid rgba(226,232,240,0.76)', boxShadow: '0 16px 42px rgba(15,23,42,0.07)', padding: '13px 14px', display: 'grid', gridTemplateColumns: 'auto 1px 1fr auto', gap: '14px', alignItems: 'center', marginBottom: '18px' }}>
+        <section style={{ background: '#FFFFFF', borderRadius: '22px', border: '1px solid rgba(226,232,240,0.76)', boxShadow: '0 16px 42px rgba(15,23,42,0.07)', padding: '13px 14px', display: 'flex', gap: '14px', alignItems: 'center', marginBottom: '18px', width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: isBusinessOpen ? '#ECFDF5' : '#F1F5F9', color: isBusinessOpen ? '#16A34A' : '#64748B', borderRadius: '999px', padding: '8px 11px', fontSize: '14px', fontWeight: 900 }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', background: isBusinessOpen ? '#22C55E' : '#94A3B8' }} />{isBusinessOpen ? 'Abierto' : 'Cerrado'}</span>
-          <span style={{ width: '1px', height: '28px', background: '#CBD5E1' }} />
-          <span style={{ color: '#1E293B', fontSize: '14px', fontWeight: 700 }}>{formattedClosingTime ? `Cierra a las ${formattedClosingTime}` : statusText}</span>
+          <span style={{ flex: '0 0 1px', height: '28px', background: '#CBD5E1' }} />
+          <span style={{ color: '#1E293B', fontSize: '14px', fontWeight: 700, minWidth: 0, flex: '1 1 auto' }}>{formattedClosingTime ? `Cierra a las ${formattedClosingTime}` : statusText}</span>
           <span style={{ color: '#2563EB', fontSize: '13px', fontWeight: 900, whiteSpace: 'nowrap' }}>Ver horario</span>
         </section>
 
-        <section style={{ position: 'relative', overflow: 'hidden', borderRadius: '28px', background: 'linear-gradient(135deg, #315CF6 0%, #2563EB 48%, #56C6F7 100%)', minHeight: '214px', padding: '24px 22px', color: '#FFFFFF', boxShadow: '0 22px 54px rgba(37,99,235,0.28)', marginBottom: '18px' }}>
-          <div style={{ position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
+        <section style={{ overflow: 'hidden', borderRadius: '28px', background: 'linear-gradient(135deg, #315CF6 0%, #2563EB 48%, #56C6F7 100%)', minHeight: '214px', padding: '24px 22px', color: '#FFFFFF', boxShadow: '0 22px 54px rgba(37,99,235,0.28)', marginBottom: '18px', width: '100%', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', minWidth: 0 }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px', fontWeight: 800, opacity: 0.94 }}>Facturación hoy <span style={{ width: '18px', height: '18px', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.45)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>i</span></div>
-              <div style={{ marginTop: '18px', fontSize: '56px', lineHeight: 0.95, fontWeight: 900, letterSpacing: '0' }}>{formatMoney(totalDay)}</div>
+              <div style={{ marginTop: '18px', fontSize: isSmallMobile ? '46px' : '56px', lineHeight: 0.95, fontWeight: 900, letterSpacing: '0' }}>{formatMoney(totalDay)}</div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '22px', padding: '10px 14px', borderRadius: '999px', background: 'rgba(255,255,255,0.92)', color: '#2563EB', fontSize: '13px', fontWeight: 900 }}>Datos en tiempo real</div>
             </div>
             <button type="button" style={{ border: 'none', borderRadius: '16px', background: 'rgba(255,255,255,0.13)', color: '#FFFFFF', padding: '12px 15px', fontSize: '15px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '8px' }}>Hoy <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" /></svg></button>
           </div>
-          <svg style={{ position: 'absolute', right: '24px', bottom: '28px', width: '68%', height: '92px', opacity: 0.84 }} viewBox="0 0 280 100" fill="none" preserveAspectRatio="none">
+          <svg style={{ display: 'block', width: '100%', height: '78px', opacity: 0.84, marginTop: '8px' }} viewBox="0 0 280 100" fill="none" preserveAspectRatio="none">
             <path d="M0 82 C32 76 44 90 70 66 C98 40 112 76 142 43 C170 12 180 67 210 32 C236 2 242 48 280 12" stroke="rgba(255,255,255,0.86)" strokeWidth="5" strokeLinecap="round" />
             <path d="M0 82 C32 76 44 90 70 66 C98 40 112 76 142 43 C170 12 180 67 210 32 C236 2 242 48 280 12" stroke="rgba(255,255,255,0.18)" strokeWidth="12" strokeLinecap="round" />
           </svg>
         </section>
 
-        <section style={{ background: '#FFFFFF', border: '1px solid rgba(226,232,240,0.72)', borderRadius: '20px', padding: '13px 14px', boxShadow: '0 14px 34px rgba(15,23,42,0.06)', marginBottom: '18px' }}>
+        <section style={{ background: '#FFFFFF', border: '1px solid rgba(226,232,240,0.72)', borderRadius: '20px', padding: '13px 14px', boxShadow: '0 14px 34px rgba(15,23,42,0.06)', marginBottom: '18px', width: '100%', boxSizing: 'border-box' }}>
           <button type="button" onClick={() => setShowPaymentBreakdown(prev => !prev)} style={{ width: '100%', background: 'transparent', border: 'none', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#2563EB', fontSize: '14px', fontWeight: 900, cursor: 'pointer' }}>
             <span>Medios de pago</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: showPaymentBreakdown ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}><path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" /></svg>
@@ -482,14 +482,14 @@ export function LivePanel() {
           )}
         </section>
 
-        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px', marginBottom: '18px' }}>
+        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px', marginBottom: '18px', width: '100%', boxSizing: 'border-box' }}>
           {[
             { label: 'Servicios hoy', value: totalServices.toLocaleString(), helper: 'Datos reales', color: '#2563EB', bg: '#DBEAFE', icon: 'bag' },
             { label: 'Ganancia hoy', value: formatMoney(ownerEarning), helper: 'Dueño', color: '#16A34A', bg: '#DCFCE7', icon: 'trend' },
             { label: 'Barberos activos', value: activeBarbersCount.toLocaleString(), helper: `de ${barberStats.length}`, color: '#7C3AED', bg: '#EDE9FE', icon: 'users' },
             { label: 'Ticket promedio', value: formatMoney(averageTicket), helper: 'Por servicio', color: '#F59E0B', bg: '#FEF3C7', icon: 'tag' },
           ].map(card => (
-            <div key={card.label} style={{ minHeight: '154px', background: '#FFFFFF', border: '1px solid rgba(226,232,240,0.72)', borderRadius: '24px', padding: '16px', boxShadow: '0 16px 42px rgba(15,23,42,0.07)' }}>
+            <div key={card.label} style={{ width: '100%', minWidth: 0, minHeight: '154px', background: '#FFFFFF', border: '1px solid rgba(226,232,240,0.72)', borderRadius: '24px', padding: '16px', boxShadow: '0 16px 42px rgba(15,23,42,0.07)', boxSizing: 'border-box' }}>
               <div style={{ width: '44px', height: '44px', borderRadius: '15px', background: card.bg, color: card.color, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '18px' }}>
                 {card.icon === 'bag' && <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 8h12l-1 12H7L6 8Z"/><path strokeLinecap="round" d="M9 8a3 3 0 0 1 6 0"/></svg>}
                 {card.icon === 'trend' && <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 17l6-6 4 4 6-8"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 7h5v5"/></svg>}
@@ -497,13 +497,13 @@ export function LivePanel() {
                 {card.icon === 'tag' && <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="8" cy="8" r="1.5"/></svg>}
               </div>
               <div style={{ color: '#475569', fontSize: '13px', fontWeight: 800, marginBottom: '12px' }}>{card.label}</div>
-              <div style={{ color: '#070B1D', fontSize: '25px', fontWeight: 900, lineHeight: 1 }}>{card.value}</div>
+              <div style={{ color: '#070B1D', fontSize: isSmallMobile ? '22px' : '25px', fontWeight: 900, lineHeight: 1, overflowWrap: 'anywhere' }}>{card.value}</div>
               <div style={{ color: '#64748B', fontSize: '13px', fontWeight: 700, marginTop: '14px' }}>{card.helper}</div>
             </div>
           ))}
         </section>
 
-        <section style={{ background: '#FFFFFF', border: '1px solid rgba(226,232,240,0.72)', borderRadius: '26px', padding: '18px', boxShadow: '0 18px 48px rgba(15,23,42,0.08)', marginBottom: '18px' }}>
+        <section style={{ background: '#FFFFFF', border: '1px solid rgba(226,232,240,0.72)', borderRadius: '26px', padding: '18px', boxShadow: '0 18px 48px rgba(15,23,42,0.08)', marginBottom: '18px', width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '14px' }}>
             <h2 style={{ color: '#070B1D', fontSize: '21px', fontWeight: 900, margin: 0 }}>Barberos en tiempo real</h2>
             <span style={{ color: '#2563EB', fontSize: '14px', fontWeight: 900 }}>Ver todos</span>
@@ -517,7 +517,7 @@ export function LivePanel() {
           )}
         </section>
 
-        <section style={{ display: 'grid', gridTemplateColumns: '74px 1fr', gap: '14px', alignItems: 'center', background: 'linear-gradient(135deg, #EFF6FF, #FFFFFF)', border: '1px solid rgba(219,234,254,0.9)', borderRadius: '22px', padding: '16px', boxShadow: '0 16px 42px rgba(15,23,42,0.06)', marginBottom: '18px' }}>
+        <section style={{ display: 'grid', gridTemplateColumns: '58px minmax(0, 1fr)', gap: '14px', alignItems: 'center', background: 'linear-gradient(135deg, #EFF6FF, #FFFFFF)', border: '1px solid rgba(219,234,254,0.9)', borderRadius: '22px', padding: '16px', boxShadow: '0 16px 42px rgba(15,23,42,0.06)', marginBottom: '18px', width: '100%', boxSizing: 'border-box' }}>
           <div style={{ width: '58px', height: '58px', borderRadius: '18px', background: '#DBEAFE', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 18V6M4 18h16M8 15l4-4 3 3 5-7"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 7h5v5"/></svg>
           </div>
@@ -527,7 +527,7 @@ export function LivePanel() {
           </div>
         </section>
 
-        <section style={{ background: '#FFFFFF', border: '1px solid rgba(226,232,240,0.72)', borderRadius: '24px', padding: '18px', boxShadow: '0 18px 48px rgba(15,23,42,0.07)', marginBottom: '18px' }}>
+        <section style={{ background: '#FFFFFF', border: '1px solid rgba(226,232,240,0.72)', borderRadius: '24px', padding: '18px', boxShadow: '0 18px 48px rgba(15,23,42,0.07)', marginBottom: '18px', width: '100%', boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: expenses.length > 0 ? '14px' : 0 }}>
             <div>
               <h2 style={{ color: '#070B1D', fontSize: '18px', fontWeight: 900, margin: 0 }}>Gastos del día</h2>
@@ -552,7 +552,7 @@ export function LivePanel() {
         </section>
 
         {barberStats.length > 0 && logs.length > 0 && (
-          <section style={{ background: '#FFFFFF', border: '1px solid rgba(226,232,240,0.72)', borderRadius: '24px', padding: '18px', boxShadow: '0 18px 48px rgba(15,23,42,0.07)' }}>
+          <section style={{ background: '#FFFFFF', border: '1px solid rgba(226,232,240,0.72)', borderRadius: '24px', padding: '18px', boxShadow: '0 18px 48px rgba(15,23,42,0.07)', width: '100%', boxSizing: 'border-box' }}>
             <h2 style={{ color: '#070B1D', fontSize: '18px', fontWeight: 900, margin: '0 0 14px' }}>Liquidación del día</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#1E293B', fontSize: '14px', fontWeight: 800 }}><span>Total Barbería</span><span>{formatMoney(totalDay)}</span></div>
