@@ -13,6 +13,41 @@ async function getAuthHeader(): Promise<string> {
   return `Bearer ${session.access_token}`
 }
 
+// Returns Argentina calendar date (YYYY-MM-DD) independent of device timezone.
+function getArgentinaDateString(date: Date = new Date()): string {
+  return date.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
+}
+
+// Returns the UTC range corresponding to the Argentina calendar day (UTC-3, no DST).
+function getArgentinaDayRangeUTC(date: Date = new Date()): { startUTC: string; endUTC: string; today: string } {
+  const argDate = getArgentinaDateString(date)
+  // Start of day Argentina is 03:00 UTC of the same date
+  const startUTC = `${argDate}T03:00:00.000Z`
+  // End of day Argentina is 02:59:59.999 UTC of the next day
+  const nextDay = new Date(date)
+  nextDay.setDate(nextDay.getDate() + 1)
+  const argNextDate = getArgentinaDateString(nextDay)
+  const endUTC = `${argNextDate}T02:59:59.999Z`
+  return { startUTC, endUTC, today: argDate }
+}
+
+// Returns the UTC range for the Argentina calendar month containing the given date.
+function getArgentinaMonthRangeUTC(date: Date = new Date()): { firstDayUTC: string; lastDayUTC: string } {
+  const argDate = getArgentinaDateString(date) // YYYY-MM-DD
+  const [yearStr, monthStr] = argDate.split('-')
+  const year = parseInt(yearStr, 10)
+  const month = parseInt(monthStr, 10) // 1-12
+  const firstOfMonth = `${yearStr}-${monthStr}-01`
+  // First day of next month at 02:59:59.999 UTC = end of last day of current month in Argentina
+  const nextMonth = month === 12 ? 1 : month + 1
+  const nextYear = month === 12 ? year + 1 : year
+  const nextMonthFirst = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`
+  return {
+    firstDayUTC: `${firstOfMonth}T03:00:00.000Z`,
+    lastDayUTC: `${nextMonthFirst}T02:59:59.999Z`,
+  }
+}
+
 interface TodaySummary {
   totalServices: number
   totalRevenue: number
@@ -85,13 +120,10 @@ export function Summary() {
       }, 10000)
 
       try {
-        // Argentina timezone (UTC-3): the day starts at 03:00 UTC and ends at 02:59:59 UTC next day.
+        // Argentina timezone (UTC-3): compute day range using toLocaleDateString
+        // (independent of device timezone).
         const now = new Date()
-        const argOffset = -3 * 60
-        const argNow = new Date(now.getTime() + (argOffset - now.getTimezoneOffset()) * 60000)
-        const startUTC = new Date(Date.UTC(argNow.getFullYear(), argNow.getMonth(), argNow.getDate(), 3, 0, 0))
-        const endUTC = new Date(Date.UTC(argNow.getFullYear(), argNow.getMonth(), argNow.getDate() + 1, 2, 59, 59))
-        const today = `${argNow.getFullYear()}-${String(argNow.getMonth() + 1).padStart(2, '0')}-${String(argNow.getDate()).padStart(2, '0')}`
+        const { startUTC, endUTC, today } = getArgentinaDayRangeUTC(now)
 
         // Check if day already closed (optional query, continue even if fails)
         let dailySummary = null
@@ -128,8 +160,8 @@ export function Summary() {
             .select('*')
             .eq('tenant_id', tenant.id)
             .eq('barber_id', profile.id)
-            .gte('created_at', startUTC.toISOString())
-            .lte('created_at', endUTC.toISOString())
+            .gte('created_at', startUTC)
+            .lte('created_at', endUTC)
             .order('started_at', { ascending: false })
 
           if (logsError) {
@@ -152,8 +184,8 @@ export function Summary() {
             .eq('tenant_id', tenant.id)
             .eq('barber_id', profile.id)
             .eq('status', 'closed')
-            .gte('created_at', startUTC.toISOString())
-            .lte('created_at', endUTC.toISOString())
+            .gte('created_at', startUTC)
+            .lte('created_at', endUTC)
             .order('started_at', { ascending: true })
 
           if (shiftsError) {
@@ -167,19 +199,18 @@ export function Summary() {
 
         if (isMounted) setShifts(shiftsData)
 
-        // Load monthly accumulated stats (Argentina timezone UTC-3)
+        // Load monthly accumulated stats (Argentina timezone, device-independent)
         try {
-          const firstDayUTC = new Date(Date.UTC(argNow.getFullYear(), argNow.getMonth(), 1, 3, 0, 0))
-          const lastDayUTC = new Date(Date.UTC(argNow.getFullYear(), argNow.getMonth() + 1, 1, 2, 59, 59))
-          console.log('[Summary] month range (UTC):', firstDayUTC.toISOString(), '→', lastDayUTC.toISOString())
+          const { firstDayUTC, lastDayUTC } = getArgentinaMonthRangeUTC(now)
+          console.log('[Summary] month range (UTC):', firstDayUTC, '→', lastDayUTC)
           const { data: monthLogs, error: monthError } = await supabase
             .from('service_logs')
             .select('barber_earning')
             .eq('tenant_id', tenant.id)
             .eq('barber_id', profile.id)
             .in('status', ['completed', 'closed'])
-            .gte('created_at', firstDayUTC.toISOString())
-            .lte('created_at', lastDayUTC.toISOString())
+            .gte('created_at', firstDayUTC)
+            .lte('created_at', lastDayUTC)
           if (monthError) {
             console.warn('[Summary] monthly logs query error (non-blocking):', monthError)
           } else if (isMounted) {
@@ -242,13 +273,10 @@ export function Summary() {
     setError(null)
 
     try {
-      // Argentina timezone (UTC-3): compute the current Argentina calendar date and UTC range.
+      // Argentina timezone (UTC-3): compute day range using toLocaleDateString
+      // (independent of device timezone).
       const now = new Date()
-      const argOffset = -3 * 60
-      const argNow = new Date(now.getTime() + (argOffset - now.getTimezoneOffset()) * 60000)
-      const startUTC = new Date(Date.UTC(argNow.getFullYear(), argNow.getMonth(), argNow.getDate(), 3, 0, 0))
-      const endUTC = new Date(Date.UTC(argNow.getFullYear(), argNow.getMonth(), argNow.getDate() + 1, 2, 59, 59))
-      const today = `${argNow.getFullYear()}-${String(argNow.getMonth() + 1).padStart(2, '0')}-${String(argNow.getDate()).padStart(2, '0')}`
+      const { startUTC, endUTC, today } = getArgentinaDayRangeUTC(now)
       const authHeader = await getAuthHeader()
       const response = await fetch('/api/close-day', {
         method: 'POST',
@@ -282,8 +310,8 @@ export function Summary() {
         .select('*')
         .eq('tenant_id', tenant.id)
         .eq('barber_id', profile.id)
-        .gte('created_at', startUTC.toISOString())
-        .lte('created_at', endUTC.toISOString())
+        .gte('created_at', startUTC)
+        .lte('created_at', endUTC)
         .order('started_at', { ascending: false })
 
       setLogs(data || [])
