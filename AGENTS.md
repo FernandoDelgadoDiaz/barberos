@@ -6,10 +6,10 @@ Stack: React 18 + TypeScript + Vite + TailwindCSS + Supabase + Netlify Functions
 Supabase project: https://anwqupemaircnlszjgmd.supabase.co
 
 ## Pipeline
-1. Claude (claude.ai) → arquitecto, define ARCHITECTURE LOCK
-2. DeepSeek via Claude Code → implementa
+1. Codex (Codex.ai) → arquitecto, define ARCHITECTURE LOCK
+2. DeepSeek via Codex → implementa
 3. ChatGPT → audita
-4. Claude → valida
+4. Codex → valida
 
 ## Reglas críticas
 - NUNCA romper funcionalidad existente

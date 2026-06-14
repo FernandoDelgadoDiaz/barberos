@@ -21,7 +21,8 @@
 
 ## Branding
 - CSS vars: --primary, --secondary
-- Inyectadas en TenantTheme.tsx
+- Inyectadas en TenantTheme.tsx con valores FIJOS (tema unificado, igual para todos los tenants)
+- NO hay personalización de color por tenant; primary_color/secondary_color de la DB quedan sin uso para el tema
 - Logo en Supabase Storage bucket: tenant-logos (público)
 
 ## Prohibido
