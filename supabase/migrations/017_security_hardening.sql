@@ -10,6 +10,15 @@
 -- aplicó o fue revertida), por eso este paso las CREA. Las policies previas de
 -- profiles eran profiles_own (ALL) y profiles_simple (SELECT), ambas rol public.
 -- Ver SECURITY_ANALYSIS.md para el plan completo y el rollback.
+--
+-- ADVERTENCIA (reconstrucción desde cero): la migración 005 crea get_my_role()
+-- y get_my_tenant_id() como SECURITY INVOKER (sin SECURITY DEFINER). En la DB
+-- live 005 nunca corrió, así que en producción no hay conflicto. Pero si algún
+-- día se reconstruye la base aplicando TODAS las migraciones en orden, 005
+-- correra primero (versiones INVOKER) y esta 017 las redefine como DEFINER via
+-- CREATE OR REPLACE. El estado final es correcto (017 sobreescribe a 005), pero
+-- tenerlo presente: el comportamiento seguro depende de que 017 se aplique
+-- DESPUES de 005.
 
 BEGIN;
 
