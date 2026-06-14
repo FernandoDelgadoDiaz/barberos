@@ -49,7 +49,7 @@ const NavIcon = ({ label }: { label: string }) => {
 }
 
 const SHORT_LABELS: Record<string, string> = {
-  'Panel en vivo': 'Inicio',
+  'Panel en vivo': 'Live',
   'Métricas': 'Métricas',
   'Historial': 'Historial',
   'Configuración': 'Config',
@@ -89,11 +89,23 @@ export function OwnerLayout() {
   ]
 
   if (isMobile) {
-    const mobileNavItems = navItems.filter(item => item.label !== 'Configuración')
-
     return (
-      <div style={{ minHeight: '100vh', background: '#F8FAFC', overflowX: 'hidden' }}>
-        <div style={{ minHeight: '100vh', paddingBottom: '128px', overflowX: 'hidden' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#F4F5F7' }}>
+        {/* Mobile top header */}
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '52px', background: 'var(--primary, #1E2A3A)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 100 }}>
+          <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: '#fff' }}>
+            {tenant?.name}
+          </span>
+          <button
+            onClick={handleSignOut}
+            style={{ background: 'transparent', border: 'none', padding: 0, color: 'var(--secondary, #D4A853)', fontSize: '13px', cursor: 'pointer', fontWeight: 500 }}
+          >
+            Cerrar sesión
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{ marginTop: '52px', flex: 1, padding: '24px', paddingBottom: '80px', overflow: 'auto' }}>
           <SuspendedGuard>
             <TrialExpiredGuard>
               <Outlet />
@@ -101,32 +113,35 @@ export function OwnerLayout() {
           </SuspendedGuard>
         </div>
 
-        <nav style={{ position: 'fixed', left: '14px', right: '14px', bottom: '16px', margin: '0 auto', width: 'auto', maxWidth: '398px', height: '76px', background: '#FFFFFF', border: '1px solid rgba(226,232,240,0.78)', borderRadius: '22px', display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', alignItems: 'center', zIndex: 100, boxShadow: '0 18px 48px rgba(15,23,42,0.12)', boxSizing: 'border-box', overflow: 'hidden' }}>
-          {mobileNavItems.map(({ to, label }) => (
+        {/* Mobile bottom nav */}
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', background: 'var(--primary, #1E2A3A)', display: 'flex', alignItems: 'center', zIndex: 100, overflowX: 'auto' }}>
+          {navItems.map(({ to, label }) => (
             <NavLink
               key={to}
               to={to}
               style={({ isActive }) => ({
+                flex: '1 0 auto',
+                minWidth: '60px',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '5px',
-                color: isActive ? '#2563EB' : '#64748B',
+                gap: '3px',
+                color: isActive ? 'var(--secondary, #D4A853)' : 'rgba(255,255,255,0.5)',
                 textDecoration: 'none',
-                fontSize: '11px',
-                fontWeight: isActive ? 800 : 700,
-                lineHeight: 1,
+                fontSize: '10px',
+                fontWeight: 500,
               })}
             >
               <NavIcon label={label} />
               {SHORT_LABELS[label]}
             </NavLink>
           ))}
-        </nav>
+        </div>
       </div>
     )
   }
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       {/* Sidebar */}
