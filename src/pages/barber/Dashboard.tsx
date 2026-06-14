@@ -63,6 +63,11 @@ export function Dashboard() {
   const [selectedProducts, setSelectedProducts] = useState<ServiceCatalog[]>([])
   const [wizardStep, setWizardStep] = useState<0|1|2|3|4|5>(0)
   const [wizardPaymentMethod, setWizardPaymentMethod] = useState<'efectivo'|'transferencia'>('efectivo')
+  // Tip and products have their OWN payment method (cash register reconciliation):
+  // the client may pay the service by transfer but the tip in cash, etc. They default
+  // to the service method (set when the service method is chosen) and can be overridden.
+  const [wizardTipPaymentMethod, setWizardTipPaymentMethod] = useState<'efectivo'|'transferencia'>('efectivo')
+  const [wizardOthersPaymentMethod, setWizardOthersPaymentMethod] = useState<'efectivo'|'transferencia'>('efectivo')
   const [wizardTip, setWizardTip] = useState('')
   const [wizardTipEnabled, setWizardTipEnabled] = useState(false)
   const [processing, setProcessing] = useState(false)
@@ -83,6 +88,8 @@ export function Dashboard() {
     setSelectedServices([])
     setSelectedProducts([])
     setWizardPaymentMethod('efectivo')
+    setWizardTipPaymentMethod('efectivo')
+    setWizardOthersPaymentMethod('efectivo')
     setWizardTip('')
     setWizardTipEnabled(false)
     setWizardError(null)
@@ -407,9 +414,9 @@ export function Dashboard() {
           shift_id: activeShiftId,
           payment_method: wizardPaymentMethod,
           tip_amount: parseFloat(wizardTip) || 0,
-          tip_payment_method: wizardPaymentMethod,
+          tip_payment_method: wizardTipPaymentMethod,
           others_amount: selectedProducts.reduce((sum, p) => sum + p.base_price, 0),
-          others_payment_method: wizardPaymentMethod,
+          others_payment_method: wizardOthersPaymentMethod,
         }),
       })
 
@@ -826,13 +833,13 @@ export function Dashboard() {
                 <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '24px', color: '#1E2A3A', marginBottom: '24px' }}>Método de pago</div>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <button
-                    onClick={() => { setWizardPaymentMethod('efectivo'); setWizardStep(3) }}
+                    onClick={() => { setWizardPaymentMethod('efectivo'); setWizardTipPaymentMethod('efectivo'); setWizardOthersPaymentMethod('efectivo'); setWizardStep(3) }}
                     style={{ flex: 1, padding: '20px 12px', borderRadius: '10px', border: wizardPaymentMethod === 'efectivo' ? 'none' : '1px solid #E8E9EB', background: wizardPaymentMethod === 'efectivo' ? '#1E2A3A' : '#F9FAFB', color: wizardPaymentMethod === 'efectivo' ? '#fff' : '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
                   >
                     💵 Efectivo
                   </button>
                   <button
-                    onClick={() => { setWizardPaymentMethod('transferencia'); setWizardStep(3) }}
+                    onClick={() => { setWizardPaymentMethod('transferencia'); setWizardTipPaymentMethod('transferencia'); setWizardOthersPaymentMethod('transferencia'); setWizardStep(3) }}
                     style={{ flex: 1, padding: '20px 12px', borderRadius: '10px', border: wizardPaymentMethod === 'transferencia' ? 'none' : '1px solid #E8E9EB', background: wizardPaymentMethod === 'transferencia' ? '#1E2A3A' : '#F9FAFB', color: wizardPaymentMethod === 'transferencia' ? '#fff' : '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
                   >
                     📲 Transferencia
@@ -861,6 +868,15 @@ export function Dashboard() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
                       <span style={{ fontSize: '20px', fontWeight: 700, color: '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif' }}>$</span>
                       <input type="number" placeholder="0" value={wizardTip} onChange={e => setWizardTip(e.target.value)} style={{ flex: 1, border: '1px solid #E8E9EB', borderRadius: '8px', padding: '12px', fontSize: '16px', background: '#F9FAFB', color: '#1E2A3A', outline: 'none', fontFamily: 'Space Grotesk, sans-serif' }} />
+                    </div>
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#6B7280', marginBottom: '8px' }}>Método de pago de la propina</div>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                      <button onClick={() => setWizardTipPaymentMethod('efectivo')} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: wizardTipPaymentMethod === 'efectivo' ? 'none' : '1px solid #E8E9EB', background: wizardTipPaymentMethod === 'efectivo' ? '#1E2A3A' : '#F9FAFB', color: wizardTipPaymentMethod === 'efectivo' ? '#fff' : '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+                        💵 Efectivo
+                      </button>
+                      <button onClick={() => setWizardTipPaymentMethod('transferencia')} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: wizardTipPaymentMethod === 'transferencia' ? 'none' : '1px solid #E8E9EB', background: wizardTipPaymentMethod === 'transferencia' ? '#1E2A3A' : '#F9FAFB', color: wizardTipPaymentMethod === 'transferencia' ? '#fff' : '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+                        📲 Transferencia
+                      </button>
                     </div>
                     <button onClick={() => setWizardStep(4)} style={{ width: '100%', height: '48px', background: '#1E2A3A', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}>
                       Siguiente →
@@ -912,6 +928,19 @@ export function Dashboard() {
                         ? `${selectedProducts.length} seleccionado${selectedProducts.length !== 1 ? 's' : ''} · $${selectedProducts.reduce((s, x) => s + x.base_price, 0).toLocaleString('es-AR')}`
                         : 'Ningún producto seleccionado'}
                     </div>
+                    {selectedProducts.length > 0 && (
+                      <>
+                        <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#6B7280', marginBottom: '8px' }}>Método de pago de los productos</div>
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                          <button onClick={() => setWizardOthersPaymentMethod('efectivo')} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: wizardOthersPaymentMethod === 'efectivo' ? 'none' : '1px solid #E8E9EB', background: wizardOthersPaymentMethod === 'efectivo' ? '#1E2A3A' : '#F9FAFB', color: wizardOthersPaymentMethod === 'efectivo' ? '#fff' : '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+                            💵 Efectivo
+                          </button>
+                          <button onClick={() => setWizardOthersPaymentMethod('transferencia')} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: wizardOthersPaymentMethod === 'transferencia' ? 'none' : '1px solid #E8E9EB', background: wizardOthersPaymentMethod === 'transferencia' ? '#1E2A3A' : '#F9FAFB', color: wizardOthersPaymentMethod === 'transferencia' ? '#fff' : '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+                            📲 Transferencia
+                          </button>
+                        </div>
+                      </>
+                    )}
                     <button onClick={() => setWizardStep(5)} style={{ width: '100%', height: '48px', background: '#1E2A3A', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}>
                       Siguiente →
                     </button>
@@ -951,7 +980,12 @@ export function Dashboard() {
                   </div>
                   {(parseFloat(wizardTip) || 0) > 0 && (
                     <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#6B7280' }}>
-                      Propina: <span style={{ color: '#D4A853', fontWeight: 600 }}>${(parseFloat(wizardTip) || 0).toLocaleString('es-AR')}</span> <span style={{ color: '#9CA3AF' }}>(100% para vos)</span>
+                      Propina: <span style={{ color: '#D4A853', fontWeight: 600 }}>${(parseFloat(wizardTip) || 0).toLocaleString('es-AR')}</span> <span style={{ color: '#9CA3AF' }}>(100% para vos · {wizardTipPaymentMethod === 'transferencia' ? '📲 Transferencia' : '💵 Efectivo'})</span>
+                    </div>
+                  )}
+                  {selectedProducts.length > 0 && (
+                    <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', color: '#6B7280' }}>
+                      Productos: <span style={{ color: '#9CA3AF' }}>{wizardOthersPaymentMethod === 'transferencia' ? '📲 Transferencia' : '💵 Efectivo'}</span>
                     </div>
                   )}
                 </div>
