@@ -17,86 +17,72 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
     .filter(s => s.payment_method === 'transferencia')
     .reduce((sum, s) => sum + s.price_charged, 0)
 
-  const initial = stats.barber.display_name.charAt(0).toUpperCase()
-  const accentIndex = stats.barber.id.charCodeAt(0) % 3
-  const avatarStyle = [
-    { background: 'linear-gradient(135deg, #DBEAFE, #CFFAFE)', color: '#2563EB' },
-    { background: 'linear-gradient(135deg, #D1FAE5, #ECFDF5)', color: '#059669' },
-    { background: 'linear-gradient(135deg, #FEF3C7, #FFFBEB)', color: '#B45309' },
-  ][accentIndex]
-
   return (
-    <div style={{ background: stats.highlight ? '#EFF6FF' : '#FFFFFF', borderRadius: '28px', border: stats.highlight ? '1px solid #93C5FD' : '1px solid #E2E8F0', overflow: 'hidden', boxShadow: stats.highlight ? '0 18px 50px rgba(37,99,235,0.16)' : '0 12px 35px rgba(15,23,42,0.05)', transition: 'box-shadow 180ms ease, border-color 180ms ease, background 180ms ease' }}>
-      <button
-        type="button"
-        onClick={toggleExpand}
-        style={{ width: '100%', background: 'transparent', border: 'none', padding: '18px', cursor: 'pointer', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: '14px', alignItems: 'center', textAlign: 'left' }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '13px', minWidth: 0 }}>
-          <div style={{ width: '54px', height: '54px', borderRadius: '20px', background: avatarStyle.background, color: avatarStyle.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontWeight: 900, fontSize: '22px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 14px 28px rgba(15,23,42,0.08)', flexShrink: 0 }}>
-            {initial}
+    <div style={{ background: '#fff', borderRadius: '10px', border: '0.5px solid #e0e0e0', overflow: 'hidden' }}>
+      <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }} onClick={toggleExpand}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#3D3A8C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '14px', color: '#fff', flexShrink: 0 }}>
+            {stats.barber.display_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
           </div>
           <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ color: '#0F172A', fontWeight: 800, fontSize: '16px' }}>{stats.barber.display_name}</span>
-              {stats.isActive && (
-                <span style={{ color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '999px', padding: '4px 8px', fontSize: '11px', fontWeight: 800 }}>Activo</span>
-              )}
+            <div style={{ fontSize: '14px', fontWeight: 500, color: '#1a1a2e', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {stats.barber.display_name}
+              {stats.isActive && <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#2ecc71', display: 'inline-block', flexShrink: 0 }} />}
             </div>
-            <div style={{ color: '#64748B', fontSize: '13px', fontWeight: 600, marginTop: '4px' }}>
-              {stats.appointments.length} cliente{stats.appointments.length !== 1 ? 's' : ''} · {stats.servicesCount} servicio{stats.servicesCount !== 1 ? 's' : ''} · ${stats.totalGenerated.toLocaleString()}
+            <div style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>
+              {stats.appointments.length} cliente{stats.appointments.length !== 1 ? 's' : ''} · ${stats.totalGenerated.toLocaleString()}
             </div>
           </div>
         </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(96px, 1fr))', gap: '10px' }}>
-            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '18px', padding: '10px 12px', textAlign: 'right' }}>
-              <div style={{ color: '#64748B', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase' }}>Barbero</div>
-              <div style={{ color: '#0F172A', fontSize: '15px', fontWeight: 800 }}>${stats.barberEarnings.toLocaleString()}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+          <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a2e' }}>${stats.barberEarnings.toLocaleString()}</div>
+              <div style={{ fontSize: '10px', color: '#aaa', letterSpacing: '0.5px' }}>BARBERO</div>
             </div>
-            <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '18px', padding: '10px 12px', textAlign: 'right' }}>
-              <div style={{ color: '#B45309', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase' }}>Dueño</div>
-              <div style={{ color: '#F59E0B', fontSize: '15px', fontWeight: 900 }}>${stats.ownerCommission.toLocaleString()}</div>
+            <div style={{ width: '1px', height: '20px', background: '#e0e0e0' }} />
+            <div>
+              <div style={{ fontSize: '16px', fontWeight: 700, color: '#FF8C42' }}>${stats.ownerCommission.toLocaleString()}</div>
+              <div style={{ fontSize: '10px', color: '#aaa', letterSpacing: '0.5px' }}>DUEÑO</div>
             </div>
           </div>
-          <div style={{ width: '34px', height: '34px', borderRadius: '14px', background: '#F8FAFC', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.25s ease' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
+          <div style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s ease' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
             </svg>
           </div>
         </div>
-      </button>
+      </div>
 
       {isExpanded && stats.appointments.length > 0 && (
-        <div style={{ borderTop: '1px solid #E2E8F0', padding: '18px', background: '#F8FAFC' }}>
-          <div style={{ color: '#64748B', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '12px' }}>Detalle de clientes</div>
+        <div style={{ borderTop: '0.5px solid #f0f0f0', padding: '16px' }}>
+          <div style={{ fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>Detalle de clientes</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {stats.appointments.map((appointment) => (
-              <div key={appointment.appointment_id} style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '14px', boxShadow: '0 10px 24px rgba(15,23,42,0.04)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
+              <div key={appointment.appointment_id} style={{ background: '#f8f8f8', borderRadius: '8px', padding: '12px', border: '0.5px solid #eeeeee' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <div style={{ color: '#0F172A', fontSize: '14px', fontWeight: 800 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a2e' }}>
                       Cliente #{appointment.services[0]?.service_number_today || '?'}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
-                      <span style={{ color: '#64748B', fontSize: '12px', fontWeight: 700 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                      <span style={{ fontSize: '11px', color: '#aaa' }}>
                         {new Date(appointment.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                       {appointment.services[0]?.payment_method === 'transferencia' ? (
-                        <span style={{ color: '#0E7490', background: '#ECFEFF', border: '1px solid #CFFAFE', borderRadius: '999px', padding: '4px 9px', fontSize: '11px', fontWeight: 800 }}>
-                          Transferencia
+                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: '#f0f4ff', color: '#3D3A8C' }}>
+                          📲 Transferencia
                         </span>
                       ) : (
-                        <span style={{ color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '999px', padding: '4px 9px', fontSize: '11px', fontWeight: 800 }}>
-                          Efectivo
+                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: '#f0f9f0', color: '#2ecc71' }}>
+                          💵 Efectivo
                         </span>
                       )}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ color: '#0F172A', fontSize: '18px', fontWeight: 900 }}>${appointment.total_price.toLocaleString()}</div>
-                    <div style={{ color: '#64748B', fontSize: '12px', fontWeight: 700 }}>{appointment.services.length} servicio{appointment.services.length !== 1 ? 's' : ''}</div>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#1a1a2e' }}>${appointment.total_price.toLocaleString()}</div>
+                    <div style={{ fontSize: '11px', color: '#aaa' }}>{appointment.services.length} servicio{appointment.services.length !== 1 ? 's' : ''}</div>
                   </div>
                 </div>
                 {(() => {
@@ -106,39 +92,45 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
                   const barberPct = appointment.total_price > 0 ? Math.round(earningWithoutTip / appointment.total_price * 100) : 0
                   const ownerPct = appointment.total_price > 0 ? Math.round(appointment.total_owner_earning / appointment.total_price * 100) : 0
                   return (
-                    <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                      <div style={{ background: '#F8FAFC', borderRadius: '16px', padding: '10px' }}>
-                        <div style={{ color: '#64748B', fontSize: '11px', fontWeight: 700 }}>Barbero</div>
-                        <div style={{ color: '#0F172A', fontWeight: 800 }}>${earningWithoutTip.toLocaleString()}</div>
-                      </div>
-                      <div style={{ background: '#EFF6FF', borderRadius: '16px', padding: '10px', textAlign: 'center' }}>
-                        <div style={{ color: '#2563EB', fontSize: '11px', fontWeight: 700 }}>Split</div>
-                        <div style={{ color: '#0F172A', fontWeight: 800 }}>{barberPct}% / {ownerPct}%</div>
-                      </div>
-                      <div style={{ background: '#FFFBEB', borderRadius: '16px', padding: '10px', textAlign: 'right' }}>
-                        <div style={{ color: '#B45309', fontSize: '11px', fontWeight: 700 }}>Dueño</div>
-                        <div style={{ color: '#F59E0B', fontWeight: 900 }}>${appointment.total_owner_earning.toLocaleString()}</div>
+                    <div style={{ marginTop: '10px', padding: '8px', background: '#fff', borderRadius: '6px', border: '0.5px solid #eeeeee' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ fontSize: '11px', color: '#aaa' }}>Barbero</div>
+                          <div style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a2e' }}>${earningWithoutTip.toLocaleString()}</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '11px', color: '#aaa' }}>Split</div>
+                          <div style={{ fontSize: '13px', fontWeight: 500, color: '#3D3A8C' }}>{barberPct}% / {ownerPct}%</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '11px', color: '#aaa' }}>Owner</div>
+                          <div style={{ fontSize: '13px', fontWeight: 500, color: '#FF8C42' }}>${appointment.total_owner_earning.toLocaleString()}</div>
+                        </div>
                       </div>
                       {totalTip > 0 && (
-                        <div style={{ gridColumn: '1 / -1', color: '#B45309', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '16px', padding: '9px 10px', fontSize: '12px', fontWeight: 700 }}>
-                          +${totalTip.toLocaleString()} propina · 100% barbero
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', paddingTop: '6px', borderTop: '0.5px solid #f0f0f0' }}>
+                          <div style={{ fontSize: '12px', color: '#D4A853' }}>+${totalTip.toLocaleString()} propina</div>
+                          <div style={{ fontSize: '12px', color: '#6B7280' }}>100% barbero</div>
+                          <div />
                         </div>
                       )}
                       {totalOthers > 0 && (
-                        <div style={{ gridColumn: '1 / -1', color: '#2563EB', background: '#EFF6FF', border: '1px solid #DBEAFE', borderRadius: '16px', padding: '9px 10px', fontSize: '12px', fontWeight: 700 }}>
-                          ${totalOthers.toLocaleString()} otros · 100% dueño
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', paddingTop: '6px', borderTop: '0.5px solid #f0f0f0' }}>
+                          <div style={{ fontSize: '12px', color: '#6B7280' }}>${totalOthers.toLocaleString()} otros</div>
+                          <div />
+                          <div style={{ fontSize: '12px', color: '#F97316' }}>100% dueño</div>
                         </div>
                       )}
                     </div>
                   )
                 })()}
-                <div style={{ marginTop: '12px' }}>
-                  <div style={{ color: '#64748B', fontSize: '11px', fontWeight: 800, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Servicios</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ marginTop: '8px' }}>
+                  <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '4px' }}>Servicios:</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     {appointment.services.map((service, index) => (
-                      <div key={index} style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '8px 10px', fontSize: '12px', fontWeight: 700 }}>
-                        <span style={{ color: '#0F172A' }}>Servicio · ${service.price_charged.toLocaleString()}</span>
-                        <span style={{ color: '#64748B' }}>Barbero ${service.barber_earning.toLocaleString()}</span>
+                      <div key={index} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px', background: '#fff', borderRadius: '4px', border: '0.5px solid #eeeeee', fontSize: '12px' }}>
+                        <span style={{ color: '#1a1a2e' }}>· ${service.price_charged.toLocaleString()}</span>
+                        <span style={{ color: '#aaa' }}>(barbero: ${service.barber_earning.toLocaleString()})</span>
                       </div>
                     ))}
                   </div>
@@ -146,21 +138,21 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
               </div>
             ))}
           </div>
-          <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '18px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', color: '#047857', fontSize: '12px', fontWeight: 800 }}>
-              <span>Efectivo</span>
-              <span>${efectivoTotal.toLocaleString()}</span>
+          <div style={{ marginTop: '14px', padding: '12px', background: '#3D3A8C', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Total para {stats.barber.display_name}</div>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>${stats.barberEarnings.toLocaleString()}</div>
+          </div>
+          <div style={{ marginTop: '8px', padding: '10px 12px', background: '#f8f8f8', borderRadius: '8px', border: '0.5px solid #eeeeee' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#666' }}>
+              <span>💵 Efectivo</span>
+              <span style={{ fontWeight: 500 }}>${efectivoTotal.toLocaleString()}</span>
             </div>
             {transferenciaTotal > 0 && (
-              <div style={{ background: '#ECFEFF', border: '1px solid #CFFAFE', borderRadius: '18px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', color: '#0E7490', fontSize: '12px', fontWeight: 800 }}>
-                <span>Transferencia</span>
-                <span>${transferenciaTotal.toLocaleString()}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#666', marginTop: '6px' }}>
+                <span>📲 Transferencia</span>
+                <span style={{ fontWeight: 500 }}>${transferenciaTotal.toLocaleString()}</span>
               </div>
             )}
-          </div>
-          <div style={{ marginTop: '10px', padding: '12px', background: '#EFF6FF', border: '1px solid #DBEAFE', borderRadius: '18px', display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
-            <div style={{ fontSize: '13px', color: '#2563EB', fontWeight: 800 }}>Total para {stats.barber.display_name}</div>
-            <div style={{ fontSize: '15px', fontWeight: 900, color: '#0F172A' }}>${stats.barberEarnings.toLocaleString()}</div>
           </div>
         </div>
       )}
