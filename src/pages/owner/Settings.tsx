@@ -13,8 +13,6 @@ export function Settings() {
   // Tenant form data
   const [tenantForm, setTenantForm] = useState({
     name: '',
-    primary_color: '',
-    secondary_color: '',
     opening_time: '09:00',
     closing_time: '21:00',
   })
@@ -38,8 +36,6 @@ export function Settings() {
       if (!tenant) return
       setTenantForm({
         name: tenant.name || '',
-        primary_color: tenant.primary_color || '#C8A97E',
-        secondary_color: tenant.secondary_color || '#1a1a1a',
         opening_time: tenant.opening_time || '09:00',
         closing_time: tenant.closing_time || '21:00',
       })
@@ -145,8 +141,6 @@ export function Settings() {
     try {
       const updates: Partial<Tenant> = {
         name: tenantForm.name.trim(),
-        primary_color: tenantForm.primary_color,
-        secondary_color: tenantForm.secondary_color,
         opening_time: tenantForm.opening_time,
         closing_time: tenantForm.closing_time,
         commission_rules: commissionRules,
@@ -247,54 +241,6 @@ export function Settings() {
                 color: '#1a1a2e',
               }}
             />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-            <div>
-              <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
-                Color primario
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <input
-                  type="color"
-                  value={tenantForm.primary_color}
-                  onChange={(e) => setTenantForm({ ...tenantForm, primary_color: e.target.value })}
-                  style={{
-                    width: '60px',
-                    height: '40px',
-                    borderRadius: '6px',
-                    border: '0.5px solid #e0e0e0',
-                    cursor: 'pointer',
-                  }}
-                />
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '14px', color: '#1a1a2e' }}>
-                  {tenantForm.primary_color}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
-                Color secundario
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <input
-                  type="color"
-                  value={tenantForm.secondary_color}
-                  onChange={(e) => setTenantForm({ ...tenantForm, secondary_color: e.target.value })}
-                  style={{
-                    width: '60px',
-                    height: '40px',
-                    borderRadius: '6px',
-                    border: '0.5px solid #e0e0e0',
-                    cursor: 'pointer',
-                  }}
-                />
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '14px', color: '#1a1a2e' }}>
-                  {tenantForm.secondary_color}
-                </div>
-              </div>
-            </div>
           </div>
 
           <div>

@@ -13,8 +13,6 @@ export function Register() {
   // Step 1: Barbería
   const [barberiaName, setBarberiaName] = useState('')
   const [slug, setSlug] = useState('')
-  const [primaryColor, setPrimaryColor] = useState('#1a1a2e')
-  const [secondaryColor, setSecondaryColor] = useState('#C8A97E')
 
   // Step 2: Owner
   const [ownerName, setOwnerName] = useState('')
@@ -119,8 +117,6 @@ export function Register() {
           owner_name: ownerName,
           owner_email: ownerEmail,
           owner_password: ownerPassword,
-          primary_color: primaryColor,
-          secondary_color: secondaryColor,
           contact_phone: contactPhone,
         }),
       })
@@ -271,39 +267,6 @@ export function Register() {
                   <div style={{ marginTop: '8px', fontSize: '12px', color: '#aaa' }}>
                     Solo letras minúsculas, números y guiones. Tu URL será:{' '}
                     <span style={{ color: '#1E2A3A' }}>{window.location.origin}/login?tenant={slug || 'tu-slug'}</span>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div>
-                    <label htmlFor="primaryColor" style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#aaa', marginBottom: '12px' }}>
-                      Color primario
-                    </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <input
-                        id="primaryColor"
-                        type="color"
-                        value={primaryColor}
-                        onChange={(e) => setPrimaryColor(e.target.value)}
-                        style={{ width: '48px', height: '48px', padding: '0', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
-                      />
-                      <span style={{ color: '#1a1a2e', fontSize: '14px' }}>{primaryColor}</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="secondaryColor" style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#aaa', marginBottom: '12px' }}>
-                      Color secundario
-                    </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <input
-                        id="secondaryColor"
-                        type="color"
-                        value={secondaryColor}
-                        onChange={(e) => setSecondaryColor(e.target.value)}
-                        style={{ width: '48px', height: '48px', padding: '0', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
-                      />
-                      <span style={{ color: '#1a1a2e', fontSize: '14px' }}>{secondaryColor}</span>
-                    </div>
                   </div>
                 </div>
 
