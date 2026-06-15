@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 
@@ -10,17 +11,6 @@ async function getAuthHeader(): Promise<string> {
     return `Bearer ${refreshed.access_token}`
   }
   return `Bearer ${session.access_token}`
-}
-
-function useMobile() {
-  const [isMobile, setIsMobile] = useState(false)
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768)
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
-  return isMobile
 }
 
 interface MetricsData {
@@ -37,55 +27,28 @@ interface MetricsData {
   gastos_mes: number
 }
 
-function formatDate(fecha: string): string {
-  const [year, month, day] = fecha.split('-').map(Number)
-  const date = new Date(year, month - 1, day)
-  const options: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long' }
-  return date.toLocaleDateString('es-ES', options)
-}
-
-function formatHour(hora: number): string {
-  return `${hora.toString().padStart(2, '0')}:00`
-}
-
-function formatMonth(mes: string): string {
-  const [year, month] = mes.split('-')
-  const date = new Date(parseInt(year), parseInt(month) - 1, 1)
-  return date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
-}
+type OutletCtx = { onOpenDrawer?: () => void }
 
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount)
+  // "$" glued to digits (no locale currency NBSP) so "$7.181.000" renders as one
+  // homogeneous block, same as LivePanel.
+  return '$' + new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(amount)
 }
 
 function formatNumber(num: number): string {
   return new Intl.NumberFormat('es-AR').format(num)
 }
 
-function getArgentinaDateString(date = new Date()): string {
-  return date.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
+// "YYYY-MM-DD" (Argentina calendar date from get-metrics) → Spanish weekday, e.g. "Sábado".
+// Built with the local-date constructor to avoid a UTC day shift; presentation only.
+function dayNameFromISO(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  if (!y || !m || !d) return iso
+  const name = new Date(y, m - 1, d).toLocaleDateString('es-AR', { weekday: 'long' })
+  return name.charAt(0).toUpperCase() + name.slice(1)
 }
 
-function getCurrentWeekRange(): string {
-  const now = new Date()
-  const argDateStr = getArgentinaDateString(now)
-  const [year, month, day] = argDateStr.split('-').map(Number)
-  const argNoon = new Date(Date.UTC(year, month - 1, day, 12, 0, 0))
-  const dayOfWeek = argNoon.getUTCDay()
-  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
-  const monday = new Date(argNoon)
-  monday.setUTCDate(argNoon.getUTCDate() + diffToMonday)
-  const sunday = new Date(monday)
-  sunday.setUTCDate(monday.getUTCDate() + 6)
-  const format = (d: Date) =>
-    d.toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'short',
-      timeZone: 'America/Argentina/Buenos_Aires'
-    })
-  return `${format(monday)} - ${format(sunday)}`
-}
-
+// ── Reused from original: do not touch logic ─────────────────────────────────
 function calculateWeekVariation(metrics: MetricsData | null) {
   if (!metrics) return { servicios: 0, facturado: 0 }
   const { semana_actual, semana_anterior } = metrics
@@ -98,66 +61,96 @@ function calculateWeekVariation(metrics: MetricsData | null) {
   return { servicios: serviciosVar, facturado: facturadoVar }
 }
 
-const CalendarIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D3A8C" strokeWidth="2">
-    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-    <line x1="16" y1="2" x2="16" y2="6" />
-    <line x1="8" y1="2" x2="8" y2="6" />
-    <line x1="3" y1="10" x2="21" y2="10" />
+// ── Icons ────────────────────────────────────────────────────────────────────
+const BarsIcon = ({ color = '#2563EB', size = 16 }: { color?: string; size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M4 19V5" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+    <path d="M4 19h16" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+    <rect x="7" y="11" width="3" height="6" rx="0.5" stroke={color} strokeWidth="1.8" />
+    <rect x="12" y="8" width="3" height="9" rx="0.5" stroke={color} strokeWidth="1.8" />
+    <rect x="17" y="5" width="3" height="12" rx="0.5" stroke={color} strokeWidth="1.8" />
   </svg>
 )
 
-const ClockIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D3A8C" strokeWidth="2">
-    <circle cx="12" cy="12" r="10" />
-    <polyline points="12 6 12 12 16 14" />
+const InfoIcon = ({ color = 'rgba(255,255,255,0.9)', size = 14 }: { color?: string; size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="1.6" />
+    <path d="M12 11v5" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+    <circle cx="12" cy="8" r="1" fill={color === 'rgba(255,255,255,0.9)' ? '#fff' : color} />
   </svg>
 )
 
-const ReceiptIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D3A8C" strokeWidth="2">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-    <polyline points="14 2 14 8 20 8" />
-    <line x1="16" y1="13" x2="8" y2="13" />
-    <line x1="16" y1="17" x2="8" y2="17" />
-    <polyline points="10 9 9 9 8 9" />
+const CalendarBtnIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <rect x="3" y="5" width="18" height="16" rx="2" stroke="#475569" strokeWidth="1.6" />
+    <path d="M16 3v4M8 3v4M3 10h18" stroke="#475569" strokeWidth="1.6" strokeLinecap="round" />
   </svg>
 )
 
-const ScissorsIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D3A8C" strokeWidth="2">
-    <circle cx="6" cy="6" r="3" />
-    <circle cx="6" cy="18" r="3" />
-    <line x1="20" y1="4" x2="8.12" y2="15.88" />
-    <line x1="14.47" y1="14.48" x2="20" y2="20" />
-    <line x1="8.12" y1="8.12" x2="12" y2="12" />
+const HamburgerIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M4 7h16M4 12h16M4 17h16" stroke="#0F172A" strokeWidth="1.8" strokeLinecap="round" />
   </svg>
 )
 
-const UserCircleIcon = ({ initial }: { initial: string }) => (
-  <div style={{
-    width: '36px',
-    height: '36px',
-    borderRadius: '50%',
-    background: '#3D3A8C',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#fff',
-    fontFamily: 'Syne, sans-serif',
-    fontWeight: 700,
-    fontSize: '14px'
-  }}>
-    {initial.toUpperCase()}
-  </div>
+const TrendingUpIcon = ({ color = '#16A34A' }: { color?: string }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M3 17l5-5 4 4 8-9" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M15 7h5v5" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
 )
+
+const ScissorsSmallIcon = ({ color = '#7C3AED' }: { color?: string }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="6" cy="6" r="2.5" stroke={color} strokeWidth="1.7" />
+    <circle cx="6" cy="18" r="2.5" stroke={color} strokeWidth="1.7" />
+    <path d="M20 4L8.12 15.88" stroke={color} strokeWidth="1.7" strokeLinecap="round" />
+    <path d="M14.47 14.48L20 20" stroke={color} strokeWidth="1.7" strokeLinecap="round" />
+    <path d="M8.12 8.12L12 12" stroke={color} strokeWidth="1.7" strokeLinecap="round" />
+  </svg>
+)
+
+const ReceiptSmallIcon = ({ color = '#EA580C' }: { color?: string }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M9 8h6M9 12h6M9 16h4" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+)
+
+const CalendarSmallIcon = ({ color = '#2563EB' }: { color?: string }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <rect x="3" y="5" width="18" height="16" rx="2" stroke={color} strokeWidth="1.7" />
+    <path d="M8 3v4M16 3v4M3 9h18" stroke={color} strokeWidth="1.7" strokeLinecap="round" />
+  </svg>
+)
+
+const LeafIcon = ({ color = '#16A34A' }: { color?: string }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M20 4c0 8-6 14-14 14 0-8 6-14 14-14z" stroke={color} strokeWidth="1.7" strokeLinejoin="round" />
+    <path d="M5 19c4-4 8-7 13-13" stroke={color} strokeWidth="1.7" strokeLinecap="round" />
+  </svg>
+)
+
+const ChevronDownIcon = ({ color = '#0F172A' }: { color?: string }) => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M6 9l6 6 6-6" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+// ── Hero decorative SVG curve (no real values shown) ─────────────────────────
+const HERO_CURVE_PATH = 'M0 80 C 50 70, 90 55, 140 60 S 220 90, 270 70 S 350 30, 430 45'
+
+// ── Bar chart toggle metric ──────────────────────────────────────────────────
+type BarMetric = 'facturado' | 'servicios'
 
 export function Metrics() {
   const { tenant } = useTenantStore()
+  const ctx = useOutletContext<OutletCtx>() || {}
   const [metrics, setMetrics] = useState<MetricsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const isMobile = useMobile()
+  const [barMetric, setBarMetric] = useState<BarMetric>('facturado')
+  const [openSelector, setOpenSelector] = useState(false)
 
   useEffect(() => {
     const fetchMetrics = async () => {
@@ -191,292 +184,783 @@ export function Metrics() {
   }, [tenant?.id])
 
   const weekVariation = calculateWeekVariation(metrics)
-  const hasData = metrics && (metrics.historico.total_servicios > 0 || metrics.dia_mas_cortes !== null)
+  const hasData = !!metrics && (metrics.historico.total_servicios > 0 || metrics.dia_mas_cortes !== null)
 
-  // ── LOADING ──────────────────────────────────────────────────────────────────
+  // Responsive type scale, anchored at 390px
+  const fs = {
+    headerTitle: 'clamp(15px, 5.64vw, 22px)',       // 22px @390
+    headerSub: 'clamp(11px, 3.33vw, 13px)',         // 13px @390
+    heroLabel: 'clamp(11px, 3.33vw, 13px)',         // 13px @390
+    heroNumber: 'clamp(26px, 8.7vw, 34px)',         // 34px @390
+    metricLabel: 'clamp(9px, 2.82vw, 11px)',        // 11px @390
+    metricNumber: 'clamp(10px, 3.0vw, 12px)',       // small enough that "$2.546.500" fits the ~82px card w/o truncating
+    metricSub: 'clamp(9px, 2.56vw, 10px)',          // 10px @390
+    sectionTitle: 'clamp(14px, 4.1vw, 16px)',       // 16px @390
+    sectionSelector: 'clamp(11px, 3.33vw, 13px)',   // 13px @390
+    barLabel: 'clamp(9px, 2.56vw, 10px)',           // 10px @390
+    barValue: 'clamp(9px, 2.56vw, 10px)',           // 10px @390
+    insightKicker: 'clamp(10px, 2.82vw, 11px)',     // 11px @390
+    insightTitle: 'clamp(13px, 4.1vw, 16px)',       // 16px @390
+    insightBody: 'clamp(11px, 3.33vw, 13px)',       // 13px @390
+    insightBadge: 'clamp(10px, 3.08vw, 12px)',      // 12px @390
+  }
+
+  // ── Header (shared across loading/error/empty/main) ────────────────────────
+  const renderHeader = () => (
+    <div style={{ padding: '14px 16px 8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+          <button
+            onClick={() => ctx.onOpenDrawer?.()}
+            aria-label="Abrir menú"
+            style={{
+              background: '#fff',
+              border: '1px solid #E2E8F0',
+              borderRadius: '50%',
+              width: '36px',
+              height: '36px',
+              minWidth: '36px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              padding: 0,
+              flexShrink: 0,
+            }}
+          >
+            <HamburgerIcon />
+          </button>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h1 style={{
+                fontFamily: 'Syne, sans-serif',
+                fontWeight: 700,
+                fontSize: fs.headerTitle,
+                color: '#0F172A',
+                margin: 0,
+                lineHeight: 1.2,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}>
+                Métricas
+              </h1>
+              <span style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '8px',
+                background: '#DBEAFE',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <BarsIcon color="#2563EB" size={14} />
+              </span>
+            </div>
+            <div style={{
+              fontSize: fs.headerSub,
+              color: '#64748B',
+              marginTop: '2px',
+              fontWeight: 400,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}>
+              Análisis y reportes de tu negocio
+            </div>
+          </div>
+        </div>
+        <button
+          aria-label="Calendario"
+          style={{
+            background: '#fff',
+            border: '1px solid #E2E8F0',
+            borderRadius: '50%',
+            width: '36px',
+            height: '36px',
+            minWidth: '36px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            padding: 0,
+            flexShrink: 0,
+          }}
+        >
+          <CalendarBtnIcon />
+        </button>
+      </div>
+    </div>
+  )
+
+  // ── LOADING ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
-        <div style={{ marginBottom: '32px' }}>
-          <div style={{ width: '200px', height: '32px', background: '#f0f0f0', borderRadius: '8px', marginBottom: '8px', animation: 'pulse 1.5s infinite' }} />
-          <div style={{ width: '300px', height: '16px', background: '#f0f0f0', borderRadius: '8px', animation: 'pulse 1.5s infinite' }} />
+      <div style={{ maxWidth: '430px', margin: '0 auto', width: '100%', boxSizing: 'border-box', overflowX: 'hidden', paddingBottom: '120px' }}>
+        {renderHeader()}
+        <div style={{ padding: '12px 16px 0' }}>
+          <div style={{ height: '180px', background: '#E5E7EB', borderRadius: '20px', marginBottom: '20px', animation: 'pulse 1.5s infinite' }} />
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} style={{ flex: 1, height: '100px', background: '#E5E7EB', borderRadius: '16px', animation: 'pulse 1.5s infinite' }} />
+            ))}
+          </div>
+          <div style={{ height: '240px', background: '#E5E7EB', borderRadius: '16px', marginBottom: '20px', animation: 'pulse 1.5s infinite' }} />
+          <div style={{ height: '120px', background: '#E5E7EB', borderRadius: '16px', animation: 'pulse 1.5s infinite' }} />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '32px' }}>
-          {[1, 2, 3].map(i => (
-            <div key={i} style={{ height: '100px', background: '#f0f0f0', borderRadius: '10px', animation: 'pulse 1.5s infinite' }} />
-          ))}
-        </div>
-        <div style={{ background: '#f0f0f0', borderRadius: '10px', height: '180px', marginBottom: '32px', animation: 'pulse 1.5s infinite' }} />
-        <div style={{ background: '#f0f0f0', borderRadius: '10px', height: '140px', marginBottom: '32px', animation: 'pulse 1.5s infinite' }} />
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} style={{ height: '160px', background: '#f0f0f0', borderRadius: '10px', animation: 'pulse 1.5s infinite' }} />
-          ))}
-        </div>
-        <div style={{ background: '#f0f0f0', borderRadius: '10px', height: '100px', marginBottom: '32px', animation: 'pulse 1.5s infinite' }} />
-        <div style={{ background: '#f0f0f0', borderRadius: '10px', height: '90px', animation: 'pulse 1.5s infinite' }} />
       </div>
     )
   }
 
-  // ── ERROR ────────────────────────────────────────────────────────────────────
+  // ── ERROR ──────────────────────────────────────────────────────────────────
   if (error) {
     return (
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
-        <div style={{ background: '#fff5f5', border: '0.5px solid #ffcccc', borderRadius: '10px', padding: '40px', textAlign: 'center' }}>
-          <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '15px', color: '#cc3333', marginBottom: '20px' }}>
-            Error al cargar métricas: {error}
+      <div style={{ maxWidth: '430px', margin: '0 auto', width: '100%', boxSizing: 'border-box', overflowX: 'hidden', paddingBottom: '120px' }}>
+        {renderHeader()}
+        <div style={{ padding: '12px 16px' }}>
+          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '16px', padding: '24px', textAlign: 'center' }}>
+            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', color: '#B91C1C', marginBottom: '16px', lineHeight: 1.5 }}>
+              Error al cargar métricas: {error}
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                background: '#2563EB',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '10px 22px',
+                fontFamily: 'Space Grotesk, sans-serif',
+                fontWeight: 600,
+                fontSize: '14px',
+                cursor: 'pointer',
+              }}
+            >
+              Reintentar
+            </button>
           </div>
-          <button
-            onClick={() => window.location.reload()}
-            style={{ background: '#3D3A8C', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 24px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
-          >
-            Reintentar
-          </button>
         </div>
       </div>
     )
   }
 
-  // ── NO DATA ──────────────────────────────────────────────────────────────────
+  // ── NO DATA ────────────────────────────────────────────────────────────────
   if (!hasData) {
     return (
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '60px 40px', textAlign: 'center', maxWidth: '400px' }}>
-          <ScissorsIcon />
-          <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '15px', color: '#aaa', marginTop: '20px', lineHeight: 1.6 }}>
-            Registrá tu primer servicio para ver las métricas aparecer aquí
+      <div style={{ maxWidth: '430px', margin: '0 auto', width: '100%', boxSizing: 'border-box', overflowX: 'hidden', paddingBottom: '120px' }}>
+        {renderHeader()}
+        <div style={{ padding: '12px 16px' }}>
+          <div style={{
+            background: '#fff',
+            border: '1px solid #E2E8F0',
+            borderRadius: '20px',
+            padding: '48px 24px',
+            textAlign: 'center',
+          }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '16px',
+              background: '#EFF6FF',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '16px',
+            }}>
+              <BarsIcon color="#2563EB" size={26} />
+            </div>
+            <div style={{
+              fontFamily: 'Syne, sans-serif',
+              fontSize: '16px',
+              fontWeight: 700,
+              color: '#0F172A',
+              marginBottom: '6px',
+            }}>
+              Aún no hay datos
+            </div>
+            <div style={{ fontSize: '13px', color: '#64748B', lineHeight: 1.5 }}>
+              Registrá tu primer servicio para empezar a ver tus métricas.
+            </div>
           </div>
         </div>
       </div>
     )
   }
 
-  // ── BAR CHART ────────────────────────────────────────────────────────────────
-  const maxServicios = Math.max(...metrics!.servicios_por_dia.map(d => d.servicios), 1)
+  // ── MAIN ───────────────────────────────────────────────────────────────────
+  return <MainContent
+    metrics={metrics!}
+    weekVariation={weekVariation}
+    fs={fs}
+    renderHeader={renderHeader}
+    barMetric={barMetric}
+    setBarMetric={setBarMetric}
+    openSelector={openSelector}
+    setOpenSelector={setOpenSelector}
+  />
+}
 
-  // ── MAIN DASHBOARD ───────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Main dashboard content — extracted to keep top-level component scannable.
+// ─────────────────────────────────────────────────────────────────────────────
+type FsScale = {
+  heroLabel: string
+  heroNumber: string
+  metricLabel: string
+  metricNumber: string
+  metricSub: string
+  sectionTitle: string
+  sectionSelector: string
+  barLabel: string
+  barValue: string
+  insightKicker: string
+  insightTitle: string
+  insightBody: string
+  insightBadge: string
+  headerTitle: string
+  headerSub: string
+}
+
+function MainContent({
+  metrics,
+  weekVariation,
+  fs,
+  renderHeader,
+  barMetric,
+  setBarMetric,
+  openSelector,
+  setOpenSelector,
+}: {
+  metrics: MetricsData
+  weekVariation: { servicios: number; facturado: number }
+  fs: FsScale
+  renderHeader: () => React.ReactNode
+  barMetric: BarMetric
+  setBarMetric: (m: BarMetric) => void
+  openSelector: boolean
+  setOpenSelector: (b: boolean) => void
+}) {
+  // Bar chart data: pick metric and find max for normalization
+  const barData = metrics.servicios_por_dia
+  const values = barData.map(d => (barMetric === 'facturado' ? d.facturado : d.servicios))
+  const maxValue = useMemo(() => Math.max(...values, 1), [values])
+  // Real max (no floor) — drives the Y-axis labels. 0 when the whole week is empty,
+  // so the axis shows "$0"/"0" instead of an invented scale.
+  const realMax = useMemo(() => Math.max(...values, 0), [values])
+  const yAxisLabels = useMemo(() => {
+    const fmt = (n: number) => (barMetric === 'facturado' ? formatCurrency(Math.round(n)) : formatNumber(Math.round(n)))
+    return [fmt(realMax), fmt((realMax * 2) / 3), fmt(realMax / 3), fmt(0)]
+  }, [realMax, barMetric])
+  const maxIndex = useMemo(() => {
+    let idx = -1
+    let best = -1
+    values.forEach((v, i) => {
+      if (v > best) { best = v; idx = i }
+    })
+    return best > 0 ? idx : -1
+  }, [values])
+
+  // Insights derived from real data
+  const facVar = weekVariation.facturado
+  const insightTitle = facVar >= 0 ? '¡Vas por buen camino!' : 'Seguimiento de la semana'
+  const isFlat = Math.abs(facVar) < 0.05 || metrics.semana_anterior.facturado === 0
+  const insightBody = isFlat
+    ? 'Tu facturación esta semana se mantiene estable respecto a la semana pasada.'
+    : `Tu facturación esta semana es ${Math.abs(facVar).toFixed(1)}% ${facVar >= 0 ? 'mayor' : 'menor'} que la semana pasada.`
+
+  const badgeUp = facVar >= 0
+  const badgeColor = isFlat ? '#94A3B8' : (badgeUp ? '#16A34A' : '#DC2626')
+  const badgeBg = isFlat ? '#F1F5F9' : (badgeUp ? '#DCFCE7' : '#FEE2E2')
+
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+    <div style={{ maxWidth: '430px', margin: '0 auto', width: '100%', boxSizing: 'border-box', overflowX: 'hidden', paddingBottom: '120px' }}>
+      {renderHeader()}
 
-      {/* Header */}
-      <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '28px', color: '#1a1a2e', marginBottom: '4px' }}>
-          Métricas
-        </h1>
-        <p style={{ color: '#aaa', fontSize: '13px' }}>
-          Análisis y reportes de desempeño
-        </p>
-      </div>
+      {/* ── HERO — Facturación total (gradient, decorative curve) ─────────── */}
+      <div style={{ padding: '12px 16px 0' }}>
+        <div style={{
+          position: 'relative',
+          borderRadius: '20px',
+          padding: '18px',
+          minHeight: '170px',
+          background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 55%, #1D4ED8 100%)',
+          color: '#fff',
+          overflow: 'hidden',
+          boxShadow: '0 10px 30px rgba(37, 99, 235, 0.30)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          boxSizing: 'border-box',
+        }}>
+          <svg
+            viewBox="0 0 430 110"
+            preserveAspectRatio="none"
+            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, width: '100%', height: '110px', opacity: 0.7, pointerEvents: 'none' }}
+            aria-hidden="true"
+          >
+            <defs>
+              <linearGradient id="metricsHeroCurve" x1="0" y1="1" x2="1" y2="0">
+                <stop offset="0%" stopColor="rgba(255,255,255,0)" />
+                <stop offset="100%" stopColor="rgba(255,255,255,0.55)" />
+              </linearGradient>
+            </defs>
+            <path d={HERO_CURVE_PATH} stroke="url(#metricsHeroCurve)" strokeWidth="2" fill="none" />
+            <path d={`${HERO_CURVE_PATH} L 430 110 L 0 110 Z`} fill="rgba(255,255,255,0.08)" />
+          </svg>
 
-      {/* SECCIÓN 1 — HERO KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '16px', marginBottom: '16px' }}>
-        <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderLeft: '3px solid #3D3A8C', borderRadius: '10px', padding: '22px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ fontSize: '11px', color: '#aaa', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px' }}>FACTURACIÓN TOTAL</div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: isMobile ? '22px' : '26px', color: '#1a1a2e', lineHeight: 1 }}>
-            {formatCurrency(metrics!.historico.total_facturado)}
-          </div>
-          <div style={{ fontSize: '11px', color: '#ccc', marginTop: '4px' }}>desde el primer servicio</div>
-        </div>
-
-        <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderLeft: '3px solid #3D3A8C', borderRadius: '10px', padding: '22px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ fontSize: '11px', color: '#aaa', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px' }}>TU GANANCIA</div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: isMobile ? '22px' : '26px', color: '#FF8C42', lineHeight: 1 }}>
-            {formatCurrency(metrics!.historico.total_owner)}
-          </div>
-          <div style={{ fontSize: '11px', color: '#ccc', marginTop: '4px' }}>tu parte acumulada</div>
-        </div>
-
-        <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderLeft: '3px solid #3D3A8C', borderRadius: '10px', padding: '22px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ fontSize: '11px', color: '#aaa', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px' }}>SERVICIOS TOTALES</div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: isMobile ? '22px' : '26px', color: '#1a1a2e', lineHeight: 1 }}>
-            {formatNumber(metrics!.historico.total_servicios)}
-          </div>
-          <div style={{ fontSize: '11px', color: '#ccc', marginTop: '4px' }}>registrados en la plataforma</div>
-        </div>
-      </div>
-
-      {/* SECCIÓN 2 — COMPARACIÓN SEMANAL */}
-      <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '20px', marginBottom: '16px' }}>
-        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: '12px', marginBottom: '20px' }}>
-          <div>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: '#1a1a2e', marginBottom: '2px' }}>Esta semana</div>
-            <div style={{ fontSize: '12px', color: '#aaa' }}>{getCurrentWeekRange()}</div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            {weekVariation.servicios !== 0 && (
-              <span style={{ background: weekVariation.servicios > 0 ? '#eafaf1' : '#fdf0ef', color: weekVariation.servicios > 0 ? '#2ecc71' : '#e74c3c', fontSize: '11px', padding: '3px 8px', borderRadius: '20px', fontWeight: 600 }}>
-                {weekVariation.servicios > 0 ? '↑' : '↓'} {Math.abs(weekVariation.servicios).toFixed(1)}% servicios
-              </span>
-            )}
-            {weekVariation.facturado !== 0 && (
-              <span style={{ background: weekVariation.facturado > 0 ? '#eafaf1' : '#fdf0ef', color: weekVariation.facturado > 0 ? '#2ecc71' : '#e74c3c', fontSize: '11px', padding: '3px 8px', borderRadius: '20px', fontWeight: 600 }}>
-                {weekVariation.facturado > 0 ? '↑' : '↓'} {Math.abs(weekVariation.facturado).toFixed(1)}% facturación
-              </span>
-            )}
-            {weekVariation.servicios === 0 && weekVariation.facturado === 0 && (
-              <span style={{ fontSize: '12px', color: '#aaa' }}>—</span>
-            )}
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px' }}>
-          <div>
-            <div style={{ fontSize: '12px', color: '#aaa', marginBottom: '6px' }}>Esta semana</div>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: '#1a1a2e', marginBottom: '2px' }}>
-              {formatNumber(metrics!.semana_actual.servicios)} servicios
+          <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: fs.heroLabel, color: '#fff', fontWeight: 600 }}>
+              <span>Facturación total</span>
+              <InfoIcon />
             </div>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '18px', color: '#FF8C42' }}>
-              {formatCurrency(metrics!.semana_actual.facturado)}
+            <div style={{
+              // Use Inter (loaded @800) so "$" and digits render as one homogeneous block,
+              // matching the LivePanel hero treatment.
+              fontFamily: "'Inter', system-ui, sans-serif",
+              fontWeight: 800,
+              fontSize: fs.heroNumber,
+              letterSpacing: '-1px',
+              lineHeight: 1.05,
+              color: '#fff',
+              marginTop: '4px',
+            }}>
+              {formatCurrency(metrics.historico.total_facturado)}
             </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '12px', color: '#aaa', marginBottom: '6px' }}>Semana anterior</div>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: '#ccc', marginBottom: '2px' }}>
-              {formatNumber(metrics!.semana_anterior.servicios)} servicios
-            </div>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '18px', color: '#ddd' }}>
-              {formatCurrency(metrics!.semana_anterior.facturado)}
+            <div style={{ fontSize: 'clamp(10px, 3.08vw, 12px)', color: 'rgba(255,255,255,0.85)', fontWeight: 500, marginTop: '2px' }}>
+              Desde el primer servicio
             </div>
           </div>
         </div>
       </div>
 
-      {/* SECCIÓN 2.5 — BAR CHART */}
-      <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '20px', marginBottom: '16px' }}>
-        <div style={{ fontSize: '11px', color: '#aaa', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>
-          Servicios esta semana
+      {/* ── 4 CARDS ──────────────────────────────────────────────────────── */}
+      <div style={{ padding: '20px 16px 0' }}>
+        <div style={{
+          display: 'flex',
+          gap: '8px',
+          alignItems: 'stretch',
+          overflowX: 'auto',
+          // Hide scrollbar where supported; row only scrolls if it doesn't fit
+          scrollbarWidth: 'none',
+        }}>
+          <SmallMetricCard
+            iconBg="#DCFCE7"
+            icon={<TrendingUpIcon color="#16A34A" />}
+            label="Ganancia neta"
+            value={formatCurrency(metrics.historico.total_owner)}
+            sub="Histórico"
+            fs={fs}
+          />
+          <SmallMetricCard
+            iconBg="#EDE9FE"
+            icon={<ScissorsSmallIcon color="#7C3AED" />}
+            label="Servicios totales"
+            value={formatNumber(metrics.historico.total_servicios)}
+            sub="Histórico"
+            fs={fs}
+          />
+          <SmallMetricCard
+            iconBg="#FFEDD5"
+            icon={<ReceiptSmallIcon color="#EA580C" />}
+            label="Gastos del mes"
+            value={formatCurrency(metrics.gastos_mes || 0)}
+            sub="Este mes"
+            fs={fs}
+          />
+          <SmallMetricCard
+            iconBg="#DBEAFE"
+            icon={<CalendarSmallIcon color="#2563EB" />}
+            label="Más activo"
+            value={metrics.dia_mas_cortes ? dayNameFromISO(metrics.dia_mas_cortes.fecha) : '—'}
+            sub={metrics.hora_pico ? `Pico: ${metrics.hora_pico.hora}hs` : 'Sin datos'}
+            fs={fs}
+          />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', alignItems: 'end', height: '120px' }}>
-          {metrics!.servicios_por_dia.map((d, i) => {
-            const isMax = d.servicios === maxServicios && d.servicios > 0
-            const barHeightPct = d.servicios === 0 ? 3 : Math.max(10, Math.round((d.servicios / maxServicios) * 90))
-            return (
-              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-                {d.servicios > 0 && (
-                  <span style={{ fontSize: '10px', color: '#1a1a2e', fontWeight: 600, marginBottom: '3px' }}>{d.servicios}</span>
-                )}
-                <div style={{
-                  width: '100%',
-                  height: `${barHeightPct}%`,
-                  background: d.servicios === 0 ? '#f0f0f0' : isMax ? '#FF8C42' : '#3D3A8C',
-                  borderRadius: '4px 4px 0 0',
+      </div>
+
+      {/* ── FACTURACIÓN DIARIA — bar chart with toggle ───────────────────── */}
+      <div style={{ padding: '24px 16px 0' }}>
+        <div style={{
+          background: '#fff',
+          border: '1px solid #F1F5F9',
+          borderRadius: '20px',
+          padding: '16px 14px 14px',
+          boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '14px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+              <h2 style={{
+                fontFamily: 'Syne, sans-serif',
+                fontWeight: 700,
+                fontSize: fs.sectionTitle,
+                color: '#0F172A',
+                margin: 0,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}>
+                Facturación diaria
+              </h2>
+              <InfoIcon color="#94A3B8" size={13} />
+            </div>
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <button
+                onClick={() => setOpenSelector(!openSelector)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '999px',
+                  padding: '5px 10px',
+                  fontSize: fs.sectionSelector,
+                  fontWeight: 600,
+                  color: '#0F172A',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <span>{barMetric === 'facturado' ? 'Ingresos' : 'Servicios'}</span>
+                <ChevronDownIcon />
+              </button>
+              {openSelector && (
+                <>
+                  <div
+                    onClick={() => setOpenSelector(false)}
+                    style={{ position: 'fixed', inset: 0, zIndex: 50 }}
+                  />
+                  <div style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 6px)',
+                    right: 0,
+                    background: '#fff',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '12px',
+                    boxShadow: '0 8px 24px rgba(15,23,42,0.10)',
+                    padding: '4px',
+                    zIndex: 60,
+                    minWidth: '120px',
+                  }}>
+                    {(['facturado', 'servicios'] as BarMetric[]).map(opt => (
+                      <button
+                        key={opt}
+                        onClick={() => { setBarMetric(opt); setOpenSelector(false) }}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          textAlign: 'left',
+                          background: barMetric === opt ? '#EFF6FF' : 'transparent',
+                          color: barMetric === opt ? '#2563EB' : '#0F172A',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '8px 10px',
+                          fontSize: fs.sectionSelector,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        {opt === 'facturado' ? 'Ingresos' : 'Servicios'}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Chart: Y axis + gridlines + baseline always render, even when every value is 0 */}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {/* Y axis labels */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              height: '160px',
+              minWidth: '34px',
+              textAlign: 'right',
+              fontSize: fs.barLabel,
+              color: '#CBD5E1',
+              fontWeight: 500,
+            }}>
+              {yAxisLabels.map((lbl, i) => (
+                <span key={i} style={{ whiteSpace: 'nowrap', lineHeight: 1 }}>{lbl}</span>
+              ))}
+            </div>
+            {/* Plot area */}
+            <div style={{ position: 'relative', flex: 1, height: '160px' }}>
+              {/* Horizontal gridlines (last one is the baseline) */}
+              {[0, 1, 2, 3].map(g => (
+                <div key={g} style={{
+                  position: 'absolute',
+                  left: 0,
+                  right: 0,
+                  top: `${(g * 100) / 3}%`,
+                  borderTop: g === 3 ? '1px solid #E2E8F0' : '1px solid #F1F5F9',
                 }} />
+              ))}
+              {/* Bars */}
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'grid',
+                gridTemplateColumns: 'repeat(7, 1fr)',
+                gap: '6px',
+                alignItems: 'end',
+              }}>
+                {barData.map((d, i) => {
+                  const v = barMetric === 'facturado' ? d.facturado : d.servicios
+                  const isMax = i === maxIndex && v > 0
+                  const heightPct = v === 0 ? 0 : Math.max(8, Math.round((v / maxValue) * 100))
+                  return (
+                    <div key={i} style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'flex-end',
+                      height: '100%',
+                      gap: '4px',
+                    }}>
+                      {isMax && (
+                        <span style={{
+                          fontSize: fs.barValue,
+                          fontWeight: 700,
+                          color: '#1D4ED8',
+                          background: '#DBEAFE',
+                          padding: '2px 6px',
+                          borderRadius: '999px',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {barMetric === 'facturado' ? formatCurrency(v) : formatNumber(v)}
+                        </span>
+                      )}
+                      <div style={{
+                        width: '100%',
+                        height: `${heightPct}%`,
+                        minHeight: v > 0 ? '4px' : '0',
+                        background: isMax ? '#2563EB' : '#BFDBFE',
+                        borderRadius: '6px 6px 0 0',
+                        transition: 'height 200ms ease',
+                      }} />
+                    </div>
+                  )
+                })}
               </div>
-            )
-          })}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', marginTop: '6px' }}>
-          {metrics!.servicios_por_dia.map((d, i) => (
-            <div key={i} style={{ textAlign: 'center', fontSize: '10px', color: '#aaa' }}>{d.dia}</div>
-          ))}
+            </div>
+          </div>
+          {/* X axis day labels — aligned with the plot area (Y gutter offset) */}
+          <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+            <div style={{ minWidth: '34px' }} aria-hidden="true" />
+            <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px' }}>
+              {barData.map((d, i) => (
+                <div key={i} style={{
+                  textAlign: 'center',
+                  fontSize: fs.barLabel,
+                  color: '#94A3B8',
+                  fontWeight: 500,
+                }}>
+                  {d.dia}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* SECCIÓN 3 — INSIGHTS */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-        <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#eeedf8', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
-            <CalendarIcon />
-          </div>
-          <div style={{ fontSize: '10px', color: '#aaa', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>DÍA MÁS ACTIVO</div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '4px' }}>
-            {metrics!.dia_mas_cortes ? formatDate(metrics!.dia_mas_cortes.fecha).split(',')[0] : '—'}
-          </div>
-          <div style={{ fontSize: '11px', color: '#aaa' }}>
-            {metrics!.dia_mas_cortes ? `${metrics!.dia_mas_cortes.fecha.split('-')[2]} de ${formatMonth(metrics!.dia_mas_cortes.fecha.split('-')[0] + '-' + metrics!.dia_mas_cortes.fecha.split('-')[1])} · ${metrics!.dia_mas_cortes.total} cortes` : '—'}
-          </div>
-        </div>
+      {/* ── INSIGHTS card (green) ─────────────────────────────────────────── */}
+      <div style={{ padding: '24px 16px 0' }}>
+        <div style={{
+          position: 'relative',
+          background: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)',
+          border: '1px solid #BBF7D0',
+          borderRadius: '20px',
+          padding: '16px 16px 18px',
+          overflow: 'hidden',
+        }}>
+          {/* Decorative SVG curve, no values */}
+          <svg
+            viewBox="0 0 200 80"
+            preserveAspectRatio="none"
+            style={{
+              position: 'absolute',
+              right: -8,
+              top: 8,
+              width: '120px',
+              height: '70px',
+              opacity: 0.55,
+              pointerEvents: 'none',
+            }}
+            aria-hidden="true"
+          >
+            <path
+              d="M0 60 C 40 50, 70 30, 110 25 S 170 10, 200 5"
+              stroke="#16A34A"
+              strokeWidth="2"
+              fill="none"
+              strokeLinecap="round"
+            />
+          </svg>
 
-        <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#eeedf8', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
-            <ClockIcon />
+          <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '8px' }}>
+            <span style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '10px',
+              background: '#DCFCE7',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <LeafIcon color="#16A34A" />
+            </span>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{
+                fontSize: fs.insightKicker,
+                color: '#15803D',
+                fontWeight: 600,
+                letterSpacing: '0.4px',
+                textTransform: 'uppercase',
+                marginBottom: '2px',
+              }}>
+                Insights
+              </div>
+              <div style={{
+                fontFamily: 'Syne, sans-serif',
+                fontWeight: 700,
+                fontSize: fs.insightTitle,
+                color: '#064E3B',
+                lineHeight: 1.25,
+              }}>
+                {insightTitle}
+              </div>
+            </div>
           </div>
-          <div style={{ fontSize: '10px', color: '#aaa', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>HORA PICO</div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '4px' }}>
-            {metrics!.hora_pico ? `${formatHour(metrics!.hora_pico.hora)} hs` : '—'}
-          </div>
-          <div style={{ fontSize: '11px', color: '#aaa' }}>mayor concentración de servicios</div>
-        </div>
-
-        <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ marginBottom: '12px' }}>
-            {metrics!.barbero_estrella ? (
-              <UserCircleIcon initial={metrics!.barbero_estrella.nombre.charAt(0)} />
-            ) : (
-              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#f0f0f0' }} />
+          <div style={{
+            position: 'relative',
+            zIndex: 1,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'space-between',
+            gap: '10px',
+            marginTop: '6px',
+          }}>
+            <div style={{
+              fontSize: fs.insightBody,
+              color: '#065F46',
+              lineHeight: 1.45,
+              fontWeight: 500,
+              flex: 1,
+              minWidth: 0,
+            }}>
+              {insightBody}
+            </div>
+            {!isFlat && (
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '2px',
+                background: badgeBg,
+                color: badgeColor,
+                fontSize: fs.insightBadge,
+                fontWeight: 700,
+                padding: '4px 9px',
+                borderRadius: '999px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}>
+                {badgeUp ? '↑' : '↓'} {Math.abs(facVar).toFixed(1)}%
+              </span>
             )}
           </div>
-          <div style={{ fontSize: '10px', color: '#aaa', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>BARBERO ESTRELLA</div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '4px' }}>
-            {metrics!.barbero_estrella ? metrics!.barbero_estrella.nombre : '—'}
-          </div>
-          <div style={{ fontSize: '11px', color: '#aaa' }}>
-            {metrics!.barbero_estrella ? `${metrics!.barbero_estrella.servicios} servicios · ${formatCurrency(metrics!.barbero_estrella.generado)} generados` : '—'}
-          </div>
-        </div>
-
-        <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#eeedf8', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
-            <ScissorsIcon />
-          </div>
-          <div style={{ fontSize: '10px', color: '#aaa', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>SERVICIO TOP</div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '4px' }}>
-            {metrics!.servicio_popular ? metrics!.servicio_popular.nombre : '—'}
-          </div>
-          <div style={{ fontSize: '11px', color: '#aaa' }}>
-            {metrics!.servicio_popular ? `${metrics!.servicio_popular.total} veces solicitado` : '—'}
-          </div>
         </div>
       </div>
+    </div>
+  )
+}
 
-      {/* SECCIÓN 4 — TICKET PROMEDIO */}
-      <div style={{ background: '#3D3A8C', borderRadius: '10px', padding: '20px 24px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px' }}>
-            TICKET PROMEDIO
-          </div>
-          <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
-            valor promedio por servicio registrado
-          </div>
-        </div>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: isMobile ? '24px' : '28px', color: '#FF8C42' }}>
-          {metrics!.ticket_promedio ? formatCurrency(metrics!.ticket_promedio) : '—'}
-        </div>
+// ─────────────────────────────────────────────────────────────────────────────
+// Small metric card — 4 across, tinted icon chip, no pills, no sparklines.
+// ─────────────────────────────────────────────────────────────────────────────
+function SmallMetricCard({
+  iconBg,
+  icon,
+  label,
+  value,
+  sub,
+  fs,
+}: {
+  iconBg: string
+  icon: React.ReactNode
+  label: string
+  value: string
+  sub: string
+  fs: FsScale
+}) {
+  return (
+    <div style={{
+      background: '#fff',
+      border: '1px solid #F1F5F9',
+      borderRadius: '16px',
+      padding: '10px 8px',
+      boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '6px',
+      width: 'calc((100% - 24px) / 4)',
+      minWidth: '78px',
+      maxWidth: '110px',
+      flexShrink: 0,
+      boxSizing: 'border-box',
+      minHeight: '105px',
+    }}>
+      <div style={{
+        width: '32px',
+        height: '32px',
+        borderRadius: '10px',
+        background: iconBg,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}>
+        {icon}
       </div>
-
-      {/* SECCIÓN 5 — MEJOR MES */}
-      {metrics!.mes_top && (
-        <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontSize: '11px', color: '#aaa', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px' }}>MEJOR MES</div>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#1a1a2e' }}>
-              {formatMonth(metrics!.mes_top.mes)}
-            </div>
-          </div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '28px', color: '#FF8C42' }}>
-            {formatCurrency(metrics!.mes_top.total)}
-          </div>
-        </div>
-      )}
-
-      {/* SECCIÓN 6 — GASTOS DEL MES */}
-      {(metrics!.gastos_mes ?? 0) > 0 && (
-        <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '20px 24px', marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#fff0f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ReceiptIcon />
-            </div>
-            <div>
-              <div style={{ fontSize: '10px', color: '#aaa', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '4px' }}>GASTOS DEL MES</div>
-              <div style={{ fontSize: '11px', color: '#ccc' }}>insumos y gastos operativos</div>
-            </div>
-          </div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: isMobile ? '20px' : '24px', color: '#e74c3c' }}>
-            {formatCurrency(metrics!.gastos_mes)}
-          </div>
-        </div>
-      )}
+      <div style={{
+        fontSize: fs.metricLabel,
+        color: '#64748B',
+        fontWeight: 500,
+        whiteSpace: 'normal',
+        overflowWrap: 'break-word',
+        letterSpacing: '-0.2px',
+        lineHeight: 1.15,
+      }}>
+        {label}
+      </div>
+      <div style={{
+        fontFamily: "'Inter', system-ui, sans-serif",
+        fontSize: fs.metricNumber,
+        fontWeight: 800,
+        color: '#0F172A',
+        lineHeight: 1.1,
+        letterSpacing: '-0.5px',
+        whiteSpace: 'nowrap',
+      }}>
+        {value}
+      </div>
+      <div style={{
+        fontSize: fs.metricSub,
+        color: '#94A3B8',
+        fontWeight: 400,
+        whiteSpace: 'normal',
+        overflowWrap: 'break-word',
+        lineHeight: 1.15,
+        marginTop: 'auto',
+      }}>
+        {sub}
+      </div>
     </div>
   )
 }
