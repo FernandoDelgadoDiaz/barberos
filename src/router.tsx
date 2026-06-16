@@ -13,6 +13,7 @@ import { Settings } from './pages/owner/Settings'
 import { Barbers } from './pages/owner/Barbers'
 import { Services } from './pages/owner/Services'
 import { History } from './pages/owner/History'
+import { Products } from './pages/owner/Products'
 import { Tenants } from './pages/superadmin/Tenants'
 
 export const router = createBrowserRouter([
@@ -69,6 +70,10 @@ export const router = createBrowserRouter([
           {
             path: 'history',
             element: <History />
+          },
+          {
+            path: 'products',
+            element: <Products />
           },
           {
             path: 'settings',

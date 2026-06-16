@@ -72,6 +72,21 @@ export type ServiceLog = {
   created_at: string
 }
 
+export type ProductSale = {
+  id: string
+  tenant_id: string
+  appointment_id: string | null
+  barber_id: string | null
+  product_id: string | null
+  product_name: string
+  unit_price: number
+  quantity: number
+  line_total: number
+  payment_method: 'efectivo' | 'transferencia'
+  sold_at: string
+  created_at: string
+}
+
 export type DailySummary = {
   id: string
   tenant_id: string

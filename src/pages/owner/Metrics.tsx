@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { useOutletContext, useNavigate } from 'react-router-dom'
 import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 
@@ -441,6 +441,7 @@ function MainContent({
   openSelector: boolean
   setOpenSelector: (b: boolean) => void
 }) {
+  const navigate = useNavigate()
   // Bar chart data: pick metric and find max for normalization
   const barData = metrics.servicios_por_dia
   const values = barData.map(d => (barMetric === 'facturado' ? d.facturado : d.servicios))
@@ -876,6 +877,54 @@ function MainContent({
             )}
           </div>
         </div>
+      </div>
+
+      {/* ── Acceso a Ventas de productos ──────────────────────────────────── */}
+      <div style={{ padding: '24px 16px 0' }}>
+        <button
+          type="button"
+          onClick={() => navigate('/owner/products')}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            background: '#fff',
+            border: '1px solid #F1F5F9',
+            borderRadius: '16px',
+            padding: '16px',
+            boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+            cursor: 'pointer',
+            textAlign: 'left',
+          }}
+        >
+          <span style={{
+            width: 44,
+            height: 44,
+            borderRadius: 12,
+            background: '#DBEAFE',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+              <path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12" />
+            </svg>
+          </span>
+          <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(15px, 4.36vw, 17px)', color: '#0F172A', lineHeight: 1.15 }}>
+              Ventas de productos
+            </span>
+            <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: 'clamp(12px, 3.33vw, 13px)', color: '#64748B', lineHeight: 1.3 }}>
+              Ver detalle por producto →
+            </span>
+          </span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }} aria-hidden="true">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
       </div>
     </div>
   )
