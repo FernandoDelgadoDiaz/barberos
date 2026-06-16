@@ -3,6 +3,50 @@ import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 import type { Profile } from '../../types'
 
+// =============================================================================
+// Palette — slate + blue (consistent with LivePanel / Metrics / History)
+// =============================================================================
+const C = {
+  ink: '#0F172A',
+  slate600: '#475569',
+  slate500: '#64748B',
+  slate400: '#94A3B8',
+  border: '#E2E8F0',
+  borderLt: '#F1F5F9',
+  blue: '#2563EB',
+  blueBright: '#3B82F6',
+  blueLt: '#DBEAFE',
+  blueBg: '#EFF6FF',
+  green: '#059669',
+  greenBg: '#D1FAE5',
+  greenDot: '#10B981',
+  red: '#DC2626',
+} as const
+
+// Deterministic avatar color — SAME hash + palette as the avatars in
+// ExpandableBarberCard (used by LivePanel) and History, replicated locally
+// because the scope only allows editing Barbers.tsx. Hashes on `id || name`.
+const AVATAR_PALETTE = [
+  '#2563EB', // blue
+  '#14B8A6', // teal
+  '#F97316', // orange
+  '#7C3AED', // purple
+  '#DC2626', // red
+  '#D97706', // amber
+] as const
+
+function hashIndex(input: string, mod: number): number {
+  let h = 0
+  for (let i = 0; i < input.length; i++) {
+    h = (h * 31 + input.charCodeAt(i)) | 0
+  }
+  return Math.abs(h) % mod
+}
+
+function getAvatarColor(id: string, name: string): string {
+  return AVATAR_PALETTE[hashIndex(id || name, AVATAR_PALETTE.length)]
+}
+
 async function getAuthHeader(): Promise<string> {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) {
@@ -30,6 +74,7 @@ export function Barbers() {
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   const loadBarbers = useCallback(async () => {
     setError(null)
@@ -67,6 +112,14 @@ export function Barbers() {
     }
     loadBarbers()
   }, [loadBarbers, tenantId])
+
+  // Close kebab menu on any outside click
+  useEffect(() => {
+    if (!openMenuId) return
+    const close = () => setOpenMenuId(null)
+    window.addEventListener('click', close)
+    return () => window.removeEventListener('click', close)
+  }, [openMenuId])
 
   const handleToggleActive = async (id: string) => {
     const barber = barbers.find(b => b.id === id)
@@ -171,12 +224,25 @@ export function Barbers() {
   }
 
   const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+    return (name.trim()[0] || '?').toUpperCase()
   }
 
+  // ---------------------------------------------------------------------------
+  // Loading / Error
+  // ---------------------------------------------------------------------------
   if (loading) {
     return (
-      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '24px', textAlign: 'center', color: '#aaa', fontSize: '14px' }}>
+      <div
+        style={{
+          maxWidth: '430px',
+          margin: '0 auto',
+          padding: '60px 16px',
+          textAlign: 'center',
+          color: C.slate400,
+          fontSize: '14px',
+          fontFamily: 'Space Grotesk, sans-serif',
+        }}
+      >
         Cargando barberos...
       </div>
     )
@@ -184,46 +250,31 @@ export function Barbers() {
 
   if (error) {
     return (
-      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
-          <div>
-            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#1a1a2e', marginBottom: '8px' }}>Barberos</h1>
-            <p style={{ color: '#aaa', fontSize: '14px' }}>{tenant?.name || 'Tu barbería'} · Gestiona tu equipo</p>
-          </div>
-          <button
-            onClick={handleAdd}
-            style={{
-              background: '#3D3A8C',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '12px 20px',
-              fontFamily: 'Space Grotesk, sans-serif',
-              fontWeight: 600,
-              fontSize: '14px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            Agregar barbero
-          </button>
-        </div>
-        <div style={{ background: '#fff5f5', border: '0.5px solid #ffcccc', borderRadius: '12px', padding: '20px', color: '#cc3333', fontFamily: 'Space Grotesk, sans-serif' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>Error al cargar barberos</h3>
-          <p style={{ fontSize: '14px' }}>{error}</p>
+      <div style={rootStyle}>
+        <ScreenHeader />
+        <div
+          style={{
+            background: '#FEF2F2',
+            border: '1px solid #FECACA',
+            borderRadius: '16px',
+            padding: '20px',
+            color: C.red,
+            fontFamily: 'Space Grotesk, sans-serif',
+            marginTop: '20px',
+          }}
+        >
+          <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px', fontFamily: 'Syne, sans-serif' }}>
+            Error al cargar barberos
+          </h3>
+          <p style={{ fontSize: '14px', lineHeight: 1.4 }}>{error}</p>
           <button
             onClick={() => loadBarbers()}
             style={{
-              background: '#3D3A8C',
+              background: C.blue,
               color: '#fff',
               border: 'none',
-              borderRadius: '6px',
-              padding: '8px 16px',
+              borderRadius: '10px',
+              padding: '10px 18px',
               fontFamily: 'Space Grotesk, sans-serif',
               fontWeight: 600,
               fontSize: '13px',
@@ -234,123 +285,391 @@ export function Barbers() {
             Reintentar
           </button>
         </div>
+        <div style={{ height: '110px' }} />
       </div>
     )
   }
 
+  // ---------------------------------------------------------------------------
+  // Main
+  // ---------------------------------------------------------------------------
+  const activeCount = barbers.filter(b => b.is_active).length
+  const totalCount = barbers.length
+
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
-        <div>
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#1a1a2e', marginBottom: '8px' }}>Barberos</h1>
-          <p style={{ color: '#aaa', fontSize: '14px' }}>{tenant?.name || 'Tu barbería'} · Gestiona tu equipo</p>
-        </div>
-        <button
-          onClick={handleAdd}
+    <div style={rootStyle}>
+      <ScreenHeader />
+
+      {/* Stat cards */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '12px',
+          marginTop: '20px',
+        }}
+      >
+        <StatCard
+          label="Activos"
+          count={activeCount}
+          chipBg={C.greenBg}
+          iconStroke={C.green}
+          icon={<UsersIcon />}
+        />
+        <StatCard
+          label="Total"
+          count={totalCount}
+          chipBg="#EDE9FE"
+          iconStroke="#7C3AED"
+          icon={<UserIcon />}
+        />
+      </div>
+
+      {/* CTA card */}
+      <button onClick={handleAdd} style={ctaCardStyle}>
+        <div
           style={{
-            background: '#3D3A8C',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '12px 20px',
-            fontFamily: 'Space Grotesk, sans-serif',
-            fontWeight: 600,
-            fontSize: '14px',
-            cursor: 'pointer',
+            width: 48,
+            height: 48,
+            borderRadius: 12,
+            background: 'rgba(255,255,255,0.95)',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            justifyContent: 'center',
+            flexShrink: 0,
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 5v14M5 12h14" />
           </svg>
-          Agregar barbero
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {barbers.map((barber) => (
+        </div>
+        <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
           <div
-            key={barber.id}
-            className="responsive-row"
             style={{
-              background: '#fff',
-              border: '0.5px solid #e0e0e0',
-              borderRadius: '10px',
-              padding: '16px 20px',
+              fontFamily: 'Syne, sans-serif',
+              fontWeight: 700,
+              fontSize: 'clamp(15px, 4.36vw, 17px)',
+              color: '#fff',
+              lineHeight: 1.15,
             }}
           >
-            <div className="responsive-row-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '10px', background: '#3D3A8C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '16px', color: '#fff', flexShrink: 0 }}>
-                {getInitials(barber.display_name)}
-              </div>
-              <div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '15px', color: '#1a1a2e', marginBottom: '2px' }}>
-                  {barber.display_name}
-                </div>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: '#aaa' }}>
-                  Barbero
-                </div>
-              </div>
-            </div>
+            Agregar barbero
+          </div>
+          <div
+            style={{
+              fontFamily: 'Space Grotesk, sans-serif',
+              fontWeight: 400,
+              fontSize: 'clamp(12px, 3.33vw, 13px)',
+              color: 'rgba(255,255,255,0.85)',
+              lineHeight: 1.3,
+              marginTop: 2,
+            }}
+          >
+            Crear un nuevo miembro del equipo
+          </div>
+        </div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9, flexShrink: 0 }}>
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+      </button>
 
-            <div className="responsive-row-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button
-                onClick={() => handleEdit(barber)}
-                style={{
-                  background: 'transparent',
-                  border: '0.5px solid #e0e0e0',
-                  borderRadius: '6px',
-                  padding: '8px 12px',
-                  fontFamily: 'Space Grotesk, sans-serif',
-                  fontWeight: 500,
-                  fontSize: '12px',
-                  color: '#888',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Editar
-              </button>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: barber.is_active ? '#3D3A8C' : '#aaa' }}>
-                  {barber.is_active ? 'Activo' : 'Inactivo'}
-                </div>
+      {/* Barber list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+        {barbers.map((barber) => {
+          const menuOpen = openMenuId === barber.id
+          return (
+            <div
+              key={barber.id}
+              style={{
+                position: 'relative',
+                background: '#fff',
+                border: `1px solid ${C.borderLt}`,
+                borderRadius: '16px',
+                padding: '14px 14px 14px 16px',
+                boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+              }}
+            >
+              {/* Avatar + presence dot */}
+              <div style={{ position: 'relative', flexShrink: 0 }}>
                 <div
-                  onClick={() => handleToggleActive(barber.id)}
                   style={{
-                    width: '36px',
-                    height: '20px',
-                    borderRadius: '10px',
-                    background: barber.is_active ? '#3D3A8C' : '#e0e0e0',
-                    position: 'relative',
-                    cursor: 'pointer',
+                    width: 56,
+                    height: 56,
+                    borderRadius: '50%',
+                    background: getAvatarColor(barber.id, barber.display_name),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    fontFamily: 'Syne, sans-serif',
+                    fontWeight: 700,
+                    fontSize: 26,
+                    lineHeight: 1,
+                    boxShadow: '0 2px 8px rgba(15,23,42,0.10)',
                   }}
                 >
-                  <div style={{
-                    width: '16px',
-                    height: '16px',
-                    borderRadius: '50%',
-                    background: '#fff',
-                    position: 'absolute',
-                    top: '2px',
-                    left: barber.is_active ? '18px' : '2px',
-                    transition: 'left 0.2s',
-                  }} />
+                  {getInitials(barber.display_name)}
                 </div>
+                <span
+                  style={{
+                    position: 'absolute',
+                    bottom: 2,
+                    right: 2,
+                    width: 14,
+                    height: 14,
+                    borderRadius: '50%',
+                    background: barber.is_active ? '#22C55E' : C.slate400,
+                    border: '2.5px solid #fff',
+                  }}
+                />
+              </div>
+
+              {/* Name + role + badge */}
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div
+                  style={{
+                    fontFamily: 'Syne, sans-serif',
+                    fontWeight: 700,
+                    fontSize: 'clamp(16px, 4.62vw, 18px)',
+                    color: C.ink,
+                    lineHeight: 1.2,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {barber.display_name}
+                </div>
+                <div
+                  style={{
+                    fontFamily: 'Space Grotesk, sans-serif',
+                    fontWeight: 400,
+                    fontSize: 'clamp(12px, 3.33vw, 13px)',
+                    color: C.slate400,
+                    lineHeight: 1.2,
+                  }}
+                >
+                  Barbero
+                </div>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    width: 'fit-content',
+                    marginTop: '2px',
+                    padding: '4px 10px',
+                    borderRadius: '999px',
+                    background: barber.is_active ? C.greenBg : C.borderLt,
+                    color: barber.is_active ? C.green : C.slate500,
+                    fontFamily: 'Space Grotesk, sans-serif',
+                    fontWeight: 600,
+                    fontSize: 'clamp(11px, 3.08vw, 12px)',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      background: barber.is_active ? C.greenDot : C.slate400,
+                    }}
+                  />
+                  {barber.is_active ? 'Disponible' : 'No disponible'}
+                </span>
+              </div>
+
+              {/* Right column: kebab on top, edit below */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-end',
+                  gap: '8px',
+                  flexShrink: 0,
+                }}
+              >
+                <div style={{ position: 'relative' }}>
+                  <button
+                    aria-label="Más acciones"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setOpenMenuId(menuOpen ? null : barber.id)
+                    }}
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 8,
+                      background: menuOpen ? C.borderLt : 'transparent',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      color: C.slate400,
+                    }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <circle cx="12" cy="5" r="1.6" />
+                      <circle cx="12" cy="12" r="1.6" />
+                      <circle cx="12" cy="19" r="1.6" />
+                    </svg>
+                  </button>
+
+                  {menuOpen && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        position: 'absolute',
+                        top: 'calc(100% + 6px)',
+                        right: 0,
+                        width: 200,
+                        background: '#fff',
+                        border: `1px solid ${C.border}`,
+                        borderRadius: 12,
+                        padding: 6,
+                        boxShadow: '0 8px 24px rgba(15,23,42,0.12)',
+                        zIndex: 50,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 2,
+                      }}
+                    >
+                      <MenuItem
+                        label="Editar"
+                        color={C.ink}
+                        onClick={() => {
+                          setOpenMenuId(null)
+                          handleEdit(barber)
+                        }}
+                        icon={
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                          </svg>
+                        }
+                      />
+                      <div style={{ height: 1, background: C.borderLt, margin: '4px 8px' }} />
+                      <MenuItem
+                        label={barber.is_active ? 'Desactivar' : 'Activar'}
+                        color={barber.is_active ? C.red : C.green}
+                        onClick={() => {
+                          setOpenMenuId(null)
+                          handleToggleActive(barber.id)
+                        }}
+                        icon={
+                          barber.is_active ? (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="12" r="10" />
+                              <path d="M4.93 4.93l14.14 14.14" />
+                            </svg>
+                          ) : (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M20 6L9 17l-5-5" />
+                            </svg>
+                          )
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => handleEdit(barber)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: '#fff',
+                    border: `1px solid ${C.border}`,
+                    borderRadius: '10px',
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    fontFamily: 'Space Grotesk, sans-serif',
+                    fontWeight: 600,
+                    fontSize: 'clamp(12px, 3.33vw, 13px)',
+                    color: C.slate600,
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.slate500} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                  </svg>
+                  Editar
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.slate400} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </button>
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
+      {/* Info card */}
+      <div
+        style={{
+          marginTop: '16px',
+          background: C.blueBg,
+          border: `1px solid ${C.blueLt}`,
+          borderRadius: '16px',
+          padding: '14px 16px',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '12px',
+        }}
+      >
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: C.blueLt,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4" />
+            <path d="M12 8h.01" />
+          </svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div
+            style={{
+              fontFamily: 'Syne, sans-serif',
+              fontWeight: 700,
+              fontSize: 'clamp(14px, 4.10vw, 16px)',
+              color: C.ink,
+              lineHeight: 1.2,
+            }}
+          >
+            Información
+          </div>
+          <div
+            style={{
+              fontFamily: 'Space Grotesk, sans-serif',
+              fontWeight: 400,
+              fontSize: 'clamp(12px, 3.33vw, 13px)',
+              color: C.slate600,
+              lineHeight: 1.4,
+            }}
+          >
+            Los barberos inactivos no aparecerán en las pantallas de operación en tiempo real.
+          </div>
+        </div>
+      </div>
+
+      {/* Spacer to clear the floating bottom-nav */}
+      <div style={{ height: '110px' }} />
+
+      {/* Modal Agregar/Editar (preserved) */}
       {showModal && (
         <div style={{
           position: 'fixed',
@@ -358,32 +677,34 @@ export function Barbers() {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0,0,0,0.4)',
+          background: 'rgba(15,23,42,0.45)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000,
+          padding: '16px',
         }}>
           <div style={{
             background: '#fff',
-            border: '0.5px solid #e0e0e0',
-            borderRadius: '12px',
-            padding: '32px',
+            border: `1px solid ${C.border}`,
+            borderRadius: '16px',
+            padding: '24px',
             width: '100%',
-            maxWidth: '480px',
+            maxWidth: '420px',
+            boxSizing: 'border-box',
           }}>
-            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: '#1a1a2e', marginBottom: '24px' }}>
+            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: C.ink, marginBottom: '24px' }}>
               {editingBarber ? 'Editar barbero' : 'Agregar barbero'}
             </h2>
 
             {modalError && (
               <div style={{
-                background: '#fff5f5',
-                border: '0.5px solid #ffcccc',
+                background: '#FEF2F2',
+                border: '1px solid #FECACA',
                 borderRadius: '8px',
                 padding: '12px',
                 marginBottom: '20px',
-                color: '#cc3333',
+                color: C.red,
                 fontFamily: 'Space Grotesk, sans-serif',
                 fontSize: '13px',
               }}>
@@ -393,91 +714,52 @@ export function Barbers() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
-                  Nombre para mostrar
-                </label>
+                <label style={modalLabelStyle}>Nombre para mostrar</label>
                 <input
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  style={{
-                    width: '100%',
-                    background: '#f8f8f8',
-                    border: '0.5px solid #e0e0e0',
-                    borderRadius: '6px',
-                    padding: '12px',
-                    fontFamily: 'Space Grotesk, sans-serif',
-                    fontWeight: 400,
-                    fontSize: '14px',
-                    color: '#1a1a2e',
-                    boxSizing: 'border-box',
-                  }}
+                  style={modalInputStyle}
                 />
               </div>
 
               {!editingBarber && (
                 <>
                   <div>
-                    <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
-                      Email
-                    </label>
+                    <label style={modalLabelStyle}>Email</label>
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      style={{
-                        width: '100%',
-                        background: '#f8f8f8',
-                        border: '0.5px solid #e0e0e0',
-                        borderRadius: '6px',
-                        padding: '12px',
-                        fontFamily: 'Space Grotesk, sans-serif',
-                        fontWeight: 400,
-                        fontSize: '14px',
-                        color: '#1a1a2e',
-                        boxSizing: 'border-box',
-                      }}
+                      style={modalInputStyle}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#888', marginBottom: '8px' }}>
-                      Contraseña
-                    </label>
+                    <label style={modalLabelStyle}>Contraseña</label>
                     <input
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      style={{
-                        width: '100%',
-                        background: '#f8f8f8',
-                        border: '0.5px solid #e0e0e0',
-                        borderRadius: '6px',
-                        padding: '12px',
-                        fontFamily: 'Space Grotesk, sans-serif',
-                        fontWeight: 400,
-                        fontSize: '14px',
-                        color: '#1a1a2e',
-                        boxSizing: 'border-box',
-                      }}
+                      style={modalInputStyle}
                     />
                   </div>
                 </>
               )}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '28px' }}>
               <button
                 onClick={() => setShowModal(false)}
                 disabled={modalLoading}
                 style={{
                   background: 'transparent',
-                  border: '0.5px solid #e0e0e0',
-                  borderRadius: '6px',
-                  padding: '10px 20px',
+                  border: `1px solid ${C.border}`,
+                  borderRadius: '10px',
+                  padding: '10px 18px',
                   fontFamily: 'Space Grotesk, sans-serif',
                   fontWeight: 500,
                   fontSize: '14px',
-                  color: '#888',
+                  color: C.slate600,
                   cursor: 'pointer',
                   opacity: modalLoading ? 0.5 : 1,
                 }}
@@ -488,11 +770,11 @@ export function Barbers() {
                 onClick={handleCreateBarber}
                 disabled={modalLoading}
                 style={{
-                  background: '#3D3A8C',
+                  background: C.blue,
                   color: '#fff',
                   border: 'none',
-                  borderRadius: '6px',
-                  padding: '10px 20px',
+                  borderRadius: '10px',
+                  padding: '10px 18px',
                   fontFamily: 'Space Grotesk, sans-serif',
                   fontWeight: 600,
                   fontSize: '14px',
@@ -509,3 +791,223 @@ export function Barbers() {
     </div>
   )
 }
+
+// =============================================================================
+// Shared styles / subcomponents
+// =============================================================================
+const rootStyle: React.CSSProperties = {
+  maxWidth: '430px',
+  margin: '0 auto',
+  padding: '0 16px',
+  boxSizing: 'border-box',
+  overflowX: 'hidden',
+}
+
+const ctaCardStyle: React.CSSProperties = {
+  marginTop: '16px',
+  width: '100%',
+  background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+  border: 'none',
+  borderRadius: '16px',
+  padding: '16px 18px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '14px',
+  cursor: 'pointer',
+  boxShadow: '0 4px 12px rgba(37,99,235,0.25)',
+}
+
+const modalLabelStyle: React.CSSProperties = {
+  display: 'block',
+  fontFamily: 'Space Grotesk, sans-serif',
+  fontWeight: 400,
+  fontSize: '13px',
+  color: C.slate500,
+  marginBottom: '8px',
+}
+
+const modalInputStyle: React.CSSProperties = {
+  width: '100%',
+  background: '#F8FAFC',
+  border: `1px solid ${C.border}`,
+  borderRadius: '8px',
+  padding: '12px',
+  fontFamily: 'Space Grotesk, sans-serif',
+  fontWeight: 400,
+  fontSize: '14px',
+  color: C.ink,
+  boxSizing: 'border-box',
+  outline: 'none',
+}
+
+function ScreenHeader() {
+  return (
+    <div style={{ padding: '14px 0 16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <h1
+        style={{
+          fontFamily: 'Syne, sans-serif',
+          fontWeight: 700,
+          fontSize: 'clamp(15px, 4.6vw, 18px)',
+          color: C.ink,
+          lineHeight: 1.2,
+          margin: 0,
+        }}
+      >
+        Barberos
+      </h1>
+      <p
+        style={{
+          fontFamily: 'Space Grotesk, sans-serif',
+          fontWeight: 400,
+          fontSize: 'clamp(11px, 3.33vw, 13px)',
+          color: C.slate500,
+          margin: 0,
+        }}
+      >
+        Gestioná tu equipo de trabajo
+      </p>
+    </div>
+  )
+}
+
+function StatCard({
+  label,
+  count,
+  chipBg,
+  iconStroke,
+  icon,
+}: {
+  label: string
+  count: number
+  chipBg: string
+  iconStroke: string
+  icon: React.ReactNode
+}) {
+  return (
+    <div
+      style={{
+        background: '#fff',
+        border: `1px solid ${C.borderLt}`,
+        borderRadius: '16px',
+        padding: '14px 16px',
+        boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+      }}
+    >
+      <div
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 10,
+          background: chipBg,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          color: iconStroke,
+        }}
+      >
+        {icon}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+        <div
+          style={{
+            fontFamily: 'Space Grotesk, sans-serif',
+            fontWeight: 500,
+            fontSize: 'clamp(12px, 3.33vw, 13px)',
+            color: C.slate500,
+          }}
+        >
+          {label}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+          <span
+            style={{
+              fontFamily: "'Inter', system-ui, sans-serif",
+              fontWeight: 800,
+              fontSize: 'clamp(22px, 6.67vw, 26px)',
+              color: C.ink,
+              letterSpacing: '-0.5px',
+              lineHeight: 1.05,
+            }}
+          >
+            {count}
+          </span>
+          <span
+            style={{
+              fontFamily: 'Space Grotesk, sans-serif',
+              fontWeight: 400,
+              fontSize: 'clamp(11px, 3.08vw, 12px)',
+              color: C.slate400,
+            }}
+          >
+            {count === 1 ? 'barbero' : 'barberos'}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MenuItem({
+  label,
+  color,
+  icon,
+  onClick,
+}: {
+  label: string
+  color: string
+  icon: React.ReactNode
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        width: '100%',
+        padding: '10px 12px',
+        borderRadius: 8,
+        background: 'transparent',
+        border: 'none',
+        cursor: 'pointer',
+        fontFamily: 'Space Grotesk, sans-serif',
+        fontWeight: 500,
+        fontSize: '14px',
+        color,
+        textAlign: 'left',
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = '#F8FAFC')}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+    >
+      <span style={{ display: 'inline-flex', color }}>{icon}</span>
+      {label}
+    </button>
+  )
+}
+
+function UsersIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  )
+}
+
+function UserIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  )
+}
+
+export default Barbers
