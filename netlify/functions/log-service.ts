@@ -67,6 +67,24 @@ interface ServiceItem {
   price_charged: number
 }
 
+// Detalle de un producto vendido (opcional en el body)
+interface ProductItem {
+  product_id: string
+  product_name: string
+  unit_price: number
+  quantity: number
+  line_total: number
+}
+
+// Producto normalizado/validado del lado del servidor (line_total recalculado)
+type NormalizedProduct = {
+  product_id: string
+  product_name: string
+  unit_price: number
+  quantity: number
+  line_total: number
+}
+
 // Request body actualizado: array de servicios
 interface RequestBody {
   barber_id: string
@@ -79,6 +97,7 @@ interface RequestBody {
   tip_payment_method?: 'efectivo' | 'transferencia'
   others_amount?: number
   others_payment_method?: 'efectivo' | 'transferencia'
+  products?: ProductItem[]  // Opcional: detalle de productos vendidos
 }
 
 // Interfaz para appointment (local)
@@ -192,9 +211,40 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     const tipAmount = typeof body.tip_amount === 'number' ? body.tip_amount : 0
     const tipPaymentMethod: 'efectivo' | 'transferencia' =
       body.tip_payment_method === 'transferencia' ? 'transferencia' : 'efectivo'
-    const othersAmount = typeof body.others_amount === 'number' ? body.others_amount : 0
     const othersPaymentMethod: 'efectivo' | 'transferencia' =
       body.others_payment_method === 'transferencia' ? 'transferencia' : 'efectivo'
+
+    // Normalizar y validar el detalle de productos (opcional, retrocompatible).
+    // El line_total se RECALCULA en el servidor; no se confía en el valor del cliente.
+    const products: NormalizedProduct[] = []
+    if (Array.isArray(body.products)) {
+      for (const p of body.products) {
+        if (!p || typeof p.product_id !== 'string' || !p.product_id) {
+          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid product: product_id is required' }) }
+        }
+        const quantity = Number(p.quantity)
+        const unitPrice = Number(p.unit_price)
+        if (!Number.isInteger(quantity) || quantity <= 0) {
+          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid product: quantity must be a positive integer' }) }
+        }
+        if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid product: unit_price must be a non-negative number' }) }
+        }
+        products.push({
+          product_id: p.product_id,
+          product_name: typeof p.product_name === 'string' && p.product_name.trim() ? p.product_name.trim() : 'Producto',
+          unit_price: unitPrice,
+          quantity,
+          line_total: unitPrice * quantity,
+        })
+      }
+    }
+
+    // others_amount alimenta la ganancia del dueño. Si vino detalle de productos,
+    // se deriva de ahí (tamper-proof); si no, se usa el escalar del body (retrocompat).
+    const othersAmount = products.length > 0
+      ? products.reduce((sum, p) => sum + p.line_total, 0)
+      : (typeof body.others_amount === 'number' ? body.others_amount : 0)
 
     // Validar required fields
     if (!body.barber_id || !body.services || !body.started_at) {
@@ -469,6 +519,42 @@ export const handler = async (event: NetlifyFunctionEvent) => {
 
       insertedServiceLogIds.push(insertedLog.id)
       serviceLogs.push(insertedLog as ServiceLog)
+    }
+
+    // 9.b Persistir el detalle de productos vendidos (solo reporte para el dueño;
+    // la plata ya fluye por others_amount en el primer service_log).
+    if (products.length > 0) {
+      const productRows = products.map(p => ({
+        tenant_id: tenantId,
+        appointment_id: appointment.id,
+        barber_id: body.barber_id,
+        product_id: p.product_id,
+        product_name: p.product_name,
+        unit_price: p.unit_price,
+        quantity: p.quantity,
+        line_total: p.line_total,
+        payment_method: othersPaymentMethod,
+        sold_at: startedAtUTC,
+      }))
+
+      const { error: productsError } = await supabase
+        .from('product_sales')
+        .insert(productRows)
+
+      if (productsError) {
+        console.error('Product sales insert error:', productsError)
+        // Rollback: borrar service_logs insertados y el appointment
+        // (appointment_id es ON DELETE CASCADE, limpia cualquier product_sales parcial).
+        for (const logId of insertedServiceLogIds) {
+          await supabase.from('service_logs').delete().eq('id', logId)
+        }
+        await supabase.from('appointments').delete().eq('id', appointment.id)
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Failed to insert product sales detail' }),
+        }
+      }
     }
 
     // 10. Return success

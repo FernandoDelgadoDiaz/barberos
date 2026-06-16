@@ -61,6 +61,7 @@ export function Dashboard() {
   const [currentShift, setCurrentShift] = useState<Shift | null>(null)
   const [selectedServices, setSelectedServices] = useState<ServiceWithEstimation[]>([])
   const [selectedProducts, setSelectedProducts] = useState<ServiceCatalog[]>([])
+  const [productQty, setProductQty] = useState<Record<string, number>>({})
   const [wizardStep, setWizardStep] = useState<0|1|2|3|4|5>(0)
   const [wizardPaymentMethod, setWizardPaymentMethod] = useState<'efectivo'|'transferencia'>('efectivo')
   // Tip and products have their OWN payment method (cash register reconciliation):
@@ -87,6 +88,7 @@ export function Dashboard() {
     setWizardStep(0)
     setSelectedServices([])
     setSelectedProducts([])
+    setProductQty({})
     setWizardPaymentMethod('efectivo')
     setWizardTipPaymentMethod('efectivo')
     setWizardOthersPaymentMethod('efectivo')
@@ -383,6 +385,19 @@ export function Dashboard() {
         return [...prev, product]
       }
     })
+    setProductQty(prev => {
+      const next = { ...prev }
+      if (next[product.id]) {
+        delete next[product.id]
+      } else {
+        next[product.id] = 1
+      }
+      return next
+    })
+  }
+
+  const changeProductQty = (id: string, delta: number) => {
+    setProductQty(prev => ({ ...prev, [id]: Math.max(1, (prev[id] || 1) + delta) }))
   }
 
   const confirmAttention = async () => {
@@ -402,6 +417,17 @@ export function Dashboard() {
         price_charged: s.base_price,
       }))
 
+      const productsPayload = selectedProducts.map(p => {
+        const quantity = productQty[p.id] || 1
+        return {
+          product_id: p.id,
+          product_name: p.name,
+          unit_price: p.base_price,
+          quantity,
+          line_total: p.base_price * quantity,
+        }
+      })
+
       const authHeader = await getAuthHeader()
       const response = await fetch('/.netlify/functions/log-service', {
         method: 'POST',
@@ -415,8 +441,9 @@ export function Dashboard() {
           payment_method: wizardPaymentMethod,
           tip_amount: parseFloat(wizardTip) || 0,
           tip_payment_method: wizardTipPaymentMethod,
-          others_amount: selectedProducts.reduce((sum, p) => sum + p.base_price, 0),
+          others_amount: productsPayload.reduce((sum, p) => sum + p.line_total, 0),
           others_payment_method: wizardOthersPaymentMethod,
+          products: productsPayload,
         }),
       })
 
@@ -726,7 +753,7 @@ export function Dashboard() {
       {/* Register attention button */}
       {shiftStatus === 'open' ? (
         <button
-          onClick={() => { setSelectedServices([]); setSelectedProducts([]); setWizardError(null); setWizardStep(1) }}
+          onClick={() => { setSelectedServices([]); setSelectedProducts([]); setProductQty({}); setWizardError(null); setWizardStep(1) }}
           style={{ width: '100%', height: '56px', background: '#1E2A3A', color: '#fff', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '16px', letterSpacing: '0.01em', border: 'none', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 150ms ease' }}
           onMouseEnter={e => { e.currentTarget.style.background = '#2D3F52'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(30,42,58,0.25)' }}
           onMouseLeave={e => { e.currentTarget.style.background = '#1E2A3A'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
@@ -906,26 +933,36 @@ export function Dashboard() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto', marginBottom: '12px' }}>
                       {products.map(product => {
                         const isSel = selectedProducts.some(p => p.id === product.id)
+                        const qty = productQty[product.id] || 1
                         return (
                           <div
                             key={product.id}
                             onClick={() => toggleProductSelection(product)}
                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: isSel ? '#FFF7ED' : '#F9FAFB', borderRadius: '8px', border: isSel ? '1px solid #F97316' : '1px solid #E8E9EB', cursor: 'pointer' }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                               <div style={{ width: '18px', height: '18px', borderRadius: '4px', border: `2px solid ${isSel ? '#F97316' : '#D1D5DB'}`, background: isSel ? '#F97316' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                 {isSel && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                               </div>
-                              <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', color: '#1E2A3A' }}>{product.name}</span>
+                              <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', color: '#1E2A3A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.name}</span>
                             </div>
-                            <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', color: '#1E2A3A' }}>${product.base_price.toLocaleString('es-AR')}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                              {isSel && (
+                                <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <button onClick={(e) => { e.stopPropagation(); changeProductQty(product.id, -1) }} aria-label="Restar uno" style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #E8E9EB', background: '#fff', color: '#1E2A3A', fontSize: '16px', fontWeight: 700, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>−</button>
+                                  <span style={{ minWidth: '18px', textAlign: 'center', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', color: '#1E2A3A' }}>{qty}</span>
+                                  <button onClick={(e) => { e.stopPropagation(); changeProductQty(product.id, 1) }} aria-label="Sumar uno" style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #E8E9EB', background: '#fff', color: '#1E2A3A', fontSize: '16px', fontWeight: 700, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>+</button>
+                                </div>
+                              )}
+                              <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, fontSize: '14px', color: '#1E2A3A', minWidth: '60px', textAlign: 'right' }}>${(product.base_price * qty).toLocaleString('es-AR')}</span>
+                            </div>
                           </div>
                         )
                       })}
                     </div>
                     <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', color: '#6B7280', marginBottom: '16px', minHeight: '18px' }}>
                       {selectedProducts.length > 0
-                        ? `${selectedProducts.length} seleccionado${selectedProducts.length !== 1 ? 's' : ''} · $${selectedProducts.reduce((s, x) => s + x.base_price, 0).toLocaleString('es-AR')}`
+                        ? `${selectedProducts.reduce((s, x) => s + (productQty[x.id] || 1), 0)} unidad${selectedProducts.reduce((s, x) => s + (productQty[x.id] || 1), 0) !== 1 ? 'es' : ''} · $${selectedProducts.reduce((s, x) => s + x.base_price * (productQty[x.id] || 1), 0).toLocaleString('es-AR')}`
                         : 'Ningún producto seleccionado'}
                     </div>
                     {selectedProducts.length > 0 && (
@@ -965,12 +1002,15 @@ export function Dashboard() {
                   <div style={{ borderTop: '1px solid #F3F4F6', paddingTop: '12px', marginBottom: '16px' }}>
                     <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Productos (100% dueño)</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {selectedProducts.map(p => (
-                        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif' }}>
-                          <span>{p.name}</span>
-                          <span style={{ fontWeight: 500 }}>${p.base_price.toLocaleString('es-AR')}</span>
-                        </div>
-                      ))}
+                      {selectedProducts.map(p => {
+                        const qty = productQty[p.id] || 1
+                        return (
+                          <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#1E2A3A', fontFamily: 'Space Grotesk, sans-serif' }}>
+                            <span>{p.name}{qty > 1 ? ` ×${qty}` : ''}</span>
+                            <span style={{ fontWeight: 500 }}>${(p.base_price * qty).toLocaleString('es-AR')}</span>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )}
@@ -992,7 +1032,7 @@ export function Dashboard() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', background: '#F9FAFB', borderRadius: '8px', marginBottom: '20px', border: '1px solid #E8E9EB' }}>
                   <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '14px', color: '#1E2A3A' }}>Total</span>
                   <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: '#D4A853' }}>
-                    ${(selectedServices.reduce((s, x) => s + x.base_price, 0) + (parseFloat(wizardTip) || 0) + selectedProducts.reduce((s, x) => s + x.base_price, 0)).toLocaleString('es-AR')}
+                    ${(selectedServices.reduce((s, x) => s + x.base_price, 0) + (parseFloat(wizardTip) || 0) + selectedProducts.reduce((s, x) => s + x.base_price * (productQty[x.id] || 1), 0)).toLocaleString('es-AR')}
                   </span>
                 </div>
 
