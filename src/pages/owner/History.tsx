@@ -4,6 +4,53 @@ import { supabase } from '../../config/supabase'
 import type { ServiceLog, DailyExpense } from '../../types'
 
 // =============================================================================
+// Palette — slate + blue (consistent with LivePanel / Metrics redesign)
+// =============================================================================
+const C = {
+  ink: '#0F172A',
+  slate600: '#475569',
+  slate500: '#64748B',
+  slate400: '#94A3B8',
+  border: '#E2E8F0',
+  borderLt: '#F1F5F9',
+  blue: '#2563EB',
+  blueBright: '#3B82F6',
+  blueLt: '#DBEAFE',
+  blueBg: '#EFF6FF',
+  blueText: '#1D4ED8',
+  tooltip: '#1E293B',
+  green: '#10B981',
+  red: '#DC2626',
+  redSoft: '#F87171',
+  blueSoft: '#60A5FA',
+} as const
+
+// Deterministic barber color — SAME hash + palette as the avatars in
+// ExpandableBarberCard (used by LivePanel), replicated locally because the
+// scope only allows editing History.tsx. Hashes on `id || name` so the dot
+// matches the barber's avatar color elsewhere in the app.
+const BARBER_PALETTE = [
+  '#2563EB', // blue
+  '#14B8A6', // teal
+  '#F97316', // orange
+  '#7C3AED', // purple
+  '#DC2626', // red
+  '#D97706', // amber
+] as const
+
+function barberHashIndex(input: string, mod: number): number {
+  let h = 0
+  for (let i = 0; i < input.length; i++) {
+    h = (h * 31 + input.charCodeAt(i)) | 0
+  }
+  return Math.abs(h) % mod
+}
+
+function getBarberColor(id: string, name: string): string {
+  return BARBER_PALETTE[barberHashIndex(id || name, BARBER_PALETTE.length)]
+}
+
+// =============================================================================
 // Date helpers — Argentina timezone (UTC-3, no DST since 2009)
 // =============================================================================
 function getArgentinaDateString(date: Date = new Date()): string {
@@ -95,6 +142,17 @@ function formatDateShort(isoDate: string): string {
     timeZone: 'America/Argentina/Buenos_Aires',
     day: '2-digit',
     month: '2-digit',
+  })
+}
+
+// Short label like "8 jun" used in the range header (mockup style).
+function formatDateDayMonth(isoDate: string): string {
+  const [y, m, d] = isoDate.split('-').map(Number)
+  const dt = new Date(Date.UTC(y, m - 1, d, 12))
+  return dt.toLocaleDateString('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    day: 'numeric',
+    month: 'short',
   })
 }
 
@@ -258,17 +316,23 @@ export function History() {
   // Render
   // ----------------------------------------------------------------------
   const effectiveMode = mode === 'range' && rangeStart === rangeEnd ? 'day' : mode
-  const effectiveDayDate = effectiveMode === 'day' && mode === 'range' ? rangeStart : selectedDate
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: isMobile ? '4px' : '8px' }}>
+    <div
+      style={{
+        maxWidth: '430px',
+        margin: '0 auto',
+        padding: '0 16px',
+        boxSizing: 'border-box',
+        overflowX: 'hidden',
+      }}
+    >
       <Header
         mode={mode}
         activeShortcut={activeShortcut}
         selectedDate={selectedDate}
         rangeStart={rangeStart}
         rangeEnd={rangeEnd}
-        isMobile={isMobile}
         onShortcut={applyShortcut}
         onSelectedDate={(v) => {
           setSelectedDate(v)
@@ -293,7 +357,6 @@ export function History() {
         <EmptyState />
       ) : effectiveMode === 'day' ? (
         <DayView
-          dateAR={effectiveDayDate}
           logs={logs}
           expenses={expenses}
           isMobile={isMobile}
@@ -307,6 +370,9 @@ export function History() {
           isMobile={isMobile}
         />
       )}
+
+      {/* Spacer to clear the floating bottom-nav */}
+      <div style={{ height: '110px' }} />
     </div>
   )
 }
@@ -320,7 +386,6 @@ type HeaderProps = {
   selectedDate: string
   rangeStart: string
   rangeEnd: string
-  isMobile: boolean
   onShortcut: (k: ShortcutKey) => void
   onSelectedDate: (v: string) => void
   onRangeStart: (v: string) => void
@@ -333,7 +398,6 @@ function Header({
   selectedDate,
   rangeStart,
   rangeEnd,
-  isMobile,
   onShortcut,
   onSelectedDate,
   onRangeStart,
@@ -345,22 +409,63 @@ function Header({
     { key: 'custom', label: 'Personalizado' },
   ]
 
+  const normStart = rangeStart <= rangeEnd ? rangeStart : rangeEnd
+  const normEnd = rangeStart <= rangeEnd ? rangeEnd : rangeStart
+
   return (
-    <div style={{ marginBottom: '20px' }}>
-      <h1
+    <div style={{ padding: '14px 0 4px' }}>
+      <div
         style={{
-          fontFamily: 'Syne, sans-serif',
-          fontWeight: 700,
-          fontSize: '22px',
-          color: '#1E2A3A',
-          margin: '0 0 4px 0',
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: '12px',
+          marginBottom: '14px',
         }}
       >
-        Historial
-      </h1>
-      <p style={{ color: '#6B7280', fontSize: '13px', margin: '0 0 16px 0' }}>
-        Consultá los servicios y gastos por día o rango
-      </p>
+        <div style={{ minWidth: 0 }}>
+          <h1
+            style={{
+              fontFamily: 'Syne, sans-serif',
+              fontWeight: 700,
+              fontSize: 'clamp(15px, 4.6vw, 18px)',
+              color: C.ink,
+              margin: '0 0 2px 0',
+              lineHeight: 1.2,
+            }}
+          >
+            Historial <span aria-hidden>📋</span>
+          </h1>
+          <p
+            style={{
+              color: C.slate500,
+              fontSize: 'clamp(11px, 3.33vw, 13px)',
+              fontFamily: 'Space Grotesk, sans-serif',
+              margin: 0,
+            }}
+          >
+            Consultá tus servicios y ganancias
+          </p>
+        </div>
+        <button
+          type="button"
+          aria-label="Filtros"
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            border: `1px solid ${C.border}`,
+            background: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            flexShrink: 0,
+          }}
+        >
+          <FunnelIcon />
+        </button>
+      </div>
 
       {/* Shortcut pills */}
       <div
@@ -378,13 +483,13 @@ function Header({
               key={s.key}
               onClick={() => onShortcut(s.key)}
               style={{
-                background: active ? '#1E2A3A' : '#fff',
-                color: active ? '#fff' : '#6B7280',
-                border: active ? '1px solid #1E2A3A' : '1px solid #E8E9EB',
-                borderRadius: '20px',
-                padding: '8px 16px',
-                fontSize: '13px',
-                fontWeight: 500,
+                background: active ? C.blueLt : '#fff',
+                color: active ? C.blueText : C.slate600,
+                border: active ? `1px solid ${C.blueLt}` : `1px solid ${C.border}`,
+                borderRadius: '999px',
+                padding: '8px 14px',
+                fontSize: 'clamp(11px, 3.33vw, 13px)',
+                fontWeight: active ? 600 : 500,
                 fontFamily: 'Space Grotesk, sans-serif',
                 cursor: 'pointer',
                 transition: 'all 150ms ease',
@@ -396,10 +501,12 @@ function Header({
         })}
       </div>
 
-      {/* Date inputs */}
+      {/* Date inputs (custom) */}
       {mode === 'day' && activeShortcut === 'custom' && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <label style={{ fontSize: '12px', color: '#6B7280' }}>Fecha:</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+          <label style={{ fontSize: '12px', color: C.slate500, fontFamily: 'Space Grotesk, sans-serif' }}>
+            Fecha:
+          </label>
           <input
             type="date"
             value={selectedDate}
@@ -410,59 +517,107 @@ function Header({
       )}
 
       {mode === 'range' && activeShortcut === 'custom' && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <label style={{ fontSize: '12px', color: '#6B7280' }}>Desde:</label>
-          <input
-            type="date"
-            value={rangeStart}
-            onChange={(e) => onRangeStart(e.target.value)}
-            style={inputStyle}
-          />
-          <label style={{ fontSize: '12px', color: '#6B7280' }}>Hasta:</label>
-          <input
-            type="date"
-            value={rangeEnd}
-            onChange={(e) => onRangeEnd(e.target.value)}
-            style={inputStyle}
-          />
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <label style={dateLabelStyle}>Desde:</label>
+            <input
+              type="date"
+              value={rangeStart}
+              onChange={(e) => onRangeStart(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <label style={dateLabelStyle}>Hasta:</label>
+            <input
+              type="date"
+              value={rangeEnd}
+              onChange={(e) => onRangeEnd(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
         </div>
       )}
 
-      {/* Active range label */}
-      {mode === 'range' && activeShortcut !== 'custom' && (
-        <div style={{ fontSize: '12px', color: '#6B7280', fontFamily: 'Space Grotesk, sans-serif' }}>
-          {formatDateShort(rangeStart <= rangeEnd ? rangeStart : rangeEnd)} →{' '}
-          {formatDateShort(rangeStart <= rangeEnd ? rangeEnd : rangeStart)}
-        </div>
-      )}
-      {mode === 'day' && activeShortcut !== 'custom' && (
-        <div
-          style={{
-            fontSize: '12px',
-            color: '#6B7280',
-            fontFamily: 'Space Grotesk, sans-serif',
-            textTransform: 'capitalize',
-          }}
-        >
-          {formatDateLong(selectedDate)}
-        </div>
-      )}
-
-      {/* Suppress unused-prop warning for isMobile (kept for future use) */}
-      <span style={{ display: 'none' }}>{isMobile ? '' : ''}</span>
+      {/* Active range / day label with calendar icon */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          fontSize: 'clamp(11px, 3.33vw, 13px)',
+          color: C.slate600,
+          fontFamily: 'Space Grotesk, sans-serif',
+          fontWeight: 500,
+        }}
+      >
+        <CalendarIcon />
+        {mode === 'range' ? (
+          <span>
+            {formatDateDayMonth(normStart)} – {formatDateDayMonth(normEnd)}
+          </span>
+        ) : (
+          <span style={{ textTransform: 'capitalize' }}>{formatDateLong(selectedDate)}</span>
+        )}
+      </div>
     </div>
   )
 }
 
+function FunnelIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={C.slate600}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M3 5h18l-7 8v6l-4 2v-8z" />
+    </svg>
+  )
+}
+
+function CalendarIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={C.slate500}
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ flexShrink: 0 }}
+    >
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </svg>
+  )
+}
+
 const inputStyle: React.CSSProperties = {
-  border: '1px solid #E8E9EB',
+  width: '100%',
+  boxSizing: 'border-box',
+  border: `1px solid ${C.border}`,
   borderRadius: '8px',
-  padding: '8px 12px',
+  padding: '8px',
   fontSize: '13px',
   fontFamily: 'Space Grotesk, sans-serif',
-  color: '#1E2A3A',
+  color: C.ink,
   background: '#fff',
   outline: 'none',
+}
+
+const dateLabelStyle: React.CSSProperties = {
+  fontSize: '12px',
+  color: C.slate500,
+  fontFamily: 'Space Grotesk, sans-serif',
 }
 
 // =============================================================================
@@ -472,8 +627,6 @@ function LoadingSpinner() {
   return (
     <div
       style={{
-        maxWidth: '1000px',
-        margin: '0 auto',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -488,15 +641,15 @@ function LoadingSpinner() {
           width: 40,
           height: 40,
           borderRadius: '50%',
-          border: '3px solid #F3F4F6',
-          borderTopColor: '#D4A853',
+          border: `3px solid ${C.borderLt}`,
+          borderTopColor: C.blue,
           animation: 'spinHist 0.8s linear infinite',
         }}
       />
       <p
         style={{
           fontSize: 14,
-          color: '#9CA3AF',
+          color: C.slate400,
           fontFamily: 'Space Grotesk, sans-serif',
           margin: 0,
         }}
@@ -512,11 +665,12 @@ function EmptyState() {
     <div
       style={{
         background: '#fff',
-        borderRadius: '12px',
-        border: '1px solid #E8E9EB',
+        borderRadius: '16px',
+        border: `1px solid ${C.borderLt}`,
         padding: '60px 24px',
         textAlign: 'center',
-        marginTop: '20px',
+        marginTop: '8px',
+        boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
       }}
     >
       <svg
@@ -524,11 +678,11 @@ function EmptyState() {
         height="48"
         viewBox="0 0 24 24"
         fill="none"
-        stroke="#D4A853"
+        stroke={C.blue}
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        style={{ opacity: 0.6, margin: '0 auto 16px' }}
+        style={{ opacity: 0.5, margin: '0 auto 16px' }}
       >
         <rect x="3" y="4" width="18" height="18" rx="2" />
         <path d="M16 2v4M8 2v4M3 10h18" />
@@ -538,7 +692,7 @@ function EmptyState() {
           fontFamily: 'Syne, sans-serif',
           fontWeight: 600,
           fontSize: '18px',
-          color: '#1E2A3A',
+          color: C.ink,
           marginBottom: '8px',
         }}
       >
@@ -547,7 +701,7 @@ function EmptyState() {
       <div
         style={{
           fontSize: '14px',
-          color: '#6B7280',
+          color: C.slate500,
           fontFamily: 'Space Grotesk, sans-serif',
         }}
       >
@@ -561,13 +715,12 @@ function EmptyState() {
 // Day View
 // =============================================================================
 type DayViewProps = {
-  dateAR: string
   logs: ServiceLogWithBarber[]
   expenses: DailyExpense[]
   isMobile: boolean
 }
 
-function DayView({ dateAR, logs, expenses, isMobile }: DayViewProps) {
+function DayView({ logs, expenses, isMobile }: DayViewProps) {
   // Aggregate totals
   const totalDay = logs.reduce((s, l) => s + (l.price_charged || 0), 0)
   const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0)
@@ -634,11 +787,7 @@ function DayView({ dateAR, logs, expenses, isMobile }: DayViewProps) {
   )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <div style={{ fontSize: '13px', color: '#6B7280', textTransform: 'capitalize' }}>
-        {formatDateLong(dateAR)}
-      </div>
-
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '12px' }}>
       {/* Stats grid */}
       <div
         style={{
@@ -648,16 +797,12 @@ function DayView({ dateAR, logs, expenses, isMobile }: DayViewProps) {
         }}
       >
         <StatCard label="Total del día" value={fmtMoney(totalDay)} />
-        <StatCard
-          label="Ganancia dueño"
-          value={fmtMoney(ownerEarning)}
-          accent="#D4A853"
-        />
+        <StatCard label="Ganancia dueño" value={fmtMoney(ownerEarning)} accent={C.blue} />
         <StatCard label="Clientes" value={String(clientsCount)} />
         <StatCard
           label="Gastos"
           value={fmtMoney(totalExpenses)}
-          accent={totalExpenses > 0 ? '#E74C3C' : undefined}
+          accent={totalExpenses > 0 ? C.red : undefined}
         />
       </div>
 
@@ -675,38 +820,21 @@ function DayView({ dateAR, logs, expenses, isMobile }: DayViewProps) {
         <div
           style={{
             background: '#fff',
-            borderRadius: '12px',
-            border: '1px solid #E8E9EB',
+            borderRadius: '16px',
+            border: `1px solid ${C.borderLt}`,
             padding: '20px',
+            boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
           }}
         >
-          <div
-            style={{
-              fontFamily: 'Syne, sans-serif',
-              fontWeight: 600,
-              fontSize: '13px',
-              color: '#6B7280',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              marginBottom: '12px',
-            }}
-          >
-            Gastos del día
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={sectionTitleStyle}>Gastos del día</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
             {expenses.map((e) => (
               <div
                 key={e.id}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontSize: '14px',
-                }}
+                style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}
               >
-                <span style={{ color: '#444' }}>{e.description}</span>
-                <span style={{ color: '#E74C3C', fontWeight: 500 }}>
-                  -{fmtMoney(e.amount)}
-                </span>
+                <span style={{ color: C.slate600 }}>{e.description}</span>
+                <span style={{ color: C.red, fontWeight: 500 }}>-{fmtMoney(e.amount)}</span>
               </div>
             ))}
           </div>
@@ -715,7 +843,7 @@ function DayView({ dateAR, logs, expenses, isMobile }: DayViewProps) {
 
       {/* Settlement summary */}
       {logs.length > 0 && (
-        <div style={{ background: '#1E2A3A', borderRadius: '12px', padding: '20px' }}>
+        <div style={{ background: C.ink, borderRadius: '16px', padding: '20px' }}>
           <div
             style={{
               fontSize: '11px',
@@ -723,6 +851,7 @@ function DayView({ dateAR, logs, expenses, isMobile }: DayViewProps) {
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
               marginBottom: '12px',
+              fontFamily: 'Space Grotesk, sans-serif',
             }}
           >
             Liquidación del día
@@ -730,17 +859,13 @@ function DayView({ dateAR, logs, expenses, isMobile }: DayViewProps) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <RowDark label="Total Barbería" value={fmtMoney(totalDay)} />
             {barberGroups.map((g) => (
-              <RowDark
-                key={g.barberId}
-                label={g.barberName}
-                value={fmtMoney(g.barberEarning)}
-              />
+              <RowDark key={g.barberId} label={g.barberName} value={fmtMoney(g.barberEarning)} />
             ))}
             {totalExpenses > 0 && (
               <RowDark
                 label="Insumos del día"
                 value={`-${fmtMoney(totalExpenses)}`}
-                valueColor="#FF6B6B"
+                valueColor={C.redSoft}
               />
             )}
             <div
@@ -752,10 +877,17 @@ function DayView({ dateAR, logs, expenses, isMobile }: DayViewProps) {
                 marginTop: '4px',
               }}
             >
-              <span style={{ fontSize: '14px', color: '#fff', fontWeight: 600 }}>
+              <span style={{ fontSize: '14px', color: '#fff', fontWeight: 600, fontFamily: 'Syne, sans-serif' }}>
                 Ganancia real del dueño
               </span>
-              <span style={{ fontSize: '18px', fontWeight: 700, color: '#D4A853' }}>
+              <span
+                style={{
+                  fontSize: '18px',
+                  fontWeight: 700,
+                  color: C.blueSoft,
+                  fontFamily: "'Inter', system-ui, sans-serif",
+                }}
+              >
                 {fmtMoney(ownerEarning)}
               </span>
             </div>
@@ -773,6 +905,7 @@ function DayView({ dateAR, logs, expenses, isMobile }: DayViewProps) {
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
                   marginBottom: '8px',
+                  fontFamily: 'Space Grotesk, sans-serif',
                 }}
               >
                 Métodos de pago
@@ -789,6 +922,13 @@ function DayView({ dateAR, logs, expenses, isMobile }: DayViewProps) {
   )
 }
 
+const sectionTitleStyle: React.CSSProperties = {
+  fontFamily: 'Syne, sans-serif',
+  fontWeight: 700,
+  fontSize: 'clamp(14px, 4.1vw, 16px)',
+  color: C.ink,
+}
+
 function StatCard({
   label,
   value,
@@ -802,15 +942,16 @@ function StatCard({
     <div
       style={{
         background: '#fff',
-        borderRadius: '12px',
+        borderRadius: '16px',
         padding: '16px',
-        border: '1px solid #E8E9EB',
+        border: `1px solid ${C.borderLt}`,
+        boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
       }}
     >
       <div
         style={{
           fontSize: '11px',
-          color: '#6B7280',
+          color: C.slate500,
           textTransform: 'uppercase',
           letterSpacing: '0.5px',
           marginBottom: '6px',
@@ -822,9 +963,10 @@ function StatCard({
       <div
         style={{
           fontSize: '22px',
-          fontWeight: 600,
-          color: accent || '#1E2A3A',
-          fontFamily: 'Syne, sans-serif',
+          fontWeight: 800,
+          color: accent || C.ink,
+          fontFamily: "'Inter', system-ui, sans-serif",
+          letterSpacing: '-0.5px',
         }}
       >
         {value}
@@ -851,8 +993,19 @@ function RowDark({
         borderBottom: '1px solid rgba(255,255,255,0.08)',
       }}
     >
-      <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>{label}</span>
-      <span style={{ fontSize: '14px', fontWeight: 500, color: valueColor }}>{value}</span>
+      <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', fontFamily: 'Space Grotesk, sans-serif' }}>
+        {label}
+      </span>
+      <span
+        style={{
+          fontSize: '14px',
+          fontWeight: 500,
+          color: valueColor,
+          fontFamily: "'Inter', system-ui, sans-serif",
+        }}
+      >
+        {value}
+      </span>
     </div>
   )
 }
@@ -872,6 +1025,7 @@ type BarberGroupView = {
 
 function BarberDayCard({ group }: { group: BarberGroupView }) {
   const [expanded, setExpanded] = useState(false)
+  const dotColor = getBarberColor(group.barberId, group.barberName)
   const appointments = Array.from(group.appointments.entries())
     .map(([key, logs]) => ({
       key,
@@ -890,9 +1044,10 @@ function BarberDayCard({ group }: { group: BarberGroupView }) {
     <div
       style={{
         background: '#fff',
-        borderRadius: '12px',
-        border: '1px solid #E8E9EB',
-        padding: '16px 20px',
+        borderRadius: '16px',
+        border: `1px solid ${C.borderLt}`,
+        padding: '16px 18px',
+        boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
       }}
     >
       <div
@@ -905,37 +1060,58 @@ function BarberDayCard({ group }: { group: BarberGroupView }) {
           gap: '12px',
         }}
       >
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div
+        <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span
             style={{
-              fontFamily: 'Syne, sans-serif',
-              fontWeight: 600,
-              fontSize: '16px',
-              color: '#1E2A3A',
-              marginBottom: '2px',
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: dotColor,
+              flexShrink: 0,
             }}
-          >
-            {group.barberName}
-          </div>
-          <div style={{ fontSize: '12px', color: '#6B7280' }}>
-            {appointments.length} {appointments.length === 1 ? 'cliente' : 'clientes'} ·{' '}
-            {fmtMoney(group.totalGenerated)} generado
+          />
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                fontFamily: 'Syne, sans-serif',
+                fontWeight: 600,
+                fontSize: '16px',
+                color: C.ink,
+                marginBottom: '2px',
+              }}
+            >
+              {group.barberName}
+            </div>
+            <div style={{ fontSize: '12px', color: C.slate500, fontFamily: 'Space Grotesk, sans-serif' }}>
+              {appointments.length} {appointments.length === 1 ? 'cliente' : 'clientes'} ·{' '}
+              {fmtMoney(group.totalGenerated)} generado
+            </div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '11px', color: '#6B7280', textTransform: 'uppercase' }}>
-              Barbero
-            </div>
-            <div style={{ fontSize: '14px', fontWeight: 600, color: '#1E2A3A' }}>
+            <div style={{ fontSize: '11px', color: C.slate500, textTransform: 'uppercase' }}>Barbero</div>
+            <div
+              style={{
+                fontSize: '14px',
+                fontWeight: 600,
+                color: C.ink,
+                fontFamily: "'Inter', system-ui, sans-serif",
+              }}
+            >
               {fmtMoney(group.barberEarning)}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '11px', color: '#6B7280', textTransform: 'uppercase' }}>
-              Dueño
-            </div>
-            <div style={{ fontSize: '14px', fontWeight: 600, color: '#D4A853' }}>
+            <div style={{ fontSize: '11px', color: C.slate500, textTransform: 'uppercase' }}>Dueño</div>
+            <div
+              style={{
+                fontSize: '14px',
+                fontWeight: 600,
+                color: C.blue,
+                fontFamily: "'Inter', system-ui, sans-serif",
+              }}
+            >
               {fmtMoney(group.ownerEarning)}
             </div>
           </div>
@@ -944,7 +1120,7 @@ function BarberDayCard({ group }: { group: BarberGroupView }) {
             height="16"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#6B7280"
+            stroke={C.slate500}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -963,7 +1139,7 @@ function BarberDayCard({ group }: { group: BarberGroupView }) {
           style={{
             marginTop: '16px',
             paddingTop: '12px',
-            borderTop: '1px solid #F3F4F6',
+            borderTop: `1px solid ${C.borderLt}`,
             display: 'flex',
             flexDirection: 'column',
             gap: '12px',
@@ -985,55 +1161,54 @@ function BarberDayCard({ group }: { group: BarberGroupView }) {
                   background: '#fff',
                   borderRadius: '12px',
                   padding: '16px',
-                  border: '1px solid #E8E9EB',
-                  marginBottom: '8px',
+                  border: `1px solid ${C.borderLt}`,
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = '#FAFAFA')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
               >
                 {/* Header: Cliente #N — hora */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '15px', color: '#1E2A3A' }}>
+                  <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '15px', color: C.ink }}>
                     Cliente #{idx + 1}
                   </span>
-                  <span style={{ fontSize: '13px', color: '#6B7280' }}>{time}</span>
+                  <span style={{ fontSize: '13px', color: C.slate500 }}>{time}</span>
                 </div>
                 {/* Subheader: método badge + servicios */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                  <span style={{
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    padding: '2px 8px',
-                    borderRadius: '20px',
-                    background: payment === 'transferencia' ? '#DBEAFE' : '#D1FAE5',
-                    color: payment === 'transferencia' ? '#1D4ED8' : '#065F46',
-                  }}>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: '20px',
+                      background: payment === 'transferencia' ? C.blueLt : '#D1FAE5',
+                      color: payment === 'transferencia' ? C.blueText : '#065F46',
+                    }}
+                  >
                     {paymentLabel}
                   </span>
-                  <span style={{ fontSize: '12px', color: '#9CA3AF' }}>
+                  <span style={{ fontSize: '12px', color: C.slate400 }}>
                     {a.logs.length} {a.logs.length === 1 ? 'servicio' : 'servicios'}
                   </span>
                 </div>
                 {/* Separator */}
-                <div style={{ borderTop: '1px solid #F3F4F6', margin: '8px 0' }} />
+                <div style={{ borderTop: `1px solid ${C.borderLt}`, margin: '8px 0' }} />
                 {/* Data rows */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '13px', color: '#6B7280' }}>Total cobrado</span>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#1E2A3A' }}>{fmtMoney(total)}</span>
+                    <span style={{ fontSize: '13px', color: C.slate500 }}>Total cobrado</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: C.ink }}>{fmtMoney(total)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '13px', color: '#6B7280' }}>Barbero</span>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#1E2A3A' }}>{fmtMoney(barberE - tipTotal)}</span>
+                    <span style={{ fontSize: '13px', color: C.slate500 }}>Barbero</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: C.ink }}>{fmtMoney(barberE - tipTotal)}</span>
                   </div>
                   {tipTotal > 0 && (
-                    <div style={{ fontSize: '12px', color: '#D4A853', textAlign: 'right' }}>
+                    <div style={{ fontSize: '12px', color: C.blue, textAlign: 'right' }}>
                       +{fmtMoney(tipTotal)} propina · 100% barbero
                     </div>
                   )}
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '13px', color: '#6B7280' }}>Dueño</span>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#D4A853' }}>{fmtMoney(ownerE - othersTotal)}</span>
+                    <span style={{ fontSize: '13px', color: C.slate500 }}>Dueño</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: C.blue }}>{fmtMoney(ownerE - othersTotal)}</span>
                   </div>
                   {othersTotal > 0 && (
                     <div style={{ fontSize: '12px', color: '#F97316', textAlign: 'right' }}>
@@ -1123,6 +1298,43 @@ function RangeView({ startAR, endAR, logs, expenses, isMobile }: RangeViewProps)
     }))
   }, [dayTotals, days])
 
+  // Latest activities — grouped by appointment (decision #10: no service name,
+  // so we group logs by appointment and show hora · barbero · monto).
+  const activities = useMemo(() => {
+    type Acc = {
+      key: string
+      barberId: string
+      barberName: string
+      amount: number
+      serviceCount: number
+      startedAt: string
+      payment: 'efectivo' | 'transferencia'
+    }
+    const m = new Map<string, Acc>()
+    logs.forEach((l) => {
+      const key = l.appointment_id || `${l.barber_id}-${l.started_at}`
+      const existing = m.get(key)
+      if (existing) {
+        existing.amount += l.price_charged || 0
+        existing.serviceCount += 1
+        if (l.started_at < existing.startedAt) existing.startedAt = l.started_at
+      } else {
+        m.set(key, {
+          key,
+          barberId: l.barber_id,
+          barberName: l.barber_name,
+          amount: l.price_charged || 0,
+          serviceCount: 1,
+          startedAt: l.started_at,
+          payment: l.payment_method || 'efectivo',
+        })
+      }
+    })
+    return Array.from(m.values())
+      .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
+      .slice(0, 5)
+  }, [logs])
+
   // Per-barber summary
   type BarberRow = {
     barberId: string
@@ -1156,139 +1368,229 @@ function RangeView({ startAR, endAR, logs, expenses, isMobile }: RangeViewProps)
   )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Hero summary */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '12px' }}>
+      {/* Summary card (Ingresos / Ganancia neta) */}
       <div
         style={{
-          background: '#1E2A3A',
-          borderRadius: '16px',
-          padding: isMobile ? '24px' : '32px',
-          color: '#fff',
+          background: C.blueBg,
+          borderRadius: '20px',
+          padding: '18px',
+          border: `1px solid ${C.blueLt}`,
+          boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+          position: 'relative',
         }}
       >
+        {/* Decorative trending badge (no % delta — decision #6) */}
         <div
           style={{
-            fontSize: '13px',
-            color: 'rgba(255,255,255,0.6)',
-            marginBottom: '12px',
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            background: C.blueLt,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          aria-hidden
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke={C.blue}
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M3 17l6-6 4 4 8-8" />
+            <path d="M17 7h4v4" />
+          </svg>
+        </div>
+        <div style={{ display: 'flex', gap: '16px' }}>
+          <div style={{ flex: 1, borderRight: `1px solid ${C.blueLt}`, paddingRight: '12px' }}>
+            <div style={summaryLabelStyle}>Ingresos</div>
+            <div style={summaryValueStyle}>{fmtMoney(totalGenerated)}</div>
+            <div style={summarySubStyle}>
+              {servicesCount} {servicesCount === 1 ? 'servicio' : 'servicios'}
+            </div>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={summaryLabelStyle}>Ganancia neta</div>
+            <div style={summaryValueStyle}>{fmtMoney(realOwnerNet)}</div>
+            <div style={summarySubStyle}>
+              {clientsCount} {clientsCount === 1 ? 'cliente' : 'clientes'}
+            </div>
+          </div>
+        </div>
+        <div
+          style={{
+            marginTop: '14px',
+            paddingTop: '12px',
+            borderTop: `1px solid ${C.blueLt}`,
+            display: 'flex',
+            gap: '16px',
+            fontSize: '12px',
+            color: C.slate500,
             fontFamily: 'Space Grotesk, sans-serif',
           }}
         >
-          {days} {days === 1 ? 'día' : 'días'} · {clientsCount}{' '}
-          {clientsCount === 1 ? 'cliente' : 'clientes'} · {servicesCount}{' '}
-          {servicesCount === 1 ? 'servicio' : 'servicios'}
-        </div>
-        <div
-          style={{
-            fontSize: '11px',
-            color: 'rgba(255,255,255,0.4)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            marginBottom: '4px',
-          }}
-        >
-          Total generado
-        </div>
-        <div
-          style={{
-            fontFamily: 'Syne, sans-serif',
-            fontWeight: 800,
-            fontSize: isMobile ? '32px' : '44px',
-            color: '#fff',
-            lineHeight: 1.1,
-          }}
-        >
-          {fmtMoney(totalGenerated)}
-        </div>
-        <div
-          style={{
-            marginTop: '12px',
-            fontSize: '24px',
-            fontWeight: 600,
-            color: '#D4A853',
-            fontFamily: 'Syne, sans-serif',
-          }}
-        >
-          Ganancia neta dueño: {fmtMoney(realOwnerNet)}
-        </div>
-        <div
-          style={{
-            margin: '20px 0 0 0',
-            paddingTop: '16px',
-            borderTop: '1px solid rgba(255,255,255,0.15)',
-            display: 'flex',
-            gap: '24px',
-            flexWrap: 'wrap',
-            fontSize: '13px',
-            color: 'rgba(255,255,255,0.7)',
-          }}
-        >
           <span>
-            Efectivo:{' '}
-            <strong style={{ color: '#fff' }}>{fmtMoney(efectivoTotal)}</strong>
+            Efectivo <strong style={{ color: C.ink }}>{fmtMoney(efectivoTotal)}</strong>
           </span>
           <span>
-            Transferencia:{' '}
-            <strong style={{ color: '#fff' }}>{fmtMoney(transferenciaTotal)}</strong>
+            Transferencia <strong style={{ color: C.ink }}>{fmtMoney(transferenciaTotal)}</strong>
           </span>
         </div>
       </div>
 
       {/* Chart */}
       {chartBuckets.length > 0 && (
-        <BarsChart buckets={chartBuckets} isMobile={isMobile} />
+        <div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '12px',
+            }}
+          >
+            <span style={sectionTitleStyle}>Ingresos por día</span>
+            {/* Static metric label — no dropdown (decision #8) */}
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '12px',
+                fontWeight: 500,
+                color: C.slate600,
+                fontFamily: 'Space Grotesk, sans-serif',
+                background: C.borderLt,
+                padding: '6px 10px',
+                borderRadius: '8px',
+              }}
+            >
+              Ingresos
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={C.slate500} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </span>
+          </div>
+          <BarsChart buckets={chartBuckets} isMobile={isMobile} />
+        </div>
+      )}
+
+      {/* Latest activities */}
+      {activities.length > 0 && (
+        <div>
+          <div style={{ marginBottom: '12px' }}>
+            <span style={sectionTitleStyle}>Últimas actividades</span>
+          </div>
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: '16px',
+              border: `1px solid ${C.borderLt}`,
+              boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+              overflow: 'hidden',
+            }}
+          >
+            {activities.map((a, i) => (
+              <div
+                key={a.key}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '14px 16px',
+                  borderBottom: i === activities.length - 1 ? 'none' : `1px solid ${C.borderLt}`,
+                }}
+              >
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: getBarberColor(a.barberId, a.barberName),
+                    flexShrink: 0,
+                  }}
+                />
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span
+                    style={{
+                      fontFamily: 'Space Grotesk, sans-serif',
+                      fontWeight: 600,
+                      fontSize: 'clamp(13px, 3.59vw, 14px)',
+                      color: C.ink,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {formatTimeAR(a.startedAt)} · {a.barberName}
+                  </span>
+                  <span style={{ fontSize: '12px', color: C.slate500, fontFamily: 'Space Grotesk, sans-serif' }}>
+                    {a.serviceCount} {a.serviceCount === 1 ? 'servicio' : 'servicios'} ·{' '}
+                    {a.payment === 'transferencia' ? 'Transferencia' : 'Efectivo'}
+                  </span>
+                </div>
+                <span
+                  style={{
+                    fontFamily: "'Inter', system-ui, sans-serif",
+                    fontWeight: 700,
+                    fontSize: 'clamp(13px, 3.59vw, 14px)',
+                    color: C.ink,
+                    fontVariantNumeric: 'tabular-nums',
+                    flexShrink: 0,
+                  }}
+                >
+                  {fmtMoney(a.amount)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Executive table */}
       {barberRows.length > 0 && (
-        <ExecutiveTable
-          rows={barberRows}
-          totalGenerated={totalGenerated}
-          isMobile={isMobile}
-        />
+        <ExecutiveTable rows={barberRows} totalGenerated={totalGenerated} isMobile={isMobile} />
       )}
 
       {/* Payment + expenses + net */}
       <div
         style={{
           background: '#fff',
-          borderRadius: '12px',
-          border: '1px solid #E8E9EB',
+          borderRadius: '16px',
+          border: `1px solid ${C.borderLt}`,
           padding: '20px',
           display: 'flex',
           flexDirection: 'column',
           gap: '12px',
+          boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
         }}
       >
-        <div
-          style={{
-            fontFamily: 'Syne, sans-serif',
-            fontWeight: 600,
-            fontSize: '13px',
-            color: '#6B7280',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            marginBottom: '4px',
-          }}
-        >
-          Desglose del período
-        </div>
+        <div style={sectionTitleStyle}>Desglose del período</div>
         <RowLight label="Total generado" value={fmtMoney(totalGenerated)} />
         <RowLight label="Efectivo" value={fmtMoney(efectivoTotal)} />
         <RowLight label="Transferencia" value={fmtMoney(transferenciaTotal)} />
         <RowLight
           label="Ganancia barberos"
           value={`-${fmtMoney(barberEarningsExTips)}`}
-          valueColor="#6B7280"
+          valueColor={C.slate500}
         />
         <RowLight
           label="Gastos"
           value={`-${fmtMoney(totalExpenses)}`}
-          valueColor={totalExpenses > 0 ? '#E74C3C' : '#6B7280'}
+          valueColor={totalExpenses > 0 ? C.red : C.slate500}
         />
         <div
           style={{
-            borderTop: '1px solid #F3F4F6',
+            borderTop: `1px solid ${C.borderLt}`,
             paddingTop: '12px',
             marginTop: '4px',
             display: 'flex',
@@ -1296,22 +1598,16 @@ function RangeView({ startAR, endAR, logs, expenses, isMobile }: RangeViewProps)
             alignItems: 'baseline',
           }}
         >
-          <span
-            style={{
-              fontSize: '14px',
-              fontWeight: 600,
-              color: '#1E2A3A',
-              fontFamily: 'Syne, sans-serif',
-            }}
-          >
+          <span style={{ fontSize: '14px', fontWeight: 600, color: C.ink, fontFamily: 'Syne, sans-serif' }}>
             Ganancia real neta dueño
           </span>
           <span
             style={{
               fontSize: '20px',
-              fontWeight: 700,
-              color: '#D4A853',
-              fontFamily: 'Syne, sans-serif',
+              fontWeight: 800,
+              color: C.blue,
+              fontFamily: "'Inter', system-ui, sans-serif",
+              letterSpacing: '-0.5px',
             }}
           >
             {fmtMoney(realOwnerNet)}
@@ -1322,10 +1618,34 @@ function RangeView({ startAR, endAR, logs, expenses, isMobile }: RangeViewProps)
   )
 }
 
+const summaryLabelStyle: React.CSSProperties = {
+  fontSize: 'clamp(11px, 3.08vw, 12px)',
+  color: C.slate500,
+  fontFamily: 'Space Grotesk, sans-serif',
+  fontWeight: 500,
+}
+
+const summaryValueStyle: React.CSSProperties = {
+  fontSize: 'clamp(20px, 6.15vw, 24px)',
+  fontWeight: 800,
+  color: C.ink,
+  fontFamily: "'Inter', system-ui, sans-serif",
+  letterSpacing: '-0.5px',
+  lineHeight: 1.1,
+  marginTop: '4px',
+}
+
+const summarySubStyle: React.CSSProperties = {
+  fontSize: 'clamp(10px, 2.82vw, 11px)',
+  color: C.slate500,
+  fontFamily: 'Space Grotesk, sans-serif',
+  marginTop: '4px',
+}
+
 function RowLight({
   label,
   value,
-  valueColor = '#1E2A3A',
+  valueColor = C.ink,
 }: {
   label: string
   value: string
@@ -1333,8 +1653,16 @@ function RowLight({
 }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-      <span style={{ color: '#6B7280' }}>{label}</span>
-      <span style={{ color: valueColor, fontWeight: 500 }}>{value}</span>
+      <span style={{ color: C.slate500, fontFamily: 'Space Grotesk, sans-serif' }}>{label}</span>
+      <span
+        style={{
+          color: valueColor,
+          fontWeight: 500,
+          fontFamily: "'Inter', system-ui, sans-serif",
+        }}
+      >
+        {value}
+      </span>
     </div>
   )
 }
@@ -1344,9 +1672,39 @@ function RowLight({
 // -----------------------------------------------------------------------------
 type ChartBucket = { key: string; label: string; total: number }
 
+// Round a value up to a "nice" ceiling so bars leave headroom (for the peak
+// tooltip) and the top axis label reads cleanly.
+function niceCeil(v: number): number {
+  if (v <= 0) return 1
+  const mag = Math.pow(10, Math.floor(Math.log10(v)))
+  const norm = v / mag
+  let nice: number
+  if (norm <= 1) nice = 1
+  else if (norm <= 2) nice = 2
+  else if (norm <= 2.5) nice = 2.5
+  else if (norm <= 5) nice = 5
+  else nice = 10
+  return nice * mag
+}
+
+// SVG path for a bar rounded only on the top corners.
+function topRoundedBarPath(x: number, y: number, w: number, h: number, r: number): string {
+  const rr = Math.max(0, Math.min(r, w / 2, h))
+  return [
+    `M ${x} ${y + h}`,
+    `L ${x} ${y + rr}`,
+    `Q ${x} ${y} ${x + rr} ${y}`,
+    `L ${x + w - rr} ${y}`,
+    `Q ${x + w} ${y} ${x + w} ${y + rr}`,
+    `L ${x + w} ${y + h}`,
+    'Z',
+  ].join(' ')
+}
+
 function BarsChart({ buckets, isMobile }: { buckets: ChartBucket[]; isMobile: boolean }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
-  const max = Math.max(1, ...buckets.map((b) => b.total))
+  const rawMax = Math.max(1, ...buckets.map((b) => b.total))
+  const max = niceCeil(rawMax)
   const padding = { top: 16, right: 12, bottom: 36, left: 44 }
   const width = isMobile ? 340 : 920
   const height = isMobile ? 220 : 260
@@ -1355,6 +1713,9 @@ function BarsChart({ buckets, isMobile }: { buckets: ChartBucket[]; isMobile: bo
   const bucketCount = buckets.length
   const barGap = bucketCount > 1 ? Math.min(8, innerW / bucketCount / 4) : 0
   const barWidth = (innerW - barGap * (bucketCount - 1)) / bucketCount
+
+  // Highlight the bucket with the max value (mockup shows the peak day filled).
+  const peakIdx = buckets.reduce((best, b, i) => (b.total > buckets[best].total ? i : best), 0)
 
   // Y-axis ticks
   const ticks = 4
@@ -1368,25 +1729,13 @@ function BarsChart({ buckets, isMobile }: { buckets: ChartBucket[]; isMobile: bo
     <div
       style={{
         background: '#fff',
-        borderRadius: '12px',
-        border: '1px solid #E8E9EB',
-        padding: '16px',
+        borderRadius: '16px',
+        border: `1px solid ${C.borderLt}`,
+        padding: '16px 12px 12px',
         overflowX: 'auto',
+        boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
       }}
     >
-      <div
-        style={{
-          fontFamily: 'Syne, sans-serif',
-          fontWeight: 600,
-          fontSize: '13px',
-          color: '#6B7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px',
-          marginBottom: '12px',
-        }}
-      >
-        {bucketCount > 14 ? 'Total semanal' : 'Total diario'}
-      </div>
       <div style={{ position: 'relative' }}>
         <svg
           width={width}
@@ -1395,6 +1744,17 @@ function BarsChart({ buckets, isMobile }: { buckets: ChartBucket[]; isMobile: bo
           style={{ display: 'block', maxWidth: '100%' }}
           onMouseLeave={() => setHoverIdx(null)}
         >
+          <defs>
+            <linearGradient id="histBarPeak" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#BFDBFE" />
+              <stop offset="100%" stopColor="#3B82F6" />
+            </linearGradient>
+            <linearGradient id="histBarNormal" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#DBEAFE" />
+              <stop offset="100%" stopColor="#93C5FD" />
+            </linearGradient>
+          </defs>
+
           {/* Y grid + labels */}
           {tickValues.map((tv, i) => {
             const y = padding.top + innerH - (tv / max) * innerH
@@ -1405,14 +1765,15 @@ function BarsChart({ buckets, isMobile }: { buckets: ChartBucket[]; isMobile: bo
                   x2={padding.left + innerW}
                   y1={y}
                   y2={y}
-                  stroke="#F3F4F6"
+                  stroke={C.borderLt}
                   strokeWidth={1}
+                  strokeDasharray="2 2"
                 />
                 <text
                   x={padding.left - 8}
                   y={y + 4}
                   fontSize={10}
-                  fill="#9CA3AF"
+                  fill={C.slate400}
                   textAnchor="end"
                   fontFamily="Space Grotesk, sans-serif"
                 >
@@ -1424,28 +1785,27 @@ function BarsChart({ buckets, isMobile }: { buckets: ChartBucket[]; isMobile: bo
 
           {/* Bars */}
           {buckets.map((b, i) => {
-            const h = (b.total / max) * innerH
+            const bw = Math.max(2, barWidth)
+            const h = Math.max(4, (b.total / max) * innerH) // min 4px so $0 stays visible
             const x = padding.left + i * (barWidth + barGap)
             const y = padding.top + innerH - h
             const isHovered = hoverIdx === i
+            const isPeak = i === peakIdx
+            const grad = isHovered || isPeak ? 'url(#histBarPeak)' : 'url(#histBarNormal)'
             return (
               <g key={b.key}>
-                <rect
-                  x={x}
-                  y={y}
-                  width={Math.max(2, barWidth)}
-                  height={Math.max(0, h)}
-                  rx={3}
-                  fill={isHovered ? '#D4A853' : '#1E2A3A'}
+                <path
+                  d={topRoundedBarPath(x, y, bw, h, 6)}
+                  fill={grad}
                   onMouseEnter={() => setHoverIdx(i)}
-                  style={{ cursor: 'pointer', transition: 'fill 120ms ease' }}
+                  style={{ cursor: 'pointer' }}
                 />
                 {i % labelStep === 0 && (
                   <text
                     x={x + barWidth / 2}
                     y={padding.top + innerH + 16}
                     fontSize={10}
-                    fill="#6B7280"
+                    fill={C.slate500}
                     textAnchor="middle"
                     fontFamily="Space Grotesk, sans-serif"
                   >
@@ -1456,13 +1816,53 @@ function BarsChart({ buckets, isMobile }: { buckets: ChartBucket[]; isMobile: bo
             )
           })}
 
+          {/* Persistent tooltip over the tallest bar (mockup style) */}
+          {buckets[peakIdx] && buckets[peakIdx].total > 0 && (() => {
+            const peakH = Math.max(4, (buckets[peakIdx].total / max) * innerH)
+            const peakCx = padding.left + peakIdx * (barWidth + barGap) + Math.max(2, barWidth) / 2
+            const peakTop = padding.top + innerH - peakH
+            const label = fmtMoney(buckets[peakIdx].total)
+            const tw = label.length * 6.8 + 18
+            const th = 22
+            let tx = peakCx - tw / 2
+            tx = Math.max(padding.left, Math.min(tx, padding.left + innerW - tw))
+            let ty = peakTop - 10 - th
+            let pointerDown = true
+            if (ty < 2) {
+              ty = peakTop + 8
+              pointerDown = false
+            }
+            return (
+              <g pointerEvents="none">
+                <rect x={tx} y={ty} width={tw} height={th} rx={6} fill={C.tooltip} />
+                <text
+                  x={tx + tw / 2}
+                  y={ty + th / 2 + 4}
+                  fontSize={11}
+                  fontWeight={600}
+                  fill="#fff"
+                  textAnchor="middle"
+                  fontFamily="'Inter', system-ui, sans-serif"
+                >
+                  {label}
+                </text>
+                {pointerDown && (
+                  <path
+                    d={`M ${peakCx - 4} ${ty + th} L ${peakCx + 4} ${ty + th} L ${peakCx} ${ty + th + 5} Z`}
+                    fill={C.tooltip}
+                  />
+                )}
+              </g>
+            )
+          })()}
+
           {/* Axis line */}
           <line
             x1={padding.left}
             x2={padding.left + innerW}
             y1={padding.top + innerH}
             y2={padding.top + innerH}
-            stroke="#E8E9EB"
+            stroke={C.border}
             strokeWidth={1}
           />
         </svg>
@@ -1474,7 +1874,7 @@ function BarsChart({ buckets, isMobile }: { buckets: ChartBucket[]; isMobile: bo
               position: 'absolute',
               top: 8,
               right: 8,
-              background: '#1E2A3A',
+              background: C.tooltip,
               color: '#fff',
               padding: '8px 12px',
               borderRadius: '8px',
@@ -1487,7 +1887,7 @@ function BarsChart({ buckets, isMobile }: { buckets: ChartBucket[]; isMobile: bo
             <div style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '2px' }}>
               {buckets[hoverIdx].label}
             </div>
-            <div style={{ fontWeight: 600, color: '#D4A853' }}>
+            <div style={{ fontWeight: 600, color: C.blueSoft, fontFamily: "'Inter', system-ui, sans-serif" }}>
               {fmtMoney(buckets[hoverIdx].total)}
             </div>
           </div>
@@ -1534,18 +1934,18 @@ function ExecutiveTable({
     fontSize: '11px',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
-    color: '#6B7280',
+    color: C.slate500,
     fontWeight: 600,
     textAlign: 'left',
     padding: '12px 16px',
-    background: '#F4F5F7',
+    background: '#F8FAFC',
     fontFamily: 'Space Grotesk, sans-serif',
   }
   const tdStyle: React.CSSProperties = {
     fontSize: '13px',
-    color: '#1E2A3A',
+    color: C.ink,
     padding: '12px 16px',
-    borderBottom: '1px solid #F3F4F6',
+    borderBottom: `1px solid ${C.borderLt}`,
     fontFamily: 'Space Grotesk, sans-serif',
   }
 
@@ -1553,24 +1953,13 @@ function ExecutiveTable({
     <div
       style={{
         background: '#fff',
-        borderRadius: '12px',
-        border: '1px solid #E8E9EB',
+        borderRadius: '16px',
+        border: `1px solid ${C.borderLt}`,
         overflow: 'hidden',
+        boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
       }}
     >
-      <div
-        style={{
-          padding: '16px 20px',
-          fontFamily: 'Syne, sans-serif',
-          fontWeight: 600,
-          fontSize: '13px',
-          color: '#6B7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px',
-        }}
-      >
-        Resumen ejecutivo
-      </div>
+      <div style={{ padding: '16px 20px', ...sectionTitleStyle }}>Resumen ejecutivo</div>
       <div style={{ overflowX: 'auto' }}>
         <table
           style={{
@@ -1596,53 +1985,44 @@ function ExecutiveTable({
                 onMouseEnter={(e) => (e.currentTarget.style.background = '#FAFAFA')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
-                <td style={{ ...tdStyle, fontWeight: 500 }}>{r.barberName}</td>
+                <td style={{ ...tdStyle, fontWeight: 500 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                    <span
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background: getBarberColor(r.barberId, r.barberName),
+                        flexShrink: 0,
+                      }}
+                    />
+                    {r.barberName}
+                  </span>
+                </td>
                 <td style={{ ...tdStyle, textAlign: 'right' }}>{r.clients.size}</td>
                 <td style={{ ...tdStyle, textAlign: 'right' }}>{r.services}</td>
-                <td style={{ ...tdStyle, textAlign: 'right' }}>{fmtMoney(r.generated)}</td>
+                <td style={{ ...tdStyle, textAlign: 'right', fontFamily: "'Inter', system-ui, sans-serif" }}>
+                  {fmtMoney(r.generated)}
+                </td>
                 <td
                   style={{
                     ...tdStyle,
                     textAlign: 'right',
-                    color: '#D4A853',
+                    color: C.blue,
                     fontWeight: 600,
+                    fontFamily: "'Inter', system-ui, sans-serif",
                   }}
                 >
                   {fmtMoney(r.earning)}
                 </td>
               </tr>
             ))}
-            <tr style={{ background: '#1E2A3A' }}>
-              <td
-                style={{
-                  ...tdStyle,
-                  color: '#fff',
-                  fontWeight: 600,
-                  borderBottom: 'none',
-                }}
-              >
-                TOTAL
-              </td>
-              <td
-                style={{
-                  ...tdStyle,
-                  color: '#fff',
-                  fontWeight: 600,
-                  textAlign: 'right',
-                  borderBottom: 'none',
-                }}
-              >
+            <tr style={{ background: C.ink }}>
+              <td style={{ ...tdStyle, color: '#fff', fontWeight: 600, borderBottom: 'none' }}>TOTAL</td>
+              <td style={{ ...tdStyle, color: '#fff', fontWeight: 600, textAlign: 'right', borderBottom: 'none' }}>
                 {totals.clients}
               </td>
-              <td
-                style={{
-                  ...tdStyle,
-                  color: '#fff',
-                  fontWeight: 600,
-                  textAlign: 'right',
-                  borderBottom: 'none',
-                }}
-              >
+              <td style={{ ...tdStyle, color: '#fff', fontWeight: 600, textAlign: 'right', borderBottom: 'none' }}>
                 {totals.services}
               </td>
               <td
@@ -1652,6 +2032,7 @@ function ExecutiveTable({
                   fontWeight: 600,
                   textAlign: 'right',
                   borderBottom: 'none',
+                  fontFamily: "'Inter', system-ui, sans-serif",
                 }}
               >
                 {fmtMoney(totals.generated)}
@@ -1659,10 +2040,11 @@ function ExecutiveTable({
               <td
                 style={{
                   ...tdStyle,
-                  color: '#D4A853',
+                  color: C.blueSoft,
                   fontWeight: 700,
                   textAlign: 'right',
                   borderBottom: 'none',
+                  fontFamily: "'Inter', system-ui, sans-serif",
                 }}
               >
                 {fmtMoney(totals.earning)}
