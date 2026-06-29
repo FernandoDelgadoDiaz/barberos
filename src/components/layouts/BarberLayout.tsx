@@ -4,17 +4,46 @@ import { useAuth } from '../../hooks/useAuth'
 import { TrialExpiredGuard } from '../TrialExpiredGuard'
 import { SuspendedGuard } from '../SuspendedGuard'
 
-const ScissorsIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-    <circle cx="5" cy="19" r="2.5" stroke="var(--secondary, #D4A853)" strokeWidth="1.5"/>
-    <circle cx="19" cy="19" r="2.5" stroke="var(--secondary, #D4A853)" strokeWidth="1.5"/>
-    <line x1="5" y1="19" x2="19" y2="5" stroke="var(--secondary, #D4A853)" strokeWidth="1.5" strokeLinecap="round"/>
-    <line x1="19" y1="19" x2="5" y2="5" stroke="var(--primary, #1E2A3A)" strokeWidth="1.5" strokeLinecap="round"/>
-    <circle cx="5" cy="5" r="2.5" stroke="var(--primary, #1E2A3A)" strokeWidth="1.5"/>
-    <circle cx="19" cy="5" r="2.5" stroke="var(--primary, #1E2A3A)" strokeWidth="1.5"/>
-    <line x1="10" y1="12" x2="14" y2="12" stroke="var(--secondary, #D4A853)" strokeWidth="1"/>
-  </svg>
-)
+// =============================================================================
+// Palette — slate + blue (consistent with the owner panel: LivePanel / Metrics
+// / Services). Replicated locally because the scope is limited to barber files.
+// =============================================================================
+const C = {
+  bg: '#F8FAFC',
+  ink: '#0F172A',
+  slate500: '#64748B',
+  slate400: '#94A3B8',
+  border: '#E2E8F0',
+  blue: '#2563EB',
+  blueBright: '#3B82F6',
+  blueBg: '#EFF6FF',
+} as const
+
+// Bottom-nav icons. 24px nominal stroke icons (mirrors the owner NavIcon set).
+const NavIcon = ({ label, active }: { label: string; active?: boolean }) => {
+  const color = active ? C.blue : C.slate400
+  if (label === 'Mi día') return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M3 11.5L12 4l9 7.5" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+  if (label === 'Resumen') return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M4 19V5" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M4 19h16" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+      <rect x="7" y="11" width="3" height="6" rx="0.5" stroke={color} strokeWidth="1.8" />
+      <rect x="12" y="8" width="3" height="9" rx="0.5" stroke={color} strokeWidth="1.8" />
+      <rect x="17" y="5" width="3" height="12" rx="0.5" stroke={color} strokeWidth="1.8" />
+    </svg>
+  )
+  return null
+}
+
+const BOTTOM_NAV: { to: string; label: string }[] = [
+  { to: '/barber/dashboard', label: 'Mi día' },
+  { to: '/barber/summary', label: 'Resumen' },
+]
 
 export function BarberLayout() {
   const { profile, tenant } = useTenantStore()
@@ -36,39 +65,158 @@ export function BarberLayout() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F4F5F7' }}>
-      <header className="barber-header" style={{ background: '#fff', borderBottom: '0.5px solid #e0e0e0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <ScissorsIcon />
-            <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#1E2A3A' }}>
-              {tenant?.name || 'Mi barbería'}
-            </span>
-          </div>
-          <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: '#aaa', letterSpacing: '1px' }}>
+    <div style={{ minHeight: '100vh', background: C.bg, overflowX: 'hidden' }}>
+      {/* Top header — restyled to the slate+blue language, logout lives here */}
+      <header
+        className="barber-header"
+        style={{
+          background: '#fff',
+          borderBottom: `1px solid ${C.border}`,
+          padding: '14px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px', minWidth: 0 }}>
+          <span
+            style={{
+              fontFamily: 'Syne, sans-serif',
+              fontWeight: 700,
+              fontSize: 'clamp(15px, 4.6vw, 18px)',
+              color: C.ink,
+              lineHeight: 1.2,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: '52vw',
+            }}
+          >
+            {tenant?.name || 'Mi barbería'}
+          </span>
+          <span
+            style={{
+              fontFamily: 'Space Grotesk, sans-serif',
+              fontSize: '11px',
+              color: C.slate400,
+              letterSpacing: '0.3px',
+            }}
+          >
             Panel del barbero
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span className="hide-mobile" style={{ background: '#f0f0f0', border: '0.5px solid #e0e0e0', borderRadius: '100px', padding: '4px 12px', fontFamily: 'Space Grotesk, sans-serif', fontSize: '10px', color: '#1a1a2e', letterSpacing: '1.5px', textTransform: 'uppercase' }}>barbero</span>
-          <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary, #D4A853), var(--primary, #1E2A3A))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '11px', color: '#fff' }}>{initials}</div>
-          <button onClick={handleSignOut} style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '8px', padding: '6px 14px', color: '#666', fontFamily: 'Space Grotesk, sans-serif', fontSize: '12px', cursor: 'pointer' }}>Salir</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+          <div
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              background: `linear-gradient(135deg, ${C.blueBright}, ${C.blue})`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontFamily: 'Syne, sans-serif',
+              fontWeight: 700,
+              fontSize: '12px',
+              color: '#fff',
+            }}
+          >
+            {initials}
+          </div>
+          <button
+            onClick={handleSignOut}
+            style={{
+              background: '#fff',
+              border: `1px solid ${C.border}`,
+              borderRadius: '10px',
+              padding: '7px 14px',
+              color: C.slate500,
+              fontFamily: 'Space Grotesk, sans-serif',
+              fontWeight: 500,
+              fontSize: '12px',
+              cursor: 'pointer',
+            }}
+          >
+            Salir
+          </button>
         </div>
       </header>
-      <nav className="barber-nav" style={{ background: '#fff', borderBottom: '0.5px solid #e0e0e0', display: 'flex', padding: '0 20px' }}>
-        {[{ to: '/barber/dashboard', label: 'Mi día' }, { to: '/barber/summary', label: 'Resumen' }].map(({ to, label }) => (
-          <NavLink key={to} to={to} className="barber-nav-link" style={({ isActive }) => ({ padding: '12px 16px', fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', fontWeight: isActive ? 700 : 500, color: isActive ? 'var(--primary, #1E2A3A)' : '#aaa', borderBottom: isActive ? '2px solid var(--secondary, #D4A853)' : '2px solid transparent', textDecoration: 'none', letterSpacing: '0.3px' })}>
-            {label}
-          </NavLink>
-        ))}
-      </nav>
-      <main className="barber-main" style={{ padding: '20px', background: '#F4F5F7' }}>
+
+      {/* Content — padded at the bottom to clear the floating nav. Guards untouched. */}
+      <main className="barber-main" style={{ padding: '0', background: C.bg, paddingBottom: '110px' }}>
         <SuspendedGuard>
           <TrialExpiredGuard>
             <Outlet />
           </TrialExpiredGuard>
         </SuspendedGuard>
       </main>
+
+      {/* Floating bottom nav: white rounded card, ~64px tall, radius 24, soft shadow */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: '16px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 'calc(100% - 32px)',
+          maxWidth: '398px',
+          zIndex: 100,
+          pointerEvents: 'none',
+        }}
+      >
+        <div
+          style={{
+            background: '#fff',
+            borderRadius: '24px',
+            boxShadow: '0 6px 24px rgba(15, 23, 42, 0.10), 0 2px 8px rgba(15, 23, 42, 0.06)',
+            height: '64px',
+            padding: '0 6px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-around',
+            pointerEvents: 'auto',
+            boxSizing: 'border-box',
+          }}
+        >
+          {BOTTOM_NAV.map(({ to, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              style={{ textDecoration: 'none', flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}
+            >
+              {({ isActive }) => (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '3px',
+                    padding: '6px 14px',
+                    borderRadius: '16px',
+                    background: isActive ? C.blueBg : 'transparent',
+                    transition: 'background 150ms ease',
+                  }}
+                >
+                  <NavIcon label={label} active={isActive} />
+                  <span
+                    style={{
+                      fontFamily: 'Space Grotesk, sans-serif',
+                      fontSize: 'clamp(10px, 2.82vw, 12px)',
+                      fontWeight: 600,
+                      color: isActive ? C.blue : C.slate400,
+                      letterSpacing: '0.1px',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {label}
+                  </span>
+                </div>
+              )}
+            </NavLink>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
