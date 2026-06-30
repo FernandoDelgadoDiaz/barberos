@@ -3,7 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      viewport-fit=cover is REQUIRED for env(safe-area-inset-*) to return non-zero
+      values on iOS Safari (iPhone X and later). Without it, the safe-area inset
+      env() variables resolve to 0 and our floating bottom nav / sticky CTA fall
+      under the home indicator.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <!-- Google Fonts for Dark Luxury Design -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

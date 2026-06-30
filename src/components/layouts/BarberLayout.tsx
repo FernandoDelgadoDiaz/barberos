@@ -142,8 +142,20 @@ export function BarberLayout() {
         </div>
       </header>
 
-      {/* Content — padded at the bottom to clear the floating nav. Guards untouched. */}
-      <main className="barber-main" style={{ padding: '0', background: C.bg, paddingBottom: '110px' }}>
+      {/*
+        Content — padded at the bottom to clear the floating nav AND the iOS
+        home-indicator safe area. Without env(safe-area-inset-bottom) on iPhone X+,
+        the last items of the page would sit under the home indicator and the
+        sticky CTA in Dashboard would be obscured.
+      */}
+      <main
+        className="barber-main"
+        style={{
+          padding: '0',
+          background: C.bg,
+          paddingBottom: 'calc(110px + env(safe-area-inset-bottom))',
+        }}
+      >
         <SuspendedGuard>
           <TrialExpiredGuard>
             <Outlet />
@@ -151,11 +163,17 @@ export function BarberLayout() {
         </SuspendedGuard>
       </main>
 
-      {/* Floating bottom nav: white rounded card, ~64px tall, radius 24, soft shadow */}
+      {/*
+        Floating bottom nav: white rounded card, ~64px tall, radius 24, soft shadow.
+        bottom is offset by env(safe-area-inset-bottom) so the card floats ABOVE
+        the iOS home indicator instead of being partially covered by it. On
+        Android / desktop the env() value resolves to 0px and the original 16px
+        spacing is preserved.
+      */}
       <div
         style={{
           position: 'fixed',
-          bottom: '16px',
+          bottom: 'calc(16px + env(safe-area-inset-bottom))',
           left: '50%',
           transform: 'translateX(-50%)',
           width: 'calc(100% - 32px)',

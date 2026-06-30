@@ -523,7 +523,7 @@ export function Dashboard() {
   }
 
   return (
-    <div style={{ maxWidth: '430px', margin: '0 auto', padding: '0 16px', boxSizing: 'border-box', overflowX: 'hidden' }}>
+    <div style={{ maxWidth: '430px', margin: '0 auto', padding: '0 16px', paddingBottom: 'calc(90px + env(safe-area-inset-bottom))', boxSizing: 'border-box', overflowX: 'hidden' }}>
 
       {/* Animation primitives — injected once. ≤300ms, opacity + transform only. */}
       <style>{`
@@ -790,8 +790,14 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* Register attention button */}
-      <div style={{ marginTop: '16px' }}>
+      {/* Register attention button — sticky so the primary CTA stays visible
+          above the floating bottom-nav AND the iOS home-indicator safe area.
+          bottom = 80px (nav height + 16px gap) + env(safe-area-inset-bottom).
+          On Android / desktop the env() value resolves to 0 and the original
+          spacing is preserved. z-index keeps it above the stat cards while
+          scrolling. left/right are intentionally NOT set: the parent already
+          provides 16px horizontal padding and the inner button is width:100%. */}
+      <div style={{ position: 'sticky', bottom: 'calc(80px + env(safe-area-inset-bottom))', zIndex: 40, marginTop: '16px' }}>
         {shiftStatus === 'open' ? (
           <button
             className="barber-primary"
