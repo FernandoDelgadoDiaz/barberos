@@ -523,7 +523,7 @@ export function Dashboard() {
   }
 
   return (
-    <div style={{ maxWidth: '430px', margin: '0 auto', padding: '0 16px', paddingBottom: 'calc(90px + env(safe-area-inset-bottom))', boxSizing: 'border-box', overflowX: 'hidden' }}>
+    <div style={{ maxWidth: '430px', margin: '0 auto', padding: '0 16px', paddingBottom: 'calc(160px + env(safe-area-inset-bottom))', boxSizing: 'border-box', overflowX: 'hidden' }}>
 
       {/* Animation primitives — injected once. ≤300ms, opacity + transform only. */}
       <style>{`
