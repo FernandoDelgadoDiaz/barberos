@@ -65,7 +65,7 @@ export function BarberLayout() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, overflowX: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: C.bg, overflow: 'hidden' }}>
       {/* Top header — restyled to the slate+blue language, logout lives here */}
       <header
         className="barber-header"
@@ -76,6 +76,7 @@ export function BarberLayout() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flexShrink: 0,
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px', minWidth: 0 }}>
@@ -143,15 +144,18 @@ export function BarberLayout() {
       </header>
 
       {/*
-        Content — padded at the bottom to clear the floating nav AND the iOS
-        home-indicator safe area. Without env(safe-area-inset-bottom) on iPhone X+,
-        the last items of the page would sit under the home indicator and the
-        sticky CTA in Dashboard would be obscured.
+        Content — the ONLY scrollable region of the app shell (flex:1 +
+        overflow-y:auto inside a fixed 100dvh root). Padded at the bottom to
+        clear the floating nav AND any page-level fixed CTA (e.g. Dashboard's
+        "Registrar cliente"), plus the iOS home-indicator safe area.
       */}
       <main
         className="barber-main"
         style={{
-          padding: '0',
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
           background: C.bg,
           paddingBottom: 'calc(110px + env(safe-area-inset-bottom))',
         }}

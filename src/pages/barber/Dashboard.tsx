@@ -523,7 +523,7 @@ export function Dashboard() {
   }
 
   return (
-    <div style={{ maxWidth: '430px', margin: '0 auto', padding: '0 16px', paddingBottom: 'calc(160px + env(safe-area-inset-bottom))', boxSizing: 'border-box', overflowX: 'hidden' }}>
+    <div style={{ maxWidth: '430px', margin: '0 auto', padding: '0 16px', paddingBottom: 'calc(96px + env(safe-area-inset-bottom))', boxSizing: 'border-box', overflowX: 'hidden' }}>
 
       {/* Animation primitives — injected once. ≤300ms, opacity + transform only. */}
       <style>{`
@@ -790,14 +790,22 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* Register attention button — sticky so the primary CTA stays visible
-          above the floating bottom-nav AND the iOS home-indicator safe area.
-          bottom = 80px (nav height + 16px gap) + env(safe-area-inset-bottom).
-          On Android / desktop the env() value resolves to 0 and the original
-          spacing is preserved. z-index keeps it above the stat cards while
-          scrolling. left/right are intentionally NOT set: the parent already
-          provides 16px horizontal padding and the inner button is width:100%. */}
-      <div style={{ position: 'sticky', bottom: 'calc(80px + env(safe-area-inset-bottom))', zIndex: 40, marginTop: '16px' }}>
+      {/* Register attention button — FIXED to the viewport (not sticky), so it
+          is entirely outside the scrollable content and can never end up
+          overlapping/"taping" the cards above it, regardless of iOS/Android
+          dynamic viewport resizing. bottom = 96px (nav height + 32px gap) +
+          env(safe-area-inset-bottom), same math the bottom nav itself uses.
+          Centered and width-matched to the nav card since fixed elements
+          don't inherit the maxWidth/padding of the scrollable wrapper above. */}
+      <div style={{
+        position: 'fixed',
+        bottom: 'calc(96px + env(safe-area-inset-bottom))',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 'calc(100% - 32px)',
+        maxWidth: '398px',
+        zIndex: 90,
+      }}>
         {shiftStatus === 'open' ? (
           <button
             className="barber-primary"
