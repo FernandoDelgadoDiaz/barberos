@@ -4,6 +4,7 @@ import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 import { useServiceLogsRealtime } from '../../hooks/useRealtime'
 import { ExpandableBarberCard, cleanName } from '../../components/owner/ExpandableBarberCard'
+import { GraceBanner } from '../../components/GraceBanner'
 import type { ServiceLog, Profile, DailyExpense } from '../../types'
 
 function getArgentinaDateString(date = new Date()): string {
@@ -392,6 +393,9 @@ export function LivePanel() {
 
   return (
     <div style={{ maxWidth: '430px', margin: '0 auto', width: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
+      {/* Aviso de gracia (suscripción vencida) — primer elemento del contenido */}
+      <GraceBanner style={{ margin: '12px 16px 0' }} />
+
       {/* Top header (mobile) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>

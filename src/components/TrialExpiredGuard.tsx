@@ -1,97 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useTenantStore } from '../stores/tenantStore'
-import { supabase } from '../config/supabase'
+import { formatPrice, getAccessState, useSubscriptionPayment } from '../hooks/useSubscription'
 
 interface Props {
   children: React.ReactNode
 }
 
 const WHATSAPP_URL = 'https://wa.me/542966785213'
-const MS_PER_DAY = 1000 * 60 * 60 * 24
-
-async function getAuthHeader(): Promise<string> {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
-    const { data: { session: refreshed } } = await supabase.auth.refreshSession()
-    if (!refreshed?.access_token) throw new Error('No session')
-    return `Bearer ${refreshed.access_token}`
-  }
-  return `Bearer ${session.access_token}`
-}
-
-const formatPrice = (amount: number): string =>
-  new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    maximumFractionDigits: 0,
-  }).format(amount)
-
-/** Normaliza una fecha al inicio del día (comparaciones a nivel día). */
-const startOfDay = (d: Date): Date => {
-  const r = new Date(d)
-  r.setHours(0, 0, 0, 0)
-  return r
-}
-
-type PaymentLink = {
-  init_point: string
-  price: number
-}
-
-type AccessState = {
-  blocked: boolean
-  /** true si el bloqueo/aviso corresponde a una suscripción paga vencida (no al trial) */
-  isSubscription: boolean
-  /** true si está dentro del período de gracia (acceso permitido, banner visible) */
-  inGrace: boolean
-  /** días restantes de gracia (0 = hoy es el último día) */
-  graceDaysLeft: number
-}
-
-/**
- * Deriva el estado de acceso SOLO de fechas (no depende de que el cron
- * haya actualizado subscription_status):
- * - is_exempt_trial → acceso libre
- * - pagó alguna vez (subscription_ends_at != null):
- *     hoy <= subscription_ends_at + grace_days → acceso (banner si ya venció)
- * - nunca pagó: trial_ends_at > hoy → acceso; si no → paywall
- */
-function getAccessState(tenant: {
-  is_exempt_trial?: boolean
-  subscription_ends_at?: string | null
-  grace_days?: number
-  trial_ends_at?: string | null
-}): AccessState {
-  const none: AccessState = { blocked: false, isSubscription: false, inGrace: false, graceDaysLeft: 0 }
-
-  if (tenant.is_exempt_trial) return none
-
-  const today = startOfDay(new Date())
-
-  if (tenant.subscription_ends_at) {
-    const subEnd = startOfDay(new Date(tenant.subscription_ends_at))
-    const graceDays = tenant.grace_days ?? 5
-    const deadline = new Date(subEnd.getTime() + graceDays * MS_PER_DAY)
-
-    if (today > deadline) {
-      return { blocked: true, isSubscription: true, inGrace: false, graceDaysLeft: 0 }
-    }
-    if (today > subEnd) {
-      const daysLeft = Math.round((deadline.getTime() - today.getTime()) / MS_PER_DAY)
-      return { blocked: false, isSubscription: true, inGrace: true, graceDaysLeft: daysLeft }
-    }
-    return none
-  }
-
-  // Nunca pagó: rige el trial (mismo comportamiento que antes)
-  if (tenant.trial_ends_at) {
-    const trialEnd = startOfDay(new Date(tenant.trial_ends_at))
-    if (trialEnd <= today) {
-      return { blocked: true, isSubscription: false, inGrace: false, graceDaysLeft: 0 }
-    }
-  }
-  return none
-}
 
 const ScissorsIcon = () => (
   <svg width="80" height="80" viewBox="0 0 24 24" fill="none">
@@ -123,39 +38,19 @@ const Spinner = ({ size = 18, color = '#fff' }: { size?: number; color?: string 
   }} />
 )
 
+/**
+ * Bloqueo total por trial vencido o suscripción vencida (pasada la gracia).
+ * El aviso NO bloqueante del período de gracia vive en GraceBanner, que cada
+ * página monta como primer elemento de su contenido.
+ */
 export function TrialExpiredGuard({ children }: Props) {
   const { tenant, profile } = useTenantStore()
   const isOwner = profile?.role === 'owner'
 
-  const [payment, setPayment] = useState<PaymentLink | null>(null)
-  const [payLoading, setPayLoading] = useState(false)
-  const [payError, setPayError] = useState<string | null>(null)
+  const { payment, payLoading, payError, requestPayment, handlePay } = useSubscriptionPayment()
 
   const access = tenant ? getAccessState(tenant) : null
   const blocked = access?.blocked ?? false
-  const inGrace = access?.inGrace ?? false
-
-  const requestPayment = useCallback(async (): Promise<PaymentLink | null> => {
-    setPayLoading(true)
-    setPayError(null)
-    try {
-      const authHeader = await getAuthHeader()
-      const response = await fetch('/api/create-payment', {
-        method: 'POST',
-        headers: { 'Authorization': authHeader },
-      })
-      if (!response.ok) throw new Error(`Error ${response.status}`)
-      const data = await response.json() as PaymentLink
-      setPayment(data)
-      return data
-    } catch (err) {
-      console.error('Error creating payment link:', err)
-      setPayError('No se pudo generar el link de pago. Intentá de nuevo o contactanos.')
-      return null
-    } finally {
-      setPayLoading(false)
-    }
-  }, [])
 
   // Prefetch del link de pago al mostrar el paywall (solo owner):
   // así el botón muestra el precio real (viene de MP_PRICE_ARS via la function)
@@ -166,93 +61,7 @@ export function TrialExpiredGuard({ children }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blocked, isOwner])
 
-  const handlePay = async () => {
-    if (payLoading) return
-    const link = payment ?? await requestPayment()
-    if (link) window.location.href = link.init_point
-  }
-
-  if (!tenant || !access || (!blocked && !inGrace)) return <>{children}</>
-
-  // ─── Banner de gracia (NO bloqueante) ───
-  // Fijo arriba como notificación de sistema: no desplaza ni tapa contenido.
-  // Un spacer de la misma altura empuja el contenido para que nada quede debajo.
-  if (!blocked && inGrace) {
-    const ownerText = access.graceDaysLeft > 0
-      ? `Suscripción vencida. Quedan ${access.graceDaysLeft} ${access.graceDaysLeft === 1 ? 'día' : 'días'} para pagar.`
-      : 'Suscripción vencida. Último día para pagar.'
-    const barberText = 'El acceso vence pronto. Avisale al dueño de la barbería.'
-    return (
-      <>
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 50,
-          height: 'calc(44px + env(safe-area-inset-top))',
-          paddingTop: 'env(safe-area-inset-top)',
-          background: '#FEF3C7',
-          borderBottom: '1px solid #FDE68A',
-          boxSizing: 'border-box',
-        }}>
-          <div style={{
-            maxWidth: '430px',
-            margin: '0 auto',
-            height: '44px',
-            padding: '0 12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-          }}>
-            <span style={{
-              flex: 1,
-              minWidth: 0,
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontSize: '13px',
-              fontWeight: 600,
-              color: '#78350F',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}>
-              {isOwner ? ownerText : barberText}
-            </span>
-            {isOwner && (
-              <button
-                onClick={() => { void handlePay() }}
-                disabled={payLoading}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  height: '28px',
-                  padding: '0 14px',
-                  background: '#B45309',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '999px',
-                  fontFamily: 'Syne, sans-serif',
-                  fontWeight: 700,
-                  fontSize: '12px',
-                  cursor: payLoading ? 'wait' : 'pointer',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}
-              >
-                {payLoading ? <Spinner size={12} /> : null}
-                Pagar
-              </button>
-            )}
-          </div>
-        </div>
-        {/* Spacer: reserva el alto del banner para que el contenido no quede tapado */}
-        <div style={{ height: 'calc(44px + env(safe-area-inset-top))' }} />
-        {children}
-        <style>{`@keyframes paywall-spin { to { transform: rotate(360deg); } }`}</style>
-      </>
-    )
-  }
+  if (!tenant || !access || !blocked) return <>{children}</>
 
   // ─── Paywall (bloqueo total) ───
   const title = access.isSubscription ? 'Tu suscripción venció' : 'Tu prueba finalizó'

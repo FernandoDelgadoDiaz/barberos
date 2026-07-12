@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
+import { GraceBanner } from '../../components/GraceBanner'
 import type { ServiceCatalog, ServiceLog, CommissionRules, Shift } from '../../types'
 
 // =============================================================================
@@ -554,6 +555,9 @@ export function Dashboard() {
           {successMessage}
         </div>
       )}
+
+      {/* Aviso de gracia (suscripción vencida) — primer elemento, arriba del hero */}
+      <GraceBanner style={{ marginTop: '16px' }} />
 
       {/* Hero banner — blue gradient greeting */}
       <div style={{ padding: '16px 0 0' }}>
