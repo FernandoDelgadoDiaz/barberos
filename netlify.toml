@@ -3,6 +3,10 @@
   publish = "dist"
   functions = "netlify/functions"
 
+# Transición diaria de estados de suscripción (active/grace_period/suspended)
+[functions."cron-subscriptions"]
+  schedule = "0 12 * * *"
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"

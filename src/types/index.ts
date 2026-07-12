@@ -28,6 +28,11 @@ export type Tenant = {
   trial_days?: number | null
   trial_ends_at?: string | null
   is_exempt_trial?: boolean
+  subscription_status?: 'trial' | 'active' | 'grace_period' | 'suspended'
+  subscription_ends_at?: string | null
+  grace_days?: number
+  last_payment_at?: string | null
+  last_payment_id?: string | null
 }
 
 export type Profile = {

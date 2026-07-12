@@ -142,6 +142,30 @@ const getTrialBadge = (tenant: TenantWithStats): TrialBadge | null => {
   return { label: 'Vencido', color: 'rgba(239,68,68,0.9)', bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)', days: diffDays }
 }
 
+type SubscriptionBadge = {
+  label: string
+  color: string
+  bg: string
+  border: string
+}
+
+const getSubscriptionBadge = (tenant: TenantWithStats): SubscriptionBadge => {
+  if (tenant.is_exempt_trial) {
+    return { label: 'Exento', color: 'rgba(59,130,246,0.9)', bg: 'rgba(59,130,246,0.15)', border: 'rgba(59,130,246,0.3)' }
+  }
+  switch (tenant.subscription_status) {
+    case 'active':
+      return { label: 'Activo', color: 'rgba(34,197,94,0.9)', bg: 'rgba(34,197,94,0.15)', border: 'rgba(34,197,94,0.3)' }
+    case 'grace_period':
+      return { label: 'En gracia', color: 'rgba(234,179,8,0.9)', bg: 'rgba(234,179,8,0.15)', border: 'rgba(234,179,8,0.3)' }
+    case 'suspended':
+      return { label: 'Suspendido', color: 'rgba(239,68,68,0.9)', bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)' }
+    case 'trial':
+    default:
+      return { label: 'Trial', color: 'rgba(170,170,170,0.9)', bg: 'rgba(170,170,170,0.15)', border: 'rgba(170,170,170,0.3)' }
+  }
+}
+
 const formatDate = (dateStr: string | null | undefined): string => {
   if (!dateStr) return '—'
   const d = new Date(dateStr)
@@ -160,6 +184,7 @@ export function Tenants() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [extendingId, setExtendingId] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
@@ -230,6 +255,44 @@ export function Tenants() {
     } catch (err) {
       console.error('Error updating tenant status:', err)
       setError(err instanceof Error ? err.message : 'Error al actualizar estado')
+    }
+  }
+
+  const extendSubscription = async (tenantId: string) => {
+    if (extendingId) return
+    if (!window.confirm('¿Extender la suscripción de esta barbería 1 mes?')) return
+    setExtendingId(tenantId)
+    try {
+      const authHeader = await getAuthHeader()
+      const response = await fetch('/api/admin-extend-subscription', {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tenant_id: tenantId, months: 1 }),
+      })
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('Acceso denegado: se requiere rol superadmin')
+        }
+        throw new Error(`Error ${response.status}: ${response.statusText}`)
+      }
+      const updatedTenant = await response.json()
+      // Actualizar estado local (lista y modal si está abierto)
+      setTenants(prev =>
+        prev.map(tenant =>
+          tenant.id === tenantId ? { ...tenant, ...updatedTenant } : tenant
+        )
+      )
+      setTenantDetails(prev =>
+        prev && prev.id === tenantId ? { ...prev, ...updatedTenant } : prev
+      )
+    } catch (err) {
+      console.error('Error extending subscription:', err)
+      setError(err instanceof Error ? err.message : 'Error al extender suscripción')
+    } finally {
+      setExtendingId(null)
     }
   }
 
@@ -618,6 +681,53 @@ export function Tenants() {
           },
         },
         {
+          key: 'subscription_status',
+          label: 'Suscripción',
+          width: '1fr',
+          align: 'center',
+          render: (_, row) => {
+            const badge = getSubscriptionBadge(row)
+            return (
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <span
+                  style={{
+                    padding: '4px 10px',
+                    background: badge.bg,
+                    color: badge.color,
+                    border: `1px solid ${badge.border}`,
+                    borderRadius: '9999px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {badge.label}
+                </span>
+              </div>
+            )
+          },
+        },
+        {
+          key: 'subscription_ends_at',
+          label: 'Susc. hasta',
+          width: '0.9fr',
+          render: (value) => (
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
+              {formatDate(value)}
+            </div>
+          ),
+        },
+        {
+          key: 'last_payment_at',
+          label: 'Último pago',
+          width: '0.9fr',
+          render: (value) => (
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
+              {formatDate(value)}
+            </div>
+          ),
+        },
+        {
           key: 'is_active',
           label: 'Estado',
           width: '0.8fr',
@@ -683,6 +793,37 @@ export function Tenants() {
                 }}
               >
                 Ver detalles
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  extendSubscription(row.id)
+                }}
+                disabled={extendingId === row.id}
+                title="Extender suscripción 1 mes"
+                style={{
+                  padding: '8px 16px',
+                  background: 'transparent',
+                  color: 'rgba(34,197,94,0.9)',
+                  border: '1px solid rgba(34,197,94,0.5)',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  cursor: extendingId === row.id ? 'wait' : 'pointer',
+                  opacity: extendingId === row.id ? 0.5 : 1,
+                  transition: 'all 0.2s',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(34,197,94,0.1)'
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent'
+                  e.currentTarget.style.transform = 'translateY(0)'
+                }}
+              >
+                {extendingId === row.id ? 'Extendiendo…' : '+1 mes'}
               </button>
               {!row.is_active && (
                 <button
@@ -1271,6 +1412,30 @@ export function Tenants() {
                 </button>
                 {tenantDetails && (
                   <>
+                    <button
+                      onClick={() => extendSubscription(tenantDetails.id)}
+                      disabled={extendingId === tenantDetails.id}
+                      style={{
+                        padding: '10px 20px',
+                        background: 'transparent',
+                        color: 'rgba(34,197,94,0.9)',
+                        border: '1px solid rgba(34,197,94,0.5)',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: 500,
+                        cursor: extendingId === tenantDetails.id ? 'wait' : 'pointer',
+                        opacity: extendingId === tenantDetails.id ? 0.5 : 1,
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(34,197,94,0.1)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent'
+                      }}
+                    >
+                      {extendingId === tenantDetails.id ? 'Extendiendo…' : 'Extender 1 mes'}
+                    </button>
                     <button
                       onClick={() => toggleTenantStatus(tenantDetails.id, tenantDetails.is_active)}
                       style={{
