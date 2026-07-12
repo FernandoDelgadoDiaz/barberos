@@ -157,7 +157,10 @@ export function BarberLayout() {
           overflowY: 'auto',
           WebkitOverflowScrolling: 'touch',
           background: C.bg,
-          paddingBottom: 'calc(110px + env(safe-area-inset-bottom))',
+          // 110px (nav + CTA fijo) + 74px extra: compensa la altura del
+          // GraceBanner estático cuando está visible, para que el último
+          // elemento siempre quede scrolleable por encima del CTA/nav.
+          paddingBottom: 'calc(184px + env(safe-area-inset-bottom))',
         }}
       >
         <SuspendedGuard>
