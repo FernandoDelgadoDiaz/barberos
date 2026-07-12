@@ -175,67 +175,79 @@ export function TrialExpiredGuard({ children }: Props) {
   if (!tenant || !access || (!blocked && !inGrace)) return <>{children}</>
 
   // ─── Banner de gracia (NO bloqueante) ───
+  // Fijo arriba como notificación de sistema: no desplaza ni tapa contenido.
+  // Un spacer de la misma altura empuja el contenido para que nada quede debajo.
   if (!blocked && inGrace) {
+    const ownerText = access.graceDaysLeft > 0
+      ? `Suscripción vencida. Quedan ${access.graceDaysLeft} ${access.graceDaysLeft === 1 ? 'día' : 'días'} para pagar.`
+      : 'Suscripción vencida. Último día para pagar.'
+    const barberText = 'El acceso vence pronto. Avisale al dueño de la barbería.'
     return (
       <>
         <div style={{
-          background: 'linear-gradient(90deg, #FEF3C7, #FDE68A)',
-          border: '1px solid #F59E0B',
-          borderRadius: '12px',
-          margin: '12px 16px 0',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
-          flexWrap: 'wrap',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 50,
+          height: 'calc(44px + env(safe-area-inset-top))',
+          paddingTop: 'env(safe-area-inset-top)',
+          background: '#FEF3C7',
+          borderBottom: '1px solid #FDE68A',
+          boxSizing: 'border-box',
         }}>
           <div style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontSize: '14px',
-            color: '#78350F',
-            lineHeight: 1.4,
-            flex: '1 1 220px',
+            maxWidth: '430px',
+            margin: '0 auto',
+            height: '44px',
+            padding: '0 12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
           }}>
-            {isOwner ? (
-              <>
-                <strong style={{ fontFamily: 'Syne, sans-serif' }}>Tu suscripción venció.</strong>{' '}
-                {access.graceDaysLeft > 0
-                  ? `Tenés ${access.graceDaysLeft} ${access.graceDaysLeft === 1 ? 'día' : 'días'} para pagar antes de perder el acceso.`
-                  : 'Hoy es el último día para pagar antes de perder el acceso.'}
-              </>
-            ) : (
-              <>
-                <strong style={{ fontFamily: 'Syne, sans-serif' }}>El acceso vence pronto.</strong>{' '}
-                Avisale al dueño de la barbería para renovar.
-              </>
+            <span style={{
+              flex: 1,
+              minWidth: 0,
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontSize: '13px',
+              fontWeight: 600,
+              color: '#78350F',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}>
+              {isOwner ? ownerText : barberText}
+            </span>
+            {isOwner && (
+              <button
+                onClick={() => { void handlePay() }}
+                disabled={payLoading}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  height: '28px',
+                  padding: '0 14px',
+                  background: '#B45309',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '999px',
+                  fontFamily: 'Syne, sans-serif',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  cursor: payLoading ? 'wait' : 'pointer',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
+                {payLoading ? <Spinner size={12} /> : null}
+                Pagar
+              </button>
             )}
           </div>
-          {isOwner && (
-            <button
-              onClick={() => { void handlePay() }}
-              disabled={payLoading}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 18px',
-                background: '#B45309',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '10px',
-                fontFamily: 'Syne, sans-serif',
-                fontWeight: 700,
-                fontSize: '14px',
-                cursor: payLoading ? 'wait' : 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {payLoading ? <Spinner /> : null}
-              Pagar ahora
-            </button>
-          )}
         </div>
+        {/* Spacer: reserva el alto del banner para que el contenido no quede tapado */}
+        <div style={{ height: 'calc(44px + env(safe-area-inset-top))' }} />
         {children}
         <style>{`@keyframes paywall-spin { to { transform: rotate(360deg); } }`}</style>
       </>
