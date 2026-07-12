@@ -1,6 +1,7 @@
 -- 020_security_fixes.sql
 -- Fixes de la auditoría de seguridad (2026-07-12). Ver reporte en la sesión.
--- Ejecutar manualmente en el SQL Editor de Supabase. NO ejecutado aún.
+-- Ejecutada manualmente en el SQL Editor de Supabase el 2026-07-12 y
+-- verificada en vivo (REST como anon devuelve [] en service_logs/tenants).
 
 -- ============================================================
 -- 1. CRÍTICO C1 — service_logs: la política logs_all (USING true, roles
