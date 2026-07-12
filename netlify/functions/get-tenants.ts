@@ -18,6 +18,11 @@ interface TenantWithStats {
   trial_days?: number | null
   trial_ends_at?: string | null
   is_exempt_trial?: boolean
+  subscription_status?: 'trial' | 'active' | 'grace_period' | 'suspended'
+  subscription_ends_at?: string | null
+  grace_days?: number
+  last_payment_at?: string | null
+  last_payment_id?: string | null
   total_barberos: number
   total_servicios: number
   total_facturado: number
@@ -95,7 +100,8 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
-    // Fetch all tenants (includes contact_phone, trial_days, trial_ends_at, is_exempt_trial via *)
+    // Fetch all tenants (includes trial y suscripción — subscription_status,
+    // subscription_ends_at, grace_days, last_payment_at, last_payment_id — via *)
     const { data: tenants, error: tenantsError } = await supabase
       .from('tenants')
       .select('*, contact_phone, trial_days, trial_ends_at, is_exempt_trial')

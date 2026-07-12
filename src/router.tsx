@@ -15,6 +15,7 @@ import { Services } from './pages/owner/Services'
 import { History } from './pages/owner/History'
 import { Products } from './pages/owner/Products'
 import { Tenants } from './pages/superadmin/Tenants'
+import { PaymentResult } from './pages/PaymentResult'
 
 export const router = createBrowserRouter([
   {
@@ -28,6 +29,18 @@ export const router = createBrowserRouter([
   {
     path: '/register',
     element: <Register />
+  },
+  {
+    path: '/pago/exito',
+    element: <PaymentResult variant="exito" />
+  },
+  {
+    path: '/pago/pendiente',
+    element: <PaymentResult variant="pendiente" />
+  },
+  {
+    path: '/pago/error',
+    element: <PaymentResult variant="error" />
   },
   {
     path: '/barber',
