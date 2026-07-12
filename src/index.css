@@ -83,7 +83,11 @@ input, button, select, textarea {
     font-size: 13px !important;
   }
   .barber-main {
-    padding: 16px !important;
+    /* El padding-bottom grande NO se pisa: reserva espacio para la bottom
+       nav flotante + el CTA fijo "Registrar cliente" + el GraceBanner.
+       Antes `padding: 16px !important` aplastaba el paddingBottom inline
+       del layout y el final del contenido quedaba tapado sin scroll. */
+    padding: 16px 16px calc(184px + env(safe-area-inset-bottom)) !important;
   }
 }
 
