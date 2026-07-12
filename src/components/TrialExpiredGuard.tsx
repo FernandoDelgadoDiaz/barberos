@@ -197,10 +197,19 @@ export function TrialExpiredGuard({ children }: Props) {
             lineHeight: 1.4,
             flex: '1 1 220px',
           }}>
-            <strong style={{ fontFamily: 'Syne, sans-serif' }}>Tu suscripción venció.</strong>{' '}
-            {access.graceDaysLeft > 0
-              ? `Tenés ${access.graceDaysLeft} ${access.graceDaysLeft === 1 ? 'día' : 'días'} para pagar antes de perder el acceso.`
-              : 'Hoy es el último día para pagar antes de perder el acceso.'}
+            {isOwner ? (
+              <>
+                <strong style={{ fontFamily: 'Syne, sans-serif' }}>Tu suscripción venció.</strong>{' '}
+                {access.graceDaysLeft > 0
+                  ? `Tenés ${access.graceDaysLeft} ${access.graceDaysLeft === 1 ? 'día' : 'días'} para pagar antes de perder el acceso.`
+                  : 'Hoy es el último día para pagar antes de perder el acceso.'}
+              </>
+            ) : (
+              <>
+                <strong style={{ fontFamily: 'Syne, sans-serif' }}>El acceso vence pronto.</strong>{' '}
+                Avisale al dueño de la barbería para renovar.
+              </>
+            )}
           </div>
           {isOwner && (
             <button
