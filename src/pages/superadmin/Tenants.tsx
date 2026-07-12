@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { supabase } from '../../config/supabase'
 import type { Tenant, Profile, ServiceCatalog } from '../../types'
-import { GlassCard } from '../../components/ui/GlassCard'
-import { GlassStatCard } from '../../components/ui/GlassStatCard'
-import { GlassTable, type Column } from '../../components/ui/GlassTable'
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Auth
+// ─────────────────────────────────────────────────────────────────────────────
 async function getAuthHeader(): Promise<string> {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) {
@@ -16,88 +16,9 @@ async function getAuthHeader(): Promise<string> {
   return `Bearer ${session.access_token}`
 }
 
-// SVG Icons (using existing inline icons)
-const BuildingIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-  </svg>
-)
-
-const UsersIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-  </svg>
-)
-
-const ScissorsIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-  </svg>
-)
-
-const DollarIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-)
-
-const LogOutIcon = () => (
-	  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-	    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-	  </svg>
-	)
-
-	// Background blur circles component
-const BackgroundCircles = () => (
-  <>
-    <div
-      style={{
-        position: 'fixed',
-        top: '-300px',
-        left: '-300px',
-        width: '800px',
-        height: '800px',
-        borderRadius: '50%',
-        background: 'rgba(200,169,126,0.12)',
-        filter: 'blur(120px)',
-        pointerEvents: 'none',
-        zIndex: -1,
-      }}
-    />
-    <div
-      style={{
-        position: 'fixed',
-        top: '-300px',
-        right: '-300px',
-        width: '700px',
-        height: '700px',
-        borderRadius: '50%',
-        background: 'rgba(59,130,246,0.08)',
-        filter: 'blur(120px)',
-        pointerEvents: 'none',
-        zIndex: -1,
-      }}
-    />
-    <div
-      style={{
-        position: 'fixed',
-        bottom: '-300px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: '600px',
-        height: '600px',
-        borderRadius: '50%',
-        background: 'rgba(139,92,246,0.06)',
-        filter: 'blur(120px)',
-        pointerEvents: 'none',
-        zIndex: -1,
-      }}
-    />
-  </>
-)
-
-
-
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
 type TenantWithStats = Tenant & {
   total_barberos: number
   total_servicios: number
@@ -114,17 +35,18 @@ type TenantDetails = Tenant & {
   }
 }
 
-type TrialBadge = {
+type Badge = {
   label: string
   color: string
   bg: string
-  border: string
-  days?: number
 }
 
-const getTrialBadge = (tenant: TenantWithStats): TrialBadge | null => {
+// ─────────────────────────────────────────────────────────────────────────────
+// Badges (paleta clara, mismos umbrales de negocio que antes)
+// ─────────────────────────────────────────────────────────────────────────────
+const getTrialBadge = (tenant: TenantWithStats): (Badge & { days?: number }) | null => {
   if (tenant.is_exempt_trial) {
-    return { label: 'Exento', color: '#aaa', bg: 'rgba(170,170,170,0.15)', border: 'rgba(170,170,170,0.3)' }
+    return { label: 'Exento', color: '#475569', bg: '#F1F5F9' }
   }
   if (!tenant.trial_ends_at) return null
   const today = new Date()
@@ -134,45 +56,236 @@ const getTrialBadge = (tenant: TenantWithStats): TrialBadge | null => {
   const diffMs = trialEnd.getTime() - today.getTime()
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
   if (diffDays > 5) {
-    return { label: 'Activo', color: 'rgba(34,197,94,0.9)', bg: 'rgba(34,197,94,0.15)', border: 'rgba(34,197,94,0.3)', days: diffDays }
+    return { label: 'Trial activo', color: '#15803D', bg: '#DCFCE7', days: diffDays }
   }
   if (diffDays >= 1) {
-    return { label: 'Por vencer', color: 'rgba(234,179,8,0.9)', bg: 'rgba(234,179,8,0.15)', border: 'rgba(234,179,8,0.3)', days: diffDays }
+    return { label: 'Trial por vencer', color: '#B45309', bg: '#FEF3C7', days: diffDays }
   }
-  return { label: 'Vencido', color: 'rgba(239,68,68,0.9)', bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)', days: diffDays }
+  return { label: 'Trial vencido', color: '#B91C1C', bg: '#FEE2E2', days: diffDays }
 }
 
-type SubscriptionBadge = {
-  label: string
-  color: string
-  bg: string
-  border: string
-}
-
-const getSubscriptionBadge = (tenant: TenantWithStats): SubscriptionBadge => {
+const getSubscriptionBadge = (tenant: TenantWithStats): Badge => {
   if (tenant.is_exempt_trial) {
-    return { label: 'Exento', color: 'rgba(59,130,246,0.9)', bg: 'rgba(59,130,246,0.15)', border: 'rgba(59,130,246,0.3)' }
+    return { label: 'Exento', color: '#1D4ED8', bg: '#DBEAFE' }
   }
   switch (tenant.subscription_status) {
     case 'active':
-      return { label: 'Activo', color: 'rgba(34,197,94,0.9)', bg: 'rgba(34,197,94,0.15)', border: 'rgba(34,197,94,0.3)' }
+      return { label: 'Suscripción activa', color: '#15803D', bg: '#DCFCE7' }
     case 'grace_period':
-      return { label: 'En gracia', color: 'rgba(234,179,8,0.9)', bg: 'rgba(234,179,8,0.15)', border: 'rgba(234,179,8,0.3)' }
+      return { label: 'En gracia', color: '#B45309', bg: '#FEF3C7' }
     case 'suspended':
-      return { label: 'Suspendido', color: 'rgba(239,68,68,0.9)', bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)' }
+      return { label: 'Suspendida', color: '#B91C1C', bg: '#FEE2E2' }
     case 'trial':
     default:
-      return { label: 'Trial', color: 'rgba(170,170,170,0.9)', bg: 'rgba(170,170,170,0.15)', border: 'rgba(170,170,170,0.3)' }
+      return { label: 'Sin suscripción', color: '#475569', bg: '#F1F5F9' }
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Formatters
+// ─────────────────────────────────────────────────────────────────────────────
 const formatDate = (dateStr: string | null | undefined): string => {
   if (!dateStr) return '—'
   const d = new Date(dateStr)
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
 }
 
+// "$" pegado a los dígitos, igual que LivePanel/Metrics.
+const formatCurrency = (amount: number): string =>
+  '$' + new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(amount)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Icons (mismo trazo 1.6–1.8 que el resto de la app)
+// ─────────────────────────────────────────────────────────────────────────────
+const BuildingIcon = ({ color = '#2563EB' }: { color?: string }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16" stroke={color} strokeWidth="1.7" strokeLinecap="round" />
+    <path d="M16 9h2a2 2 0 0 1 2 2v10" stroke={color} strokeWidth="1.7" strokeLinecap="round" />
+    <path d="M2 21h20M8 7h2m-2 4h2m-2 4h2" stroke={color} strokeWidth="1.7" strokeLinecap="round" />
+  </svg>
+)
+
+const UsersIcon = ({ color = '#7C3AED' }: { color?: string }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="9" cy="8" r="3.2" stroke={color} strokeWidth="1.7" />
+    <path d="M3.5 19c.7-3 3-4.5 5.5-4.5s4.8 1.5 5.5 4.5" stroke={color} strokeWidth="1.7" strokeLinecap="round" />
+    <path d="M15.5 5.6a3.2 3.2 0 0 1 0 4.8M18 14.8c1.3.7 2.2 1.9 2.5 3.7" stroke={color} strokeWidth="1.7" strokeLinecap="round" />
+  </svg>
+)
+
+const ScissorsIcon = ({ color = '#EA580C' }: { color?: string }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="6" cy="6" r="2.5" stroke={color} strokeWidth="1.7" />
+    <circle cx="6" cy="18" r="2.5" stroke={color} strokeWidth="1.7" />
+    <path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12" stroke={color} strokeWidth="1.7" strokeLinecap="round" />
+  </svg>
+)
+
+const DollarIcon = ({ color = '#16A34A' }: { color?: string }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="1.7" />
+    <path d="M12 7v10M14.5 9.2c-.5-.8-1.4-1.2-2.5-1.2-1.4 0-2.5.8-2.5 2s1.1 1.7 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2c-1.1 0-2-.4-2.5-1.2" stroke={color} strokeWidth="1.7" strokeLinecap="round" />
+  </svg>
+)
+
+const LogOutIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" stroke="#475569" strokeWidth="1.7" strokeLinecap="round" />
+    <path d="M10 8l-4 4 4 4M6 12h10" stroke="#475569" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+const ChevronIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M9 6l6 6-6 6" stroke="#64748B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+const PlusIcon = ({ color = '#fff' }: { color?: string }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M12 5v14M5 12h14" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+)
+
+const RefreshIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M20 11a8 8 0 1 0-2.34 6.34" stroke="#475569" strokeWidth="1.7" strokeLinecap="round" />
+    <path d="M20 5v6h-6" stroke="#475569" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+const WarningIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M12 4 2.7 20h18.6L12 4z" stroke="#B91C1C" strokeWidth="1.7" strokeLinejoin="round" />
+    <path d="M12 10v4.5" stroke="#B91C1C" strokeWidth="1.8" strokeLinecap="round" />
+    <circle cx="12" cy="17.2" r="1" fill="#B91C1C" />
+  </svg>
+)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI primitives
+// ─────────────────────────────────────────────────────────────────────────────
+const cardStyle: React.CSSProperties = {
+  background: '#fff',
+  border: '1px solid #E2E8F0',
+  borderRadius: '16px',
+  boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+}
+
+function Pill({ badge }: { badge: Badge }) {
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: '4px 10px',
+      background: badge.bg,
+      color: badge.color,
+      borderRadius: '999px',
+      fontFamily: 'Space Grotesk, sans-serif',
+      fontSize: '12px',
+      fontWeight: 600,
+      whiteSpace: 'nowrap',
+      lineHeight: 1.2,
+    }}>
+      {badge.label}
+    </span>
+  )
+}
+
+function StatCard({ icon, iconBg, value, label }: {
+  icon: React.ReactNode
+  iconBg: string
+  value: string | number
+  label: string
+}) {
+  return (
+    <div style={{ ...cardStyle, padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px', minWidth: 0 }}>
+      <div style={{
+        width: '30px',
+        height: '30px',
+        borderRadius: '10px',
+        background: iconBg,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}>
+        {icon}
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{
+          fontFamily: "'Inter', system-ui, sans-serif",
+          fontWeight: 800,
+          fontSize: 'clamp(17px, 5vw, 20px)',
+          color: '#0F172A',
+          lineHeight: 1.15,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}>
+          {value}
+        </div>
+        <div style={{
+          fontFamily: 'Space Grotesk, sans-serif',
+          fontSize: '12px',
+          color: '#64748B',
+          marginTop: '2px',
+        }}>
+          {label}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Skeleton con la forma real de las cards (nada de spinners genéricos)
+function TenantCardSkeleton() {
+  return (
+    <div style={{ ...cardStyle, padding: '16px' }} aria-hidden="true">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="sa-shimmer" style={{ width: '42px', height: '42px', borderRadius: '12px' }} />
+        <div style={{ flex: 1 }}>
+          <div className="sa-shimmer" style={{ width: '55%', height: '14px', borderRadius: '6px', marginBottom: '8px' }} />
+          <div className="sa-shimmer" style={{ width: '35%', height: '11px', borderRadius: '6px' }} />
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
+        <div className="sa-shimmer" style={{ width: '96px', height: '24px', borderRadius: '999px' }} />
+        <div className="sa-shimmer" style={{ width: '72px', height: '24px', borderRadius: '999px' }} />
+      </div>
+      <div className="sa-shimmer" style={{ width: '100%', height: '52px', borderRadius: '12px', marginTop: '14px' }} />
+    </div>
+  )
+}
+
+// Inicial del tenant sobre fondo tintado (identidad visual sin depender de logos)
+function TenantAvatar({ name }: { name: string }) {
+  return (
+    <div style={{
+      width: '42px',
+      height: '42px',
+      borderRadius: '12px',
+      background: '#EFF6FF',
+      border: '1px solid #DBEAFE',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      fontFamily: 'Syne, sans-serif',
+      fontWeight: 700,
+      fontSize: '17px',
+      color: '#2563EB',
+    }}>
+      {name.trim().charAt(0).toUpperCase() || '?'}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Página
+// ─────────────────────────────────────────────────────────────────────────────
 export function Tenants() {
+  const reduceMotion = useReducedMotion()
   const [tenants, setTenants] = useState<TenantWithStats[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -185,16 +298,7 @@ export function Tenants() {
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [extendingId, setExtendingId] = useState<string | null>(null)
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 767px)')
-    const handleChange = (e: MediaQueryListEvent) => setIsMobile(e.matches)
-    // Set initial
-    setIsMobile(mediaQuery.matches)
-    mediaQuery.addEventListener('change', handleChange)
-    return () => mediaQuery.removeEventListener('change', handleChange)
-  }, [])
+  const [togglingId, setTogglingId] = useState<string | null>(null)
 
   useEffect(() => {
     loadTenants()
@@ -203,11 +307,10 @@ export function Tenants() {
   const loadTenants = async () => {
     try {
       setLoading(true)
+      setError(null)
       const authHeader = await getAuthHeader()
       const response = await fetch('/api/get-tenants', {
-        headers: {
-          'Authorization': authHeader,
-        },
+        headers: { 'Authorization': authHeader },
       })
       if (!response.ok) {
         if (response.status === 403) {
@@ -226,6 +329,8 @@ export function Tenants() {
   }
 
   const toggleTenantStatus = async (tenantId: string, currentStatus: boolean) => {
+    if (togglingId) return
+    setTogglingId(tenantId)
     try {
       const authHeader = await getAuthHeader()
       const response = await fetch('/api/toggle-tenant', {
@@ -246,15 +351,22 @@ export function Tenants() {
         throw new Error(`Error ${response.status}: ${response.statusText}`)
       }
       const updatedTenant = await response.json()
-      // Actualizar estado local
       setTenants(prev =>
         prev.map(tenant =>
           tenant.id === tenantId ? { ...tenant, is_active: updatedTenant.is_active } : tenant
         )
       )
+      setTenantDetails(prev =>
+        prev && prev.id === tenantId ? { ...prev, is_active: updatedTenant.is_active } : prev
+      )
+      setSelectedTenant(prev =>
+        prev && prev.id === tenantId ? { ...prev, is_active: updatedTenant.is_active } : prev
+      )
     } catch (err) {
       console.error('Error updating tenant status:', err)
       setError(err instanceof Error ? err.message : 'Error al actualizar estado')
+    } finally {
+      setTogglingId(null)
     }
   }
 
@@ -279,13 +391,15 @@ export function Tenants() {
         throw new Error(`Error ${response.status}: ${response.statusText}`)
       }
       const updatedTenant = await response.json()
-      // Actualizar estado local (lista y modal si está abierto)
       setTenants(prev =>
         prev.map(tenant =>
           tenant.id === tenantId ? { ...tenant, ...updatedTenant } : tenant
         )
       )
       setTenantDetails(prev =>
+        prev && prev.id === tenantId ? { ...prev, ...updatedTenant } : prev
+      )
+      setSelectedTenant(prev =>
         prev && prev.id === tenantId ? { ...prev, ...updatedTenant } : prev
       )
     } catch (err) {
@@ -322,6 +436,13 @@ export function Tenants() {
     }
   }
 
+  const closeDetails = () => {
+    setShowDetailsModal(false)
+    setSelectedTenant(null)
+    setTenantDetails(null)
+    setErrorDetails(null)
+  }
+
   const handleDeleteTenant = (tenant: TenantWithStats) => {
     if (tenant.is_active) {
       setError('No se puede eliminar una barbería activa')
@@ -354,25 +475,18 @@ export function Tenants() {
         throw new Error(`Error ${response.status}: ${response.statusText}`)
       }
 
-      // Actualizar lista optimista
       setTenants(prev => prev.filter(t => t.id !== selectedTenant.id))
       setShowDeleteModal(false)
       setDeleteConfirmationText('')
+      setShowDetailsModal(false)
+      setSelectedTenant(null)
+      setTenantDetails(null)
     } catch (err) {
       console.error('Error deleting tenant:', err)
       setError(err instanceof Error ? err.message : 'Error al eliminar barbería')
     } finally {
       setDeleting(false)
     }
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount)
   }
 
   const handleSignOut = async () => {
@@ -384,1274 +498,965 @@ export function Tenants() {
     }
   }
 
-  // Eye icon for mobile actions
-  const EyeIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-    </svg>
-  )
-
-  // Define columns for glass table (responsive)
-  const columns: Column<TenantWithStats>[] = isMobile
-    ? [
-        {
-          key: 'name',
-          label: 'Nombre',
-          width: '1.5fr',
-          render: (_, row) => (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  background: row.primary_color,
-                  border: '1px solid rgba(255,255,255,0.1)',
-                }}
-              />
-              <div style={{ fontWeight: 600, color: '#ffffff', fontSize: '14px' }}>
-                {row.name}
-              </div>
-            </div>
-          ),
-        },
-        {
-          key: 'total_barberos',
-          label: 'Barberos',
-          width: '0.8fr',
-          align: 'center',
-          render: (value) => (
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontWeight: 700, color: '#ffffff', fontSize: '16px' }}>{value}</div>
-              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
-                activos
-              </div>
-            </div>
-          ),
-        },
-        {
-          key: 'total_facturado',
-          label: 'Facturado',
-          width: '1fr',
-          align: 'right',
-          render: (value) => (
-            <div style={{ fontWeight: 700, color: '#C8A97E', fontSize: '15px', textAlign: 'right' }}>
-              {formatCurrency(value)}
-            </div>
-          ),
-        },
-        {
-          key: 'is_active',
-          label: 'Estado',
-          width: '0.8fr',
-          align: 'center',
-          render: (value, row) => (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                toggleTenantStatus(row.id, row.is_active)
-              }}
-              style={{
-                padding: '6px 12px',
-                background: value ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
-                color: value ? 'rgba(34,197,94,0.9)' : 'rgba(239,68,68,0.9)',
-                border: `1px solid ${value ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
-                borderRadius: '9999px',
-                fontSize: '12px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.05)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)'
-              }}
-            >
-              {value ? 'Activo' : 'Inactivo'}
-            </button>
-          ),
-        },
-        {
-          key: 'actions',
-          label: 'Acciones',
-          width: '1fr',
-          align: 'center',
-          render: (_, row) => (
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleViewDetails(row)
-                }}
-                style={{
-                  padding: '8px',
-                  background: 'transparent',
-                  color: '#C8A97E',
-                  border: '1px solid #C8A97E',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(200,169,126,0.1)'
-                  e.currentTarget.style.transform = 'translateY(-2px)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent'
-                  e.currentTarget.style.transform = 'translateY(0)'
-                }}
-              >
-                <EyeIcon />
-              </button>
-              {!row.is_active && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleDeleteTenant(row)
-                  }}
-                  style={{
-                    padding: '8px 16px',
-                    background: 'transparent',
-                    color: '#e94560',
-                    border: '1px solid #e94560',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(233,69,96,0.1)'
-                    e.currentTarget.style.transform = 'translateY(-2px)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent'
-                    e.currentTarget.style.transform = 'translateY(0)'
-                  }}
-                >
-                  Eliminar
-                </button>
-              )}
-            </div>
-          ),
-        },
-      ]
-    : [
-        {
-          key: 'name',
-          label: 'Nombre',
-          width: '1.5fr',
-          render: (_, row) => (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  background: row.primary_color,
-                  border: '1px solid rgba(255,255,255,0.1)',
-                }}
-              />
-              <div>
-                <div style={{ fontWeight: 600, color: '#ffffff', fontSize: '14px' }}>{row.name}</div>
-                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>
-                  ID: {row.id.slice(0, 8)}...
-                </div>
-              </div>
-            </div>
-          ),
-        },
-        {
-          key: 'slug',
-          label: 'Slug',
-          width: '1fr',
-          render: (slug) => (
-            <div style={{ fontFamily: 'monospace', fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>
-              {slug}
-            </div>
-          ),
-        },
-        {
-          key: 'total_barberos',
-          label: 'Barberos',
-          width: '0.8fr',
-          align: 'center',
-          render: (value) => (
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontWeight: 700, color: '#ffffff', fontSize: '16px' }}>{value}</div>
-              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
-                activos
-              </div>
-            </div>
-          ),
-        },
-        {
-          key: 'total_servicios',
-          label: 'Servicios',
-          width: '0.8fr',
-          align: 'center',
-          render: (value) => (
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontWeight: 700, color: '#ffffff', fontSize: '16px' }}>{value}</div>
-              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
-                registrados
-              </div>
-            </div>
-          ),
-        },
-        {
-          key: 'total_facturado',
-          label: 'Facturado',
-          width: '1fr',
-          align: 'right',
-          render: (value) => (
-            <div style={{ fontWeight: 700, color: '#C8A97E', fontSize: '15px', textAlign: 'right' }}>
-              {formatCurrency(value)}
-            </div>
-          ),
-        },
-        {
-          key: 'contact_phone',
-          label: 'Teléfono',
-          width: '1fr',
-          render: (value) => (
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
-              {value || '—'}
-            </div>
-          ),
-        },
-        {
-          key: 'created_at',
-          label: 'Registro',
-          width: '0.9fr',
-          render: (value) => (
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
-              {formatDate(value)}
-            </div>
-          ),
-        },
-        {
-          key: 'trial_ends_at',
-          label: 'Trial hasta',
-          width: '0.9fr',
-          render: (value) => (
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
-              {formatDate(value)}
-            </div>
-          ),
-        },
-        {
-          key: 'is_exempt_trial',
-          label: 'Días / Estado',
-          width: '1fr',
-          align: 'center',
-          render: (_, row) => {
-            const badge = getTrialBadge(row)
-            if (!badge) {
-              return (
-                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', textAlign: 'center' }}>—</div>
-              )
-            }
-            return (
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <span
-                  style={{
-                    padding: '4px 10px',
-                    background: badge.bg,
-                    color: badge.color,
-                    border: `1px solid ${badge.border}`,
-                    borderRadius: '9999px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {typeof badge.days === 'number' ? `${badge.days}d • ${badge.label}` : badge.label}
-                </span>
-              </div>
-            )
-          },
-        },
-        {
-          key: 'subscription_status',
-          label: 'Suscripción',
-          width: '1fr',
-          align: 'center',
-          render: (_, row) => {
-            const badge = getSubscriptionBadge(row)
-            return (
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <span
-                  style={{
-                    padding: '4px 10px',
-                    background: badge.bg,
-                    color: badge.color,
-                    border: `1px solid ${badge.border}`,
-                    borderRadius: '9999px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {badge.label}
-                </span>
-              </div>
-            )
-          },
-        },
-        {
-          key: 'subscription_ends_at',
-          label: 'Susc. hasta',
-          width: '0.9fr',
-          render: (value) => (
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
-              {formatDate(value)}
-            </div>
-          ),
-        },
-        {
-          key: 'last_payment_at',
-          label: 'Último pago',
-          width: '0.9fr',
-          render: (value) => (
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
-              {formatDate(value)}
-            </div>
-          ),
-        },
-        {
-          key: 'is_active',
-          label: 'Estado',
-          width: '0.8fr',
-          align: 'center',
-          render: (value, row) => (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                toggleTenantStatus(row.id, row.is_active)
-              }}
-              style={{
-                padding: '6px 12px',
-                background: value ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
-                color: value ? 'rgba(34,197,94,0.9)' : 'rgba(239,68,68,0.9)',
-                border: `1px solid ${value ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
-                borderRadius: '9999px',
-                fontSize: '12px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.05)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)'
-              }}
-            >
-              {value ? 'Activo' : 'Inactivo'}
-            </button>
-          ),
-        },
-        {
-          key: 'actions',
-          label: 'Acciones',
-          width: '1.2fr',
-          align: 'center',
-          render: (_, row) => (
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleViewDetails(row)
-                }}
-                style={{
-                  padding: '8px 16px',
-                  background: 'transparent',
-                  color: '#C8A97E',
-                  border: '1px solid #C8A97E',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(200,169,126,0.1)'
-                  e.currentTarget.style.transform = 'translateY(-2px)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent'
-                  e.currentTarget.style.transform = 'translateY(0)'
-                }}
-              >
-                Ver detalles
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  extendSubscription(row.id)
-                }}
-                disabled={extendingId === row.id}
-                title="Extender suscripción 1 mes"
-                style={{
-                  padding: '8px 16px',
-                  background: 'transparent',
-                  color: 'rgba(34,197,94,0.9)',
-                  border: '1px solid rgba(34,197,94,0.5)',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  cursor: extendingId === row.id ? 'wait' : 'pointer',
-                  opacity: extendingId === row.id ? 0.5 : 1,
-                  transition: 'all 0.2s',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(34,197,94,0.1)'
-                  e.currentTarget.style.transform = 'translateY(-2px)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent'
-                  e.currentTarget.style.transform = 'translateY(0)'
-                }}
-              >
-                {extendingId === row.id ? 'Extendiendo…' : '+1 mes'}
-              </button>
-              {!row.is_active && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleDeleteTenant(row)
-                  }}
-                  style={{
-                    padding: '8px 16px',
-                    background: 'transparent',
-                    color: '#e94560',
-                    border: '1px solid #e94560',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(233,69,96,0.1)'
-                    e.currentTarget.style.transform = 'translateY(-2px)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent'
-                    e.currentTarget.style.transform = 'translateY(0)'
-                  }}
-                >
-                  Eliminar
-                </button>
-              )}
-            </div>
-          ),
-        },
-      ]
+  const totalBarberos = tenants.reduce((sum, t) => sum + t.total_barberos, 0)
+  const totalServicios = tenants.reduce((sum, t) => sum + t.total_servicios, 0)
+  const totalFacturado = tenants.reduce((sum, t) => sum + t.total_facturado, 0)
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      style={{
-        minHeight: '100vh',
-        background: '#0A0A0F',
-        position: 'relative',
-        overflowX: 'hidden',
-        padding: '40px',
-        fontFamily: "'Inter', sans-serif",
-      }}
-    >
-      {/* Background blur circles */}
-      <BackgroundCircles />
+    <div style={{
+      minHeight: '100dvh',
+      background: '#F8FAFC',
+      fontFamily: 'Space Grotesk, sans-serif',
+    }}>
+      <div style={{
+        maxWidth: '430px',
+        margin: '0 auto',
+        padding: '0 16px calc(32px + env(safe-area-inset-bottom))',
+      }}>
 
-      <div style={{ maxWidth: '1400px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
-        {/* Header */}
-        <motion.div
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6 }}
-          style={{ marginBottom: '40px' }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <h1
-                style={{
-                  fontSize: '32px',
-                  fontWeight: 800,
-                  color: '#ffffff',
-                  marginBottom: '8px',
-                  fontFamily: "'Inter', sans-serif",
-                }}
-              >
-                Gestión de Barberías
-              </h1>
-              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: "'Inter', sans-serif" }}>
-                Administrador del sistema • Superadmin
-              </p>
-            </div>
-            <button
-              onClick={handleSignOut}
-              style={{
-                padding: '8px 16px',
-                background: 'transparent',
-                color: '#C8A97E',
-                border: '1px solid #C8A97E',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(200,169,126,0.1)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <LogOutIcon />
-              Cerrar sesión
-            </button>
+        {/* Header sticky */}
+        <div style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          background: 'rgba(248,250,252,0.92)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          margin: '0 -16px',
+          padding: '18px 16px 14px',
+          borderBottom: '1px solid #E2E8F0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+        }}>
+          <div style={{ minWidth: 0 }}>
+            <h1 style={{
+              fontFamily: 'Syne, sans-serif',
+              fontWeight: 700,
+              fontSize: 'clamp(19px, 5.6vw, 22px)',
+              color: '#0F172A',
+              lineHeight: 1.15,
+            }}>
+              Barberías
+            </h1>
+            <p style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
+              Panel superadmin
+            </p>
           </div>
-        </motion.div>
+          <button
+            className="sa-btn"
+            onClick={handleSignOut}
+            aria-label="Cerrar sesión"
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              background: '#fff',
+              border: '1px solid #E2E8F0',
+              boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            <LogOutIcon />
+          </button>
+        </div>
 
-        {/* Stats summary with GlassStatCard */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: '24px',
-            marginBottom: '32px'
-          }}
-        >
-          <GlassStatCard
-            icon={<BuildingIcon />}
-            value={tenants.length}
-            label="Total barberías"
-            delay={0.1}
-            color="#C8A97E"
-          />
-          <GlassStatCard
-            icon={<UsersIcon />}
-            value={tenants.reduce((sum, tenant) => sum + tenant.total_barberos, 0)}
-            label="Total barberos"
-            sublabel="activos"
-            delay={0.2}
-            color="#3B82F6"
-          />
-          <GlassStatCard
-            icon={<ScissorsIcon />}
-            value={tenants.reduce((sum, tenant) => sum + tenant.total_servicios, 0)}
-            label="Total servicios"
-            sublabel="registrados"
-            delay={0.3}
-            color="#8B5CF6"
-          />
-          <GlassStatCard
-            icon={<DollarIcon />}
-            value={formatCurrency(tenants.reduce((sum, tenant) => sum + tenant.total_facturado, 0))}
-            label="Total facturado"
-            delay={0.4}
-            color="#10B981"
-          />
-        </motion.div>
+        {/* Stats 2×2 */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)',
+          gap: '10px',
+          marginTop: '16px',
+        }}>
+          <StatCard icon={<BuildingIcon />} iconBg="#EFF6FF" value={loading ? '—' : tenants.length} label="Barberías" />
+          <StatCard icon={<UsersIcon />} iconBg="#F5F3FF" value={loading ? '—' : totalBarberos} label="Barberos activos" />
+          <StatCard icon={<ScissorsIcon />} iconBg="#FFF7ED" value={loading ? '—' : totalServicios} label="Servicios registrados" />
+          <StatCard icon={<DollarIcon />} iconBg="#F0FDF4" value={loading ? '—' : formatCurrency(totalFacturado)} label="Facturado total" />
+        </div>
 
-        {/* Main table with GlassTable */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-        >
-          <GlassCard className="p-6 mb-6">
-            <div style={{ marginBottom: '24px' }}>
-              <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#ffffff', marginBottom: '8px' }}>
-                Todas las barberías
-              </h2>
-              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px' }}>
-                Listado completo con estadísticas
-              </p>
-            </div>
-
-            <GlassTable
-              columns={columns}
-              data={tenants}
-              rowKey="id"
-              loading={loading}
-              emptyMessage="No hay barberías registradas"
-              onRowClick={(tenant) => handleViewDetails(tenant)}
-              rowPadding={isMobile ? '24px 20px' : '16px 20px'}
-            />
-
-            {/* Table footer */}
-            {!loading && !error && tenants.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginTop: '24px',
-                  paddingTop: '24px',
-                  borderTop: '1px solid rgba(255,255,255,0.08)'
-                }}
-              >
-                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px' }}>
-                  Mostrando {tenants.length} barberías
-                </div>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <button
-                    onClick={loadTenants}
-                    style={{
-                      padding: '10px 20px',
-                      background: 'transparent',
-                      color: 'rgba(255,255,255,0.7)',
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
-                    }}
-                  >
-                    Refrescar
-                  </button>
-                  <button
-                    style={{
-                      padding: '10px 20px',
-                      background: '#C8A97E',
-                      color: '#0A0A0F',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = '#D4B686'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = '#C8A97E'}
-                    onClick={() => window.open('/register', '_blank')}
-                  >
-                    + Nueva barbería
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Error state */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                style={{ textAlign: 'center', padding: '40px 0' }}
-              >
-                <GlassCard className="p-6 inline-block">
-                  <p style={{ color: '#e94560', fontSize: '14px', marginBottom: '16px' }}>{error}</p>
-                  <button
-                    onClick={loadTenants}
-                    style={{
-                      padding: '10px 20px',
-                      background: 'transparent',
-                      color: '#C8A97E',
-                      border: '1px solid #C8A97E',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(200,169,126,0.1)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                  >
-                    Reintentar
-                  </button>
-                </GlassCard>
-              </motion.div>
-            )}
-          </GlassCard>
-        </motion.div>
-      </div>
-
-      {/* Modal de detalles del tenant - Glassmorphism version */}
-      {showDetailsModal && selectedTenant && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        {/* Error global */}
+        {error && (
+          <div style={{
+            background: '#FEF2F2',
+            border: '1px solid #FECACA',
+            borderRadius: '12px',
+            padding: '12px 14px',
+            marginTop: '14px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
+            justifyContent: 'space-between',
+            gap: '10px',
+          }}>
+            <span style={{ fontSize: '13px', color: '#B91C1C', lineHeight: 1.4 }}>{error}</span>
+            <button
+              className="sa-btn"
+              onClick={() => { setError(null); loadTenants() }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#B91C1C',
+                fontFamily: 'Syne, sans-serif',
+                fontWeight: 700,
+                fontSize: '13px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                padding: '4px',
+              }}
+            >
+              Reintentar
+            </button>
+          </div>
+        )}
+
+        {/* Lista */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          margin: '22px 0 12px',
+        }}>
+          <h2 style={{
+            fontFamily: 'Syne, sans-serif',
+            fontWeight: 700,
+            fontSize: '16px',
+            color: '#0F172A',
+          }}>
+            Todas las barberías
+          </h2>
+          {!loading && (
+            <span style={{ fontSize: '12px', color: '#64748B' }}>
+              {tenants.length} en total
+            </span>
+          )}
+        </div>
+
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <TenantCardSkeleton />
+            <TenantCardSkeleton />
+            <TenantCardSkeleton />
+          </div>
+        ) : tenants.length === 0 && !error ? (
+          <div style={{ ...cardStyle, padding: '32px 20px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '14px',
+                background: '#EFF6FF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <BuildingIcon />
+              </div>
+            </div>
+            <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '15px', color: '#0F172A' }}>
+              Todavía no hay barberías
+            </p>
+            <p style={{ fontSize: '13px', color: '#64748B', marginTop: '6px', lineHeight: 1.5 }}>
+              Registrá la primera para empezar a administrar el sistema.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {tenants.map((tenant, i) => {
+              const subBadge = getSubscriptionBadge(tenant)
+              const trialBadge = getTrialBadge(tenant)
+              return (
+                <motion.div
+                  key={tenant.id}
+                  initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, delay: Math.min(i * 0.04, 0.28), ease: [0.23, 1, 0.32, 1] }}
+                  style={{ ...cardStyle, padding: '16px', opacity: tenant.is_active ? 1 : undefined }}
+                >
+                  {/* Cabecera de la card: identidad + estado, tap → detalles */}
+                  <button
+                    onClick={() => handleViewDetails(tenant)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      width: '100%',
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <TenantAvatar name={tenant.name} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontFamily: 'Syne, sans-serif',
+                        fontWeight: 700,
+                        fontSize: '15px',
+                        color: tenant.is_active ? '#0F172A' : '#64748B',
+                        lineHeight: 1.2,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {tenant.name}
+                      </div>
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#64748B',
+                        marginTop: '3px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {tenant.slug}{!tenant.is_active && ' · inactiva'}
+                      </div>
+                    </div>
+                    <ChevronIcon />
+                  </button>
+
+                  {/* Badges de suscripción / trial */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '12px' }}>
+                    <Pill badge={subBadge} />
+                    {trialBadge && !tenant.is_exempt_trial && (
+                      <Pill badge={{
+                        ...trialBadge,
+                        label: typeof trialBadge.days === 'number' && trialBadge.days >= 1
+                          ? `${trialBadge.label} · ${trialBadge.days}d`
+                          : trialBadge.label,
+                      }} />
+                    )}
+                  </div>
+
+                  {/* Meta: números en Inter 800 */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)',
+                    gap: '8px 12px',
+                    background: '#F8FAFC',
+                    border: '1px solid #F1F5F9',
+                    borderRadius: '12px',
+                    padding: '10px 12px',
+                    marginTop: '12px',
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#64748B' }}>Facturado</div>
+                      <div style={{ fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 800, fontSize: '14px', color: '#0F172A', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {formatCurrency(tenant.total_facturado)}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#64748B' }}>Barberos</div>
+                      <div style={{ fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 800, fontSize: '14px', color: '#0F172A', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {tenant.total_barberos}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#64748B' }}>Susc. hasta</div>
+                      <div style={{ fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 800, fontSize: '13px', color: '#0F172A', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {formatDate(tenant.subscription_ends_at)}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#64748B' }}>Último pago</div>
+                      <div style={{ fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 800, fontSize: '13px', color: '#0F172A', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {formatDate(tenant.last_payment_at)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Acciones */}
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                    <button
+                      className="sa-btn"
+                      onClick={() => extendSubscription(tenant.id)}
+                      disabled={extendingId === tenant.id}
+                      style={{
+                        flex: 1,
+                        padding: '10px 8px',
+                        background: '#F0FDF4',
+                        color: '#15803D',
+                        border: '1px solid #BBF7D0',
+                        borderRadius: '12px',
+                        fontFamily: 'Syne, sans-serif',
+                        fontWeight: 700,
+                        fontSize: '13px',
+                        cursor: extendingId === tenant.id ? 'wait' : 'pointer',
+                        opacity: extendingId === tenant.id ? 0.6 : 1,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {extendingId === tenant.id ? 'Extendiendo…' : '+1 mes'}
+                    </button>
+                    <button
+                      className="sa-btn"
+                      onClick={() => toggleTenantStatus(tenant.id, tenant.is_active)}
+                      disabled={togglingId === tenant.id}
+                      style={{
+                        flex: 1,
+                        padding: '10px 8px',
+                        background: tenant.is_active ? '#fff' : '#EFF6FF',
+                        color: tenant.is_active ? '#475569' : '#2563EB',
+                        border: `1px solid ${tenant.is_active ? '#E2E8F0' : '#BFDBFE'}`,
+                        borderRadius: '12px',
+                        fontFamily: 'Syne, sans-serif',
+                        fontWeight: 700,
+                        fontSize: '13px',
+                        cursor: togglingId === tenant.id ? 'wait' : 'pointer',
+                        opacity: togglingId === tenant.id ? 0.6 : 1,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {togglingId === tenant.id ? '…' : tenant.is_active ? 'Desactivar' : 'Activar'}
+                    </button>
+                    {!tenant.is_active && (
+                      <button
+                        className="sa-btn"
+                        onClick={() => handleDeleteTenant(tenant)}
+                        style={{
+                          flex: 1,
+                          padding: '10px 8px',
+                          background: '#FEF2F2',
+                          color: '#B91C1C',
+                          border: '1px solid #FECACA',
+                          borderRadius: '12px',
+                          fontFamily: 'Syne, sans-serif',
+                          fontWeight: 700,
+                          fontSize: '13px',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        Eliminar
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Footer de acciones */}
+        {!loading && (
+          <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
+            <button
+              className="sa-btn"
+              onClick={loadTenants}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '13px 16px',
+                background: '#fff',
+                color: '#475569',
+                border: '1px solid #E2E8F0',
+                borderRadius: '12px',
+                boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+                fontFamily: 'Syne, sans-serif',
+                fontWeight: 700,
+                fontSize: '14px',
+                cursor: 'pointer',
+              }}
+            >
+              <RefreshIcon />
+              Refrescar
+            </button>
+            <button
+              className="sa-btn"
+              onClick={() => window.open('/register', '_blank')}
+              style={{
+                flex: 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '13px 16px',
+                background: '#2563EB',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '12px',
+                boxShadow: '0 4px 12px rgba(37,99,235,0.25)',
+                fontFamily: 'Syne, sans-serif',
+                fontWeight: 700,
+                fontSize: '14px',
+                cursor: 'pointer',
+              }}
+            >
+              <PlusIcon />
+              Nueva barbería
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ── Bottom sheet: detalles del tenant ── */}
+      {showDetailsModal && selectedTenant && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
             zIndex: 1000,
-            padding: '20px',
-            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
           }}
         >
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', damping: 25 }}
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
+            onClick={closeDetails}
             style={{
-              maxWidth: '900px',
-              width: '100%',
-              maxHeight: '90vh',
-              overflowY: 'auto',
+              position: 'absolute',
+              inset: 0,
+              background: 'rgba(15,23,42,0.45)',
+            }}
+          />
+          <motion.div
+            initial={reduceMotion ? false : { transform: 'translateY(100%)' }}
+            animate={{ transform: 'translateY(0%)' }}
+            transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
+            style={{
               position: 'relative',
+              width: '100%',
+              maxWidth: '430px',
+              maxHeight: '88dvh',
+              background: '#F8FAFC',
+              borderRadius: '20px 20px 0 0',
+              overflowY: 'auto',
+              paddingBottom: 'calc(20px + env(safe-area-inset-bottom))',
             }}
           >
-            <GlassCard className="overflow-hidden">
-              {/* Header */}
+            {/* Grip + header del sheet */}
+            <div style={{
+              position: 'sticky',
+              top: 0,
+              background: 'rgba(248,250,252,0.95)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              borderBottom: '1px solid #E2E8F0',
+              padding: '10px 20px 14px',
+              zIndex: 1,
+            }}>
               <div style={{
-                padding: '24px',
-                borderBottom: '1px solid rgba(255,255,255,0.08)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}>
-                <div>
-                  <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>
+                width: '36px',
+                height: '4px',
+                borderRadius: '999px',
+                background: '#CBD5E1',
+                margin: '0 auto 12px',
+              }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <TenantAvatar name={selectedTenant.name} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontFamily: 'Syne, sans-serif',
+                    fontWeight: 700,
+                    fontSize: '17px',
+                    color: '#0F172A',
+                    lineHeight: 1.2,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}>
                     {selectedTenant.name}
-                  </h2>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '4px',
-                      backgroundColor: selectedTenant.primary_color,
-                    }} />
-                    <div style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '4px',
-                      backgroundColor: selectedTenant.secondary_color,
-                    }} />
-                    <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', fontFamily: 'monospace' }}>
-                      {selectedTenant.slug}
-                    </span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
+                    {selectedTenant.slug}
                   </div>
                 </div>
                 <button
-                  onClick={() => {
-                    setShowDetailsModal(false);
-                    setSelectedTenant(null);
-                    setTenantDetails(null);
-                    setErrorDetails(null);
-                  }}
+                  className="sa-btn"
+                  onClick={closeDetails}
+                  aria-label="Cerrar"
                   style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'rgba(255,255,255,0.5)',
-                    fontSize: '24px',
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    background: '#fff',
+                    border: '1px solid #E2E8F0',
+                    color: '#475569',
+                    fontSize: '16px',
                     cursor: 'pointer',
-                    padding: '8px',
-                    borderRadius: '50%',
-                    width: '40px',
-                    height: '40px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-                    e.currentTarget.style.color = '#ffffff';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
+                    lineHeight: 1,
+                    flexShrink: 0,
                   }}
                 >
                   ×
                 </button>
               </div>
+            </div>
 
-              {/* Content */}
-              <div style={{ padding: '24px' }}>
-                {loadingDetails ? (
-                  <div style={{ padding: '48px', textAlign: 'center' }}>
-                    <div style={{
-                      display: 'inline-block',
-                      width: '40px',
-                      height: '40px',
-                      border: '3px solid rgba(255,255,255,0.1)',
-                      borderTopColor: '#C8A97E',
-                      borderRadius: '9999px',
-                      animation: 'spin 1s linear infinite',
-                    }} />
-                    <p style={{ marginTop: '16px', color: 'rgba(255,255,255,0.5)' }}>
-                      Cargando detalles...
-                    </p>
-                  </div>
-                ) : errorDetails ? (
-                  <div style={{ padding: '24px', textAlign: 'center' }}>
-                    <p style={{ color: '#e94560', marginBottom: '16px' }}>{errorDetails}</p>
-                    <button
-                      onClick={() => handleViewDetails(selectedTenant)}
-                      style={{
-                        padding: '8px 16px',
-                        background: 'transparent',
-                        color: '#C8A97E',
-                        border: '1px solid #C8A97E',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(200,169,126,0.1)'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >
-                      Reintentar
-                    </button>
-                  </div>
-                ) : tenantDetails ? (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.2 }}
+            <div style={{ padding: '16px 20px 0' }}>
+              {loadingDetails ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div className="sa-shimmer" style={{ height: '76px', borderRadius: '16px' }} />
+                  <div className="sa-shimmer" style={{ height: '76px', borderRadius: '16px' }} />
+                  <div className="sa-shimmer" style={{ height: '120px', borderRadius: '16px' }} />
+                </div>
+              ) : errorDetails ? (
+                <div style={{
+                  background: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  textAlign: 'center',
+                }}>
+                  <p style={{ fontSize: '13px', color: '#B91C1C', marginBottom: '12px', lineHeight: 1.4 }}>{errorDetails}</p>
+                  <button
+                    className="sa-btn"
+                    onClick={() => handleViewDetails(selectedTenant)}
+                    style={{
+                      padding: '9px 18px',
+                      background: '#fff',
+                      color: '#B91C1C',
+                      border: '1px solid #FECACA',
+                      borderRadius: '10px',
+                      fontFamily: 'Syne, sans-serif',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                    }}
                   >
-                    {/* Información básica */}
-                    <div style={{ marginBottom: '32px' }}>
-                      <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#ffffff', marginBottom: '16px' }}>
-                        Información básica
-                      </h3>
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                        gap: '16px',
-                      }}>
-                        <GlassCard className="p-4">
-                          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '4px' }}>Slug</div>
-                          <div style={{ color: '#ffffff', fontFamily: 'monospace' }}>{tenantDetails.slug}</div>
-                        </GlassCard>
-                        <GlassCard className="p-4">
-                          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '4px' }}>Estado</div>
-                          <div style={{ color: tenantDetails.is_active ? '#C8A97E' : 'rgba(255,255,255,0.5)' }}>
-                            {tenantDetails.is_active ? 'Activo' : 'Inactivo'}
-                          </div>
-                        </GlassCard>
-                        <GlassCard className="p-4">
-                          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '4px' }}>Creado</div>
-                          <div style={{ color: '#ffffff' }}>
-                            {new Date(tenantDetails.created_at).toLocaleDateString('es-AR')}
-                          </div>
-                        </GlassCard>
-                        {tenantDetails.opening_time && tenantDetails.closing_time && (
-                          <GlassCard className="p-4">
-                            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '4px' }}>Horario</div>
-                            <div style={{ color: '#ffffff' }}>
-                              {tenantDetails.opening_time} - {tenantDetails.closing_time}
-                            </div>
-                          </GlassCard>
-                        )}
-                      </div>
+                    Reintentar
+                  </button>
+                </div>
+              ) : tenantDetails ? (
+                <>
+                  {/* Suscripción */}
+                  <div style={{ ...cardStyle, padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                      <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '13px', color: '#0F172A' }}>
+                        Suscripción
+                      </span>
+                      <Pill badge={getSubscriptionBadge(selectedTenant)} />
                     </div>
-
-                    {/* Métricas recientes */}
-                    <div style={{ marginBottom: '32px' }}>
-                      <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#ffffff', marginBottom: '16px' }}>
-                        Métricas (últimos 30 días)
-                      </h3>
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                        gap: '16px',
-                      }}>
-                        <GlassStatCard
-                          icon={<ScissorsIcon />}
-                          value={tenantDetails.metricas_recientes.servicios_completados}
-                          label="Servicios completados"
-                          color="#C8A97E"
-                        />
-                        <GlassStatCard
-                          icon={<DollarIcon />}
-                          value={formatCurrency(tenantDetails.metricas_recientes.facturacion_total)}
-                          label="Facturación total"
-                          color="#10B981"
-                        />
-                        <GlassStatCard
-                          icon={<UsersIcon />}
-                          value={tenantDetails.metricas_recientes.turnos_activos}
-                          label="Turnos activos"
-                          color="#3B82F6"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Barberos */}
-                    <div style={{ marginBottom: '32px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                        <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#ffffff' }}>
-                          Barberos ({tenantDetails.barberos.length})
-                        </h3>
-                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px' }}>
-                          {tenantDetails.barberos.filter(b => b.is_active).length} activos
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: '10px', marginTop: '12px' }}>
+                      <div>
+                        <div style={{ fontSize: '11px', color: '#64748B' }}>Vence</div>
+                        <div style={{ fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 800, fontSize: '13px', color: '#0F172A', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {formatDate(selectedTenant.subscription_ends_at)}
                         </div>
                       </div>
-                      {tenantDetails.barberos.length === 0 ? (
-                        <GlassCard className="p-6">
-                          <p style={{ color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
-                            No hay barberos registrados
-                          </p>
-                        </GlassCard>
-                      ) : (
-                        <GlassTable
-                          columns={[
-                            { key: 'display_name', label: 'Nombre', width: '1fr' },
-                            { key: 'is_active', label: 'Estado', width: '100px' },
-                            { key: 'created_at', label: 'Registrado', width: '120px' },
-                          ]}
-                          data={tenantDetails.barberos}
-                          rowKey="id"
-                        />
-                      )}
-                    </div>
-
-                    {/* Servicios */}
-                    <div style={{ marginBottom: '32px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                        <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#ffffff' }}>
-                          Servicios ({tenantDetails.servicios.length})
-                        </h3>
-                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px' }}>
-                          {tenantDetails.servicios.filter(s => s.is_active).length} activos
+                      <div>
+                        <div style={{ fontSize: '11px', color: '#64748B' }}>Último pago</div>
+                        <div style={{ fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 800, fontSize: '13px', color: '#0F172A', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {formatDate(selectedTenant.last_payment_at)}
                         </div>
                       </div>
-                      {tenantDetails.servicios.length === 0 ? (
-                        <GlassCard className="p-6">
-                          <p style={{ color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
-                            No hay servicios configurados
-                          </p>
-                        </GlassCard>
-                      ) : (
-                        <GlassTable
-                          columns={[
-                            { key: 'name', label: 'Servicio', width: '1fr' },
-                            { key: 'base_price', label: 'Precio base', width: '120px' },
-                            { key: 'duration_min', label: 'Duración', width: '100px' },
-                            { key: 'is_active', label: 'Estado', width: '100px' },
-                          ]}
-                          data={tenantDetails.servicios}
-                          rowKey="id"
-                        />
-                      )}
+                      <div>
+                        <div style={{ fontSize: '11px', color: '#64748B' }}>Trial hasta</div>
+                        <div style={{ fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 800, fontSize: '13px', color: '#0F172A', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {formatDate(selectedTenant.trial_ends_at)}
+                        </div>
+                      </div>
                     </div>
-                  </motion.div>
-                ) : null}
-              </div>
+                  </div>
 
-              {/* Footer */}
-              <div style={{
-                padding: '24px',
-                borderTop: '1px solid rgba(255,255,255,0.08)',
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: '12px',
-              }}>
-                <button
-                  onClick={() => {
-                    setShowDetailsModal(false);
-                    setSelectedTenant(null);
-                    setTenantDetails(null);
-                    setErrorDetails(null);
-                  }}
-                  style={{
-                    padding: '10px 20px',
-                    background: 'transparent',
-                    color: 'rgba(255,255,255,0.7)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
-                  }}
-                >
-                  Cerrar
-                </button>
-                {tenantDetails && (
-                  <>
+                  {/* Información básica */}
+                  <div style={{ ...cardStyle, padding: '14px 16px', marginTop: '12px' }}>
+                    <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '13px', color: '#0F172A' }}>
+                      Información
+                    </span>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: '10px', marginTop: '12px' }}>
+                      <div>
+                        <div style={{ fontSize: '11px', color: '#64748B' }}>Estado</div>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: tenantDetails.is_active ? '#15803D' : '#B91C1C', marginTop: '1px' }}>
+                          {tenantDetails.is_active ? 'Activa' : 'Inactiva'}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '11px', color: '#64748B' }}>Creada</div>
+                        <div style={{ fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 800, fontSize: '13px', color: '#0F172A', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {formatDate(tenantDetails.created_at)}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '11px', color: '#64748B' }}>Horario</div>
+                        <div style={{ fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 800, fontSize: '13px', color: '#0F172A', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {tenantDetails.opening_time && tenantDetails.closing_time
+                            ? `${tenantDetails.opening_time.slice(0, 5)}–${tenantDetails.closing_time.slice(0, 5)}`
+                            : '—'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Métricas 30 días */}
+                  <div style={{ ...cardStyle, padding: '14px 16px', marginTop: '12px' }}>
+                    <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '13px', color: '#0F172A' }}>
+                      Últimos 30 días
+                    </span>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: '10px', marginTop: '12px' }}>
+                      <div>
+                        <div style={{ fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 800, fontSize: '17px', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {tenantDetails.metricas_recientes.servicios_completados}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>Servicios</div>
+                      </div>
+                      <div>
+                        <div style={{ fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 800, fontSize: '17px', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {formatCurrency(tenantDetails.metricas_recientes.facturacion_total)}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>Facturado</div>
+                      </div>
+                      <div>
+                        <div style={{ fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 800, fontSize: '17px', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {tenantDetails.metricas_recientes.turnos_activos}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>Turnos activos</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Barberos */}
+                  <div style={{ ...cardStyle, padding: '14px 16px', marginTop: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                      <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '13px', color: '#0F172A' }}>
+                        Barberos ({tenantDetails.barberos.length})
+                      </span>
+                      <span style={{ fontSize: '11px', color: '#64748B' }}>
+                        {tenantDetails.barberos.filter(b => b.is_active).length} activos
+                      </span>
+                    </div>
+                    {tenantDetails.barberos.length === 0 ? (
+                      <p style={{ fontSize: '13px', color: '#64748B', marginTop: '10px' }}>
+                        No hay barberos registrados.
+                      </p>
+                    ) : (
+                      <div style={{ marginTop: '6px' }}>
+                        {tenantDetails.barberos.map((barbero, idx) => (
+                          <div
+                            key={barbero.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '10px',
+                              padding: '10px 0',
+                              borderTop: idx === 0 ? 'none' : '1px solid #F1F5F9',
+                            }}
+                          >
+                            <span style={{
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              color: '#0F172A',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {barbero.display_name}
+                            </span>
+                            <span style={{
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              color: barbero.is_active ? '#15803D' : '#64748B',
+                              flexShrink: 0,
+                            }}>
+                              {barbero.is_active ? 'Activo' : 'Inactivo'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Servicios */}
+                  <div style={{ ...cardStyle, padding: '14px 16px', marginTop: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                      <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '13px', color: '#0F172A' }}>
+                        Servicios ({tenantDetails.servicios.length})
+                      </span>
+                      <span style={{ fontSize: '11px', color: '#64748B' }}>
+                        {tenantDetails.servicios.filter(s => s.is_active).length} activos
+                      </span>
+                    </div>
+                    {tenantDetails.servicios.length === 0 ? (
+                      <p style={{ fontSize: '13px', color: '#64748B', marginTop: '10px' }}>
+                        No hay servicios configurados.
+                      </p>
+                    ) : (
+                      <div style={{ marginTop: '6px' }}>
+                        {tenantDetails.servicios.map((servicio, idx) => (
+                          <div
+                            key={servicio.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '10px',
+                              padding: '10px 0',
+                              borderTop: idx === 0 ? 'none' : '1px solid #F1F5F9',
+                            }}
+                          >
+                            <span style={{
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              color: servicio.is_active ? '#0F172A' : '#64748B',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {servicio.name}
+                            </span>
+                            <span style={{
+                              fontFamily: "'Inter', system-ui, sans-serif",
+                              fontWeight: 800,
+                              fontSize: '13px',
+                              color: '#0F172A',
+                              flexShrink: 0,
+                            }}>
+                              {formatCurrency(servicio.base_price)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Acciones del sheet */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
                     <button
+                      className="sa-btn"
                       onClick={() => extendSubscription(tenantDetails.id)}
                       disabled={extendingId === tenantDetails.id}
                       style={{
-                        padding: '10px 20px',
-                        background: 'transparent',
-                        color: 'rgba(34,197,94,0.9)',
-                        border: '1px solid rgba(34,197,94,0.5)',
-                        borderRadius: '8px',
+                        padding: '13px',
+                        background: '#2563EB',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 12px rgba(37,99,235,0.25)',
+                        fontFamily: 'Syne, sans-serif',
+                        fontWeight: 700,
                         fontSize: '14px',
-                        fontWeight: 500,
                         cursor: extendingId === tenantDetails.id ? 'wait' : 'pointer',
-                        opacity: extendingId === tenantDetails.id ? 0.5 : 1,
-                        transition: 'all 0.2s',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(34,197,94,0.1)'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent'
+                        opacity: extendingId === tenantDetails.id ? 0.7 : 1,
                       }}
                     >
-                      {extendingId === tenantDetails.id ? 'Extendiendo…' : 'Extender 1 mes'}
+                      {extendingId === tenantDetails.id ? 'Extendiendo…' : 'Extender suscripción 1 mes'}
                     </button>
-                    <button
-                      onClick={() => toggleTenantStatus(tenantDetails.id, tenantDetails.is_active)}
-                      style={{
-                        padding: '10px 20px',
-                        background: tenantDetails.is_active ? 'rgba(200,169,126,0.1)' : 'transparent',
-                        color: tenantDetails.is_active ? '#C8A97E' : 'rgba(255,255,255,0.7)',
-                        border: `1px solid ${tenantDetails.is_active ? '#C8A97E' : 'rgba(255,255,255,0.2)'}`,
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        fontWeight: 500,
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = tenantDetails.is_active
-                          ? 'rgba(200,169,126,0.2)'
-                          : 'rgba(255,255,255,0.05)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = tenantDetails.is_active
-                          ? 'rgba(200,169,126,0.1)'
-                          : 'transparent';
-                      }}
-                    >
-                      {tenantDetails.is_active ? 'Desactivar' : 'Activar'}
-                    </button>
-                    {!tenantDetails.is_active && (
+                    <div style={{ display: 'flex', gap: '8px' }}>
                       <button
-                        onClick={() => {
-                          setShowDetailsModal(false);
-                          handleDeleteTenant(selectedTenant);
-                        }}
+                        className="sa-btn"
+                        onClick={() => toggleTenantStatus(tenantDetails.id, tenantDetails.is_active)}
+                        disabled={togglingId === tenantDetails.id}
                         style={{
-                          padding: '10px 20px',
-                          background: 'transparent',
-                          color: '#e94560',
-                          border: '1px solid #e94560',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          fontWeight: 500,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
+                          flex: 1,
+                          padding: '12px',
+                          background: '#fff',
+                          color: '#475569',
+                          border: '1px solid #E2E8F0',
+                          borderRadius: '12px',
+                          fontFamily: 'Syne, sans-serif',
+                          fontWeight: 700,
+                          fontSize: '13px',
+                          cursor: togglingId === tenantDetails.id ? 'wait' : 'pointer',
+                          opacity: togglingId === tenantDetails.id ? 0.6 : 1,
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(233,69,96,0.1)'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                       >
-                        Eliminar barbería
+                        {tenantDetails.is_active ? 'Desactivar' : 'Activar'}
                       </button>
-                    )}
-                  </>
-                )}
-              </div>
-            </GlassCard>
+                      {!tenantDetails.is_active && (
+                        <button
+                          className="sa-btn"
+                          onClick={() => {
+                            setShowDetailsModal(false)
+                            handleDeleteTenant(selectedTenant)
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: '12px',
+                            background: '#FEF2F2',
+                            color: '#B91C1C',
+                            border: '1px solid #FECACA',
+                            borderRadius: '12px',
+                            fontFamily: 'Syne, sans-serif',
+                            fontWeight: 700,
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Eliminar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : null}
+            </div>
           </motion.div>
-        </motion.div>
+        </div>
       )}
 
-      {/* Modal de confirmación de eliminación - Glassmorphism version */}
+      {/* ── Modal: confirmación de eliminación ── */}
       {showDeleteModal && selectedTenant && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1001,
-            padding: '20px',
-            backdropFilter: 'blur(10px)',
-          }}
-        >
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 1001,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+        }}>
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', damping: 25 }}
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => { if (!deleting) { setShowDeleteModal(false); setDeleteConfirmationText('') } }}
+            style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.45)' }}
+          />
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, transform: 'scale(0.95)' }}
+            animate={{ opacity: 1, transform: 'scale(1)' }}
+            transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
             style={{
-              maxWidth: '500px',
+              position: 'relative',
               width: '100%',
+              maxWidth: '390px',
+              background: '#fff',
+              borderRadius: '20px',
+              boxShadow: '0 8px 24px rgba(15,23,42,0.12)',
+              padding: '20px',
             }}
           >
-            <GlassCard className="p-6">
-              <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#ffffff', marginBottom: '16px' }}>
-                ⚠️ Eliminar barbería "{selectedTenant.name}"
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
+                background: '#FEF2F2',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <WarningIcon />
+              </div>
+              <h2 style={{
+                fontFamily: 'Syne, sans-serif',
+                fontWeight: 700,
+                fontSize: '16px',
+                color: '#0F172A',
+                lineHeight: 1.25,
+              }}>
+                Eliminar "{selectedTenant.name}"
               </h2>
+            </div>
 
-              <div style={{ marginBottom: '24px' }}>
-                <p style={{ color: '#ffffff', marginBottom: '12px' }}>
-                  <strong>Esta acción no se puede deshacer.</strong>
-                </p>
-                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '12px' }}>
-                  Se eliminarán permanentemente todos los datos asociados a esta barbería:
-                </p>
-                <ul style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', paddingLeft: '20px', marginBottom: '16px' }}>
-                  <li>Perfiles de barberos y dueños</li>
-                  <li>Catálogo completo de servicios</li>
-                  <li>Historial de turnos y atenciones</li>
-                  <li>Registros de facturación</li>
-                </ul>
-                <p style={{ color: '#e94560', fontSize: '14px' }}>
-                  Asegúrate de que la barbería esté inactiva y no tenga turnos abiertos antes de continuar.
-                </p>
-              </div>
+            <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.5, marginBottom: '10px' }}>
+              <strong style={{ color: '#B91C1C' }}>Esta acción no se puede deshacer.</strong>{' '}
+              Se eliminan perfiles, servicios, turnos y toda la facturación de la barbería.
+            </p>
 
-              <div style={{ marginBottom: '24px' }}>
-                <p style={{ color: '#ffffff', marginBottom: '8px' }}>
-                  Para confirmar, escribe el slug de la barbería:
-                </p>
-                <p style={{ color: '#C8A97E', fontFamily: 'monospace', fontSize: '14px', marginBottom: '12px' }}>
-                  {selectedTenant.slug}
-                </p>
-                <input
-                  type="text"
-                  value={deleteConfirmationText}
-                  onChange={(e) => setDeleteConfirmationText(e.target.value)}
-                  placeholder={`Escribe "${selectedTenant.slug}"`}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    backgroundColor: 'rgba(255,255,255,0.05)',
-                    border: `1px solid ${deleteConfirmationText === selectedTenant.slug ? '#C8A97E' : 'rgba(255,255,255,0.2)'}`,
-                    borderRadius: '8px',
-                    color: '#ffffff',
-                    fontSize: '14px',
-                    outline: 'none',
-                    transition: 'border-color 0.2s',
-                  }}
-                  disabled={deleting}
-                />
-                {deleteConfirmationText && deleteConfirmationText !== selectedTenant.slug && (
-                  <p style={{ color: '#e94560', fontSize: '14px', marginTop: '8px' }}>
-                    El texto no coincide con el slug
-                  </p>
-                )}
-              </div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
+              Escribí el slug para confirmar:{' '}
+              <span style={{ color: '#2563EB', fontWeight: 700 }}>{selectedTenant.slug}</span>
+            </label>
+            <input
+              type="text"
+              value={deleteConfirmationText}
+              onChange={(e) => setDeleteConfirmationText(e.target.value)}
+              placeholder={selectedTenant.slug}
+              disabled={deleting}
+              autoComplete="off"
+              style={{
+                width: '100%',
+                padding: '12px 14px',
+                background: '#F8FAFC',
+                border: `1.5px solid ${deleteConfirmationText === selectedTenant.slug ? '#2563EB' : '#E2E8F0'}`,
+                borderRadius: '12px',
+                color: '#0F172A',
+                fontFamily: 'Space Grotesk, sans-serif',
+                fontSize: '14px',
+                outline: 'none',
+                transition: 'border-color 150ms ease',
+                boxSizing: 'border-box',
+              }}
+            />
+            {deleteConfirmationText && deleteConfirmationText !== selectedTenant.slug && (
+              <p style={{ color: '#B91C1C', fontSize: '12px', marginTop: '6px' }}>
+                El texto no coincide con el slug
+              </p>
+            )}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                <button
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                    setDeleteConfirmationText('');
-                  }}
-                  disabled={deleting}
-                  style={{
-                    padding: '10px 20px',
-                    background: 'transparent',
-                    color: 'rgba(255,255,255,0.7)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    opacity: deleting ? 0.5 : 1,
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!deleting) {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!deleting) {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
-                    }
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  disabled={deleteConfirmationText !== selectedTenant.slug || deleting}
-                  style={{
-                    padding: '10px 20px',
-                    background: '#e94560',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    cursor: deleteConfirmationText === selectedTenant.slug && !deleting ? 'pointer' : 'not-allowed',
-                    opacity: deleteConfirmationText === selectedTenant.slug && !deleting ? 1 : 0.5,
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (deleteConfirmationText === selectedTenant.slug && !deleting) {
-                      e.currentTarget.style.background = '#ff5773';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (deleteConfirmationText === selectedTenant.slug && !deleting) {
-                      e.currentTarget.style.background = '#e94560';
-                    }
-                  }}
-                >
-                  {deleting ? 'Eliminando...' : 'Eliminar permanentemente'}
-                </button>
-              </div>
-            </GlassCard>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+              <button
+                className="sa-btn"
+                onClick={() => { setShowDeleteModal(false); setDeleteConfirmationText('') }}
+                disabled={deleting}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#fff',
+                  color: '#475569',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '12px',
+                  fontFamily: 'Syne, sans-serif',
+                  fontWeight: 700,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  opacity: deleting ? 0.5 : 1,
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="sa-btn"
+                onClick={confirmDelete}
+                disabled={deleteConfirmationText !== selectedTenant.slug || deleting}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#DC2626',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontFamily: 'Syne, sans-serif',
+                  fontWeight: 700,
+                  fontSize: '13px',
+                  cursor: deleteConfirmationText === selectedTenant.slug && !deleting ? 'pointer' : 'not-allowed',
+                  opacity: deleteConfirmationText === selectedTenant.slug && !deleting ? 1 : 0.5,
+                }}
+              >
+                {deleting ? 'Eliminando…' : 'Eliminar'}
+              </button>
+            </div>
           </motion.div>
-        </motion.div>
+        </div>
       )}
 
-      {/* Global styles for spinner animation */}
+      {/* Micro-interacciones globales de la página */}
       <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
+        .sa-btn {
+          transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .sa-btn:active:not(:disabled) {
+          transform: scale(0.97);
+        }
+        .sa-shimmer {
+          background: linear-gradient(90deg, #EEF2F7 25%, #F8FAFC 50%, #EEF2F7 75%);
+          background-size: 200% 100%;
+          animation: sa-shimmer 1.4s ease infinite;
+        }
+        @keyframes sa-shimmer {
+          to { background-position: -200% 0; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .sa-btn { transition: none; }
+          .sa-btn:active:not(:disabled) { transform: none; }
+          .sa-shimmer { animation: none; }
         }
       `}</style>
-    </motion.div>
+    </div>
   )
 }
