@@ -18,14 +18,12 @@ export function Login() {
   useEffect(() => {
     const tenantSlug = searchParams.get('tenant')
     if (tenantSlug) {
+      // RPC en lugar de query directa: la migración 020 cerró el SELECT
+      // anónimo sobre tenants; esta función expone SOLO el nombre.
       supabase
-        .from('tenants')
-        .select('name')
-        .eq('slug', tenantSlug)
-        .eq('is_active', true)
-        .single()
-        .then(({ data }) => {
-          if (data) setTenantName(data.name)
+        .rpc('get_tenant_login_name', { p_slug: tenantSlug })
+        .then(({ data }: { data: string | null }) => {
+          if (data) setTenantName(data)
         })
     }
   }, [searchParams])
