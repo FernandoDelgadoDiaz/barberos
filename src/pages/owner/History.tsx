@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 import type { ServiceLog, DailyExpense } from '../../types'
+import { isRealService } from '../../types'
 
 // =============================================================================
 // Palette — slate + blue (consistent with LivePanel / Metrics redesign)
@@ -1151,6 +1152,10 @@ function BarberDayCard({ group }: { group: BarberGroupView }) {
             const ownerE = a.logs.reduce((s, l) => s + (l.owner_earning || 0), 0)
             const tipTotal = a.logs.reduce((s, l) => s + (l.tip_amount || 0), 0)
             const othersTotal = a.logs.reduce((s, l) => s + (l.others_amount || 0), 0)
+            // Venta suelta de productos: la fila portadora no es un servicio y deja
+            // total (price_charged) en 0, así que el importe real está en othersTotal.
+            const realCount = a.logs.filter(isRealService).length
+            const isProductOnly = realCount === 0
             const time = formatTimeAR(a.logs[0].started_at)
             const payment = a.logs[0].payment_method || 'efectivo'
             const paymentLabel = payment === 'transferencia' ? 'Transferencia' : 'Efectivo'
@@ -1167,7 +1172,7 @@ function BarberDayCard({ group }: { group: BarberGroupView }) {
                 {/* Header: Cliente #N — hora */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                   <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '15px', color: C.ink }}>
-                    Cliente #{idx + 1}
+                    {isProductOnly ? 'Venta de productos' : `Cliente #${idx + 1}`}
                   </span>
                   <span style={{ fontSize: '13px', color: C.slate500 }}>{time}</span>
                 </div>
@@ -1186,7 +1191,7 @@ function BarberDayCard({ group }: { group: BarberGroupView }) {
                     {paymentLabel}
                   </span>
                   <span style={{ fontSize: '12px', color: C.slate400 }}>
-                    {a.logs.length} {a.logs.length === 1 ? 'servicio' : 'servicios'}
+                    {isProductOnly ? 'Solo productos' : `${realCount} ${realCount === 1 ? 'servicio' : 'servicios'}`}
                   </span>
                 </div>
                 {/* Separator */}
@@ -1195,7 +1200,7 @@ function BarberDayCard({ group }: { group: BarberGroupView }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '13px', color: C.slate500 }}>Total cobrado</span>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: C.ink }}>{fmtMoney(total)}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: C.ink }}>{fmtMoney(isProductOnly ? othersTotal : total)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '13px', color: C.slate500 }}>Barbero</span>
@@ -1257,7 +1262,9 @@ function RangeView({ startAR, endAR, logs, expenses, isMobile }: RangeViewProps)
     logs.map((l) => l.appointment_id || `${l.barber_id}-${l.started_at}`)
   )
   const clientsCount = uniqueAppointments.size
-  const servicesCount = logs.length
+  // Excluye las filas portadoras de ventas de productos sin servicio: cuentan como
+  // cliente (arriba) pero no como servicio.
+  const servicesCount = logs.filter(isRealService).length
 
   // Build daily totals for chart
   const dayTotals = useMemo(() => {
@@ -1306,6 +1313,9 @@ function RangeView({ startAR, endAR, logs, expenses, isMobile }: RangeViewProps)
       barberId: string
       barberName: string
       amount: number
+      // Importe de productos, para poder mostrar un monto real en las ventas sueltas,
+      // donde amount (price_charged) es 0.
+      productsAmount: number
       serviceCount: number
       startedAt: string
       payment: 'efectivo' | 'transferencia'
@@ -1316,7 +1326,8 @@ function RangeView({ startAR, endAR, logs, expenses, isMobile }: RangeViewProps)
       const existing = m.get(key)
       if (existing) {
         existing.amount += l.price_charged || 0
-        existing.serviceCount += 1
+        existing.productsAmount += l.others_amount || 0
+        if (isRealService(l)) existing.serviceCount += 1
         if (l.started_at < existing.startedAt) existing.startedAt = l.started_at
       } else {
         m.set(key, {
@@ -1324,7 +1335,8 @@ function RangeView({ startAR, endAR, logs, expenses, isMobile }: RangeViewProps)
           barberId: l.barber_id,
           barberName: l.barber_name,
           amount: l.price_charged || 0,
-          serviceCount: 1,
+          productsAmount: l.others_amount || 0,
+          serviceCount: isRealService(l) ? 1 : 0,
           startedAt: l.started_at,
           payment: l.payment_method || 'efectivo',
         })
@@ -1358,7 +1370,9 @@ function RangeView({ startAR, endAR, logs, expenses, isMobile }: RangeViewProps)
       }
       barberRowsMap.set(l.barber_id, row)
     }
-    row.services += 1
+    // La fila portadora de una venta suelta no es un servicio, pero sí es un cliente
+    // atendido y su plata sí suma.
+    if (isRealService(l)) row.services += 1
     row.generated += l.price_charged || 0
     row.earning += l.barber_earning || 0
     row.clients.add(l.appointment_id || `${l.barber_id}-${l.started_at}`)
@@ -1534,7 +1548,9 @@ function RangeView({ startAR, endAR, logs, expenses, isMobile }: RangeViewProps)
                     {formatTimeAR(a.startedAt)} · {a.barberName}
                   </span>
                   <span style={{ fontSize: '12px', color: C.slate500, fontFamily: 'Space Grotesk, sans-serif' }}>
-                    {a.serviceCount} {a.serviceCount === 1 ? 'servicio' : 'servicios'} ·{' '}
+                    {a.serviceCount === 0
+                      ? 'Solo productos'
+                      : `${a.serviceCount} ${a.serviceCount === 1 ? 'servicio' : 'servicios'}`} ·{' '}
                     {a.payment === 'transferencia' ? 'Transferencia' : 'Efectivo'}
                   </span>
                 </div>
@@ -1548,7 +1564,7 @@ function RangeView({ startAR, endAR, logs, expenses, isMobile }: RangeViewProps)
                     flexShrink: 0,
                   }}
                 >
-                  {fmtMoney(a.amount)}
+                  {fmtMoney(a.serviceCount === 0 ? a.productsAmount : a.amount)}
                 </span>
               </div>
             ))}

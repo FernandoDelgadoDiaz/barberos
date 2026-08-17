@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { BarberStats } from '../../pages/owner/LivePanel'
+import { isRealService } from '../../types'
 
 // Deterministic palette by name/id hash → only used for the avatar background.
 // NO emoji badges, NO special-casing by name (no 👑 / ✂️).
@@ -179,6 +180,8 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
             {stats.appointments.map((appointment) => {
               const totalTip = appointment.services.reduce((sum, s) => sum + (s.tip_amount ?? 0), 0)
               const totalOthers = appointment.services.reduce((sum, s) => sum + (s.others_amount ?? 0), 0)
+              // Una venta suelta de productos aporta una fila portadora, que no es un servicio.
+              const realServicesCount = appointment.services.filter(isRealService).length
               const earningWithoutTip = appointment.total_barber_earning - totalTip
               const barberPct = appointment.total_price > 0 ? Math.round(earningWithoutTip / appointment.total_price * 100) : 0
               const ownerPct = appointment.total_price > 0 ? Math.round(appointment.total_owner_earning / appointment.total_price * 100) : 0
@@ -189,7 +192,11 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>
-                        Cliente #{appointment.services[0]?.service_number_today || '?'}
+                        {/* service_number_today es 0 en una venta suelta de productos:
+                            no hubo servicio, así que no hay número de cliente. */}
+                        {appointment.services[0]?.service_number_today
+                          ? `Cliente #${appointment.services[0].service_number_today}`
+                          : 'Venta de productos'}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '11px', color: '#94A3B8' }}>{time}</span>
@@ -206,11 +213,16 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      {/* En una venta suelta total_price es 0 y la plata está en los
+                          productos: mostrar ese importe, y no contar la fila portadora
+                          como si fuera un servicio. */}
                       <div style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>
-                        ${appointment.total_price.toLocaleString()}
+                        ${(realServicesCount === 0 ? totalOthers : appointment.total_price).toLocaleString()}
                       </div>
                       <div style={{ fontSize: '11px', color: '#94A3B8' }}>
-                        {appointment.services.length} servicio{appointment.services.length !== 1 ? 's' : ''}
+                        {realServicesCount === 0
+                          ? 'Productos'
+                          : `${realServicesCount} servicio${realServicesCount !== 1 ? 's' : ''}`}
                       </div>
                     </div>
                   </div>

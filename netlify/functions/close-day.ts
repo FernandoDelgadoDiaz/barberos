@@ -119,8 +119,10 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
-    // Calculate totals
-    const totalServices = logs.length
+    // Calculate totals.
+    // Una venta de productos sin servicio se guarda como una fila portadora con
+    // price_charged 0: suma plata (owner_earnings) pero NO cuenta como servicio.
+    const totalServices = logs.filter(log => log.price_charged > 0).length
     const totalRevenue = logs.reduce((sum, log) => sum + log.price_charged, 0)
     const barberEarnings = logs.reduce((sum, log) => sum + log.barber_earning, 0)
     const ownerEarnings = logs.reduce((sum, log) => sum + log.owner_earning, 0)

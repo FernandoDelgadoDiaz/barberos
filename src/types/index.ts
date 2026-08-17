@@ -59,7 +59,8 @@ export type ServiceLog = {
   id: string
   tenant_id: string
   barber_id: string
-  service_id: string
+  // null en una fila portadora: venta de productos sin servicio (ver isRealService)
+  service_id: string | null
   price_charged: number
   barber_earning: number
   owner_earning: number
@@ -75,6 +76,21 @@ export type ServiceLog = {
   others_amount?: number
   others_payment_method?: 'efectivo' | 'transferencia'
   created_at: string
+}
+
+/**
+ * Una venta de productos sin ningún servicio se guarda igual en service_logs, como
+ * una única "fila portadora": service_id null, price_charged 0 y el importe de los
+ * productos en others_amount / owner_earning. Se hace así para que la plata siga
+ * fluyendo por las mismas lecturas que todo el resto (panel en vivo, historial,
+ * cierre de caja, métricas), que leen service_logs y no appointments.
+ *
+ * Consecuencia: al CONTAR servicios hay que excluir esas filas, porque no son un
+ * servicio. Al SUMAR plata hay que incluirlas. Un servicio real siempre tiene
+ * price_charged > 0 (la Function lo valida), así que ese es el discriminador.
+ */
+export function isRealService(log: { price_charged: number }): boolean {
+  return log.price_charged > 0
 }
 
 export type ProductSale = {

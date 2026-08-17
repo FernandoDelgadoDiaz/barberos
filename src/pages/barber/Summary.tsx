@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 import type { ServiceLog, DailySummary as BackendDailySummary, Shift } from '../../types'
+import { isRealService } from '../../types'
 
 // =============================================================================
 // Palette — slate + blue (consistent with the owner panel: LivePanel / Metrics
@@ -230,7 +231,7 @@ export function Summary() {
           console.log('[Summary] month range (UTC):', firstDayUTC, '→', lastDayUTC)
           const { data: monthLogs, error: monthError } = await supabase
             .from('service_logs')
-            .select('barber_earning')
+            .select('barber_earning, price_charged')
             .eq('tenant_id', tenant.id)
             .eq('barber_id', profile.id)
             .in('status', ['completed', 'closed'])
@@ -239,7 +240,9 @@ export function Summary() {
           if (monthError) {
             console.warn('[Summary] monthly logs query error (non-blocking):', monthError)
           } else if (isMounted) {
-            setTotalServicesMonth((monthLogs || []).length)
+            // price_charged se trae solo para poder descontar las filas portadoras
+            // (ventas de productos sin servicio) de la cuenta de servicios del mes.
+            setTotalServicesMonth((monthLogs || []).filter(isRealService).length)
             setTotalEarningsMonth((monthLogs || []).reduce((sum, l) => sum + l.barber_earning, 0))
             setMonthName(now.toLocaleDateString('es-AR', { month: 'long', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' }))
           }
@@ -249,7 +252,9 @@ export function Summary() {
 
         // Calculate summary using only logs and shifts (ignore daily_summaries for calculation)
         const activeLogs = logsData.filter(log => log.status === 'completed')
-        const totalServices = activeLogs.length
+        // Contar servicios excluye las filas portadoras de ventas sueltas de productos;
+        // las sumas de plata más abajo sí las incluyen.
+        const totalServices = activeLogs.filter(isRealService).length
         const totalRevenue = activeLogs.reduce((sum, log) => sum + log.price_charged, 0)
         const barberEarnings = activeLogs.reduce((sum, log) => sum + log.barber_earning, 0)
         const ownerEarnings = activeLogs.reduce((sum, log) => sum + log.owner_earning, 0)
@@ -508,11 +513,15 @@ export function Summary() {
               const tipTotal = group.reduce((sum, l) => sum + (l.tip_amount ?? 0), 0)
               const earningsTotal = group.reduce((sum, l) => sum + l.barber_earning, 0)
               const paymentMethod = firstLog.payment_method
+              // Venta suelta de productos: el grupo es una sola fila portadora, sin
+              // servicio. La plata de los productos es del dueño, no del barbero.
+              const isProductOnly = !group.some(isRealService)
+              const productsTotal = group.reduce((sum, l) => sum + (l.others_amount ?? 0), 0)
               return (
                 <div key={firstLog.id} style={{ padding: '16px 20px', borderBottom: `1px solid ${C.borderLt}` }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <div style={{ fontFamily: fontBody, fontWeight: 600, fontSize: '14px', color: C.ink }}>
-                      Cliente #{idx + 1}
+                      {isProductOnly ? 'Venta de productos' : `Cliente #${idx + 1}`}
                     </div>
                     <span style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate500 }}>
                       {formatTime(firstLog.started_at)}
@@ -527,12 +536,19 @@ export function Summary() {
                   )}
                   <div style={{ borderTop: `1px solid ${C.borderLt}`, marginBottom: '8px' }} />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '8px' }}>
-                    {group.map(log => (
-                      <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: C.slate600, fontFamily: fontBody }}>
-                        <span>· Servicio</span>
-                        <span>${log.price_charged.toLocaleString()}</span>
+                    {isProductOnly ? (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: C.slate600, fontFamily: fontBody }}>
+                        <span>· Productos <span style={{ color: C.slate500 }}>(100% dueño)</span></span>
+                        <span>${productsTotal.toLocaleString()}</span>
                       </div>
-                    ))}
+                    ) : (
+                      group.map(log => (
+                        <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: C.slate600, fontFamily: fontBody }}>
+                          <span>· Servicio</span>
+                          <span>${log.price_charged.toLocaleString()}</span>
+                        </div>
+                      ))
+                    )}
                   </div>
                   <div style={{ borderTop: `1px solid ${C.borderLt}`, marginBottom: '8px' }} />
                   {tipTotal > 0 && (

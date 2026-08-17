@@ -163,7 +163,9 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       if (!acc[item.tenant_id]) {
         acc[item.tenant_id] = { count: 0, sum: 0 }
       }
-      acc[item.tenant_id].count += 1
+      // Las filas portadoras (ventas de productos sin servicio, price_charged 0) no
+      // cuentan como servicio; sí suman en facturado, donde aportan 0.
+      acc[item.tenant_id].count += item.price_charged > 0 ? 1 : 0
       acc[item.tenant_id].sum += item.price_charged
       return acc
     }, {} as Record<string, { count: number, sum: number }>)

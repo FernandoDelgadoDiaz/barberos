@@ -6,6 +6,7 @@ import { useServiceLogsRealtime } from '../../hooks/useRealtime'
 import { ExpandableBarberCard, cleanName } from '../../components/owner/ExpandableBarberCard'
 import { GraceBanner } from '../../components/GraceBanner'
 import type { ServiceLog, Profile, DailyExpense } from '../../types'
+import { isRealService } from '../../types'
 
 function getArgentinaDateString(date = new Date()): string {
   return date.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
@@ -95,15 +96,17 @@ export function LivePanel() {
   const [savingExpense, setSavingExpense] = useState(false)
   const isMounted = useRef(true)
 
-  // Totals
+  // Totals.
+  // La plata suma TODAS las filas (incluidas las portadoras de ventas sueltas de
+  // productos); los CONTADORES de servicios solo las filas que son un servicio real.
   const totalDay = logs.reduce((sum, log) => sum + log.price_charged, 0)
   const ownerEarning = logs.reduce((sum, log) => sum + log.owner_earning, 0)
-  const totalServices = logs.length
+  const totalServices = logs.filter(isRealService).length
 
   // Per-barber stats
   const barberStats: BarberStats[] = barbers.map(barber => {
     const barberLogs = logs.filter(log => log.barber_id === barber.id)
-    const servicesCount = barberLogs.length
+    const servicesCount = barberLogs.filter(isRealService).length
     const totalGenerated = barberLogs.reduce((sum, log) => sum + log.price_charged, 0)
     const ownerCommission = barberLogs.reduce((sum, log) => sum + log.owner_earning, 0)
     const barberEarnings = barberLogs.reduce((sum, log) => sum + log.barber_earning, 0)

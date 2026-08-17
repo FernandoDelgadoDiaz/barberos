@@ -178,7 +178,9 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     }
 
     // Calcular métricas
-    const servicios_completados = metricas?.length || 0
+    // Excluye las filas portadoras (ventas de productos sin servicio, price_charged 0):
+    // no son un servicio, aunque sí sumen plata al dueño.
+    const servicios_completados = metricas?.filter(item => item.price_charged > 0).length || 0
     const facturacionTotal = metricas?.reduce((sum, item) => sum + item.price_charged, 0) || 0
     const turnosActivosCount = turnosActivos?.length || 0
 

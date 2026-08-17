@@ -318,10 +318,16 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
+    // Una venta de productos sin servicio se guarda como una fila portadora en
+    // service_logs (service_id null, price_charged 0) para que la plata llegue al
+    // dueño por el mismo camino. No es un servicio, así que toda métrica que CUENTE
+    // servicios usa serviceLogs; las que SUMAN plata siguen usando allLogs.
+    const serviceLogs = allLogs.filter((log: { price_charged: number }) => log.price_charged > 0)
+
     // a. Día con más cortes
     let diaMasCortes: { fecha: string; total: number } | null = null
     const countsByDay: Record<string, number> = {}
-    allLogs.forEach(log => {
+    serviceLogs.forEach(log => {
       const { year, month, day } = getArgentinaDateParts(log.started_at)
       const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}` // YYYY-MM-DD Argentina
       countsByDay[date] = (countsByDay[date] || 0) + 1
@@ -341,7 +347,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     // b. Hora pico
     let horaPico: { hora: number; total: number } | null = null
     const countsByHour: Record<number, number> = {}
-    allLogs.forEach(log => {
+    serviceLogs.forEach(log => {
       const { hour } = getArgentinaDateParts(log.started_at)
       countsByHour[hour] = (countsByHour[hour] || 0) + 1
     })
@@ -381,7 +387,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     // d. Barbero estrella (más servicios) - need barber names
     let barberoEstrella: { nombre: string; servicios: number; generado: number } | null = null
     const servicesByBarber: Record<string, { count: number; revenue: number }> = {}
-    allLogs.forEach(log => {
+    serviceLogs.forEach(log => {
       const current = servicesByBarber[log.barber_id] || { count: 0, revenue: 0 }
       current.count += 1
       current.revenue += log.price_charged
@@ -414,7 +420,8 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     // e. Servicio más popular - need service names
     let servicioPopular: { nombre: string; total: number } | null = null
     const countsByService: Record<string, number> = {}
-    allLogs.forEach(log => {
+    serviceLogs.forEach(log => {
+      if (!log.service_id) return
       countsByService[log.service_id] = (countsByService[log.service_id] || 0) + 1
     })
 
@@ -438,15 +445,15 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       servicioPopular = { nombre, total: maxServiceCount }
     }
 
-    // f. Ticket promedio
+    // f. Ticket promedio (solo servicios: dividir por filas portadoras lo hundiría)
     let ticketPromedio: number | null = null
     const totalRevenue = allLogs.reduce((acc, log) => acc + log.price_charged, 0)
-    ticketPromedio = totalRevenue / allLogs.length
+    ticketPromedio = serviceLogs.length > 0 ? totalRevenue / serviceLogs.length : null
 
     // g. Total histórico (from all logs)
     const totalOwnerEarnings = allLogs.reduce((acc, log) => acc + log.owner_earning, 0)
     const historico = {
-      total_servicios: allLogs.length,
+      total_servicios: serviceLogs.length,
       total_facturado: totalRevenue,
       total_owner: totalOwnerEarnings
     }
@@ -488,13 +495,15 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       return argDate >= previousWeekDateRange.startDate && argDate <= previousWeekDateRange.endDate
     })
 
+    // servicios: solo los reales (las portadoras de ventas sueltas no son un servicio).
+    // facturado: suma sobre todo, que para una portadora aporta 0.
     const semana_actual = {
-      servicios: currentWeekLogs.length,
+      servicios: currentWeekLogs.filter((log: { price_charged: number }) => log.price_charged > 0).length,
       facturado: currentWeekLogs.reduce((acc, log) => acc + log.price_charged, 0)
     }
 
     const semana_anterior = {
-      servicios: previousWeekLogs.length,
+      servicios: previousWeekLogs.filter((log: { price_charged: number }) => log.price_charged > 0).length,
       facturado: previousWeekLogs.reduce((acc, log) => acc + log.price_charged, 0)
     }
 
@@ -504,7 +513,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       const argDate = toArgentinaDate(new Date(log.started_at))
       const dow = getArgentinaDayOfWeek(argDate)
       const curr = serviciosPorDiaMap[dow] || { servicios: 0, facturado: 0 }
-      curr.servicios += 1
+      curr.servicios += log.price_charged > 0 ? 1 : 0
       curr.facturado += log.price_charged
       serviciosPorDiaMap[dow] = curr
     })

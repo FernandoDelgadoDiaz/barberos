@@ -88,7 +88,7 @@ type NormalizedProduct = {
 // Request body actualizado: array de servicios
 interface RequestBody {
   barber_id: string
-  services: ServiceItem[]  // Array requerido
+  services: ServiceItem[]  // Puede venir vacío si hay products (venta suelta)
   started_at: string
   ended_at?: string        // Opcional, se ignora (ended_at será null)
   shift_id?: string
@@ -121,7 +121,8 @@ interface Appointment {
 interface ServiceLog {
   tenant_id: string
   barber_id: string
-  service_id: string
+  // null en la fila portadora de una venta de productos sin servicio
+  service_id: string | null
   price_charged: number
   barber_earning: number
   owner_earning: number
@@ -247,7 +248,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       : (typeof body.others_amount === 'number' ? body.others_amount : 0)
 
     // Validar required fields
-    if (!body.barber_id || !body.services || !body.started_at) {
+    if (!body.barber_id || !Array.isArray(body.services) || !body.started_at) {
       return {
         statusCode: 400,
         headers,
@@ -255,14 +256,18 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
-    // Validar que services no esté vacío
-    if (body.services.length === 0) {
+    // Una atención necesita al menos un servicio O al menos un producto.
+    // services vacío + products => venta suelta de productos (sin servicio).
+    if (body.services.length === 0 && products.length === 0) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Services array cannot be empty' }),
+        body: JSON.stringify({ error: 'Se requiere al menos un servicio o un producto' }),
       }
     }
+
+    // Venta suelta: no hay servicios, la atención es solo productos.
+    const isProductOnly = body.services.length === 0
 
     // Validar cada servicio
     for (const service of body.services) {
@@ -333,24 +338,27 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
-    // 3. Calculate attention_number (número de atención en el turno o día)
-    let attentionQuery = supabase
-      .from('appointments')
-      .select('*', { count: 'exact', head: true })
-      .eq('barber_id', body.barber_id)
-      .eq('tenant_id', tenantId)
+    // 3. Calculate attention_number (número de atención en el turno o día).
+    // Se cuentan TODAS las atenciones (incluidas las de solo productos) para que la
+    // numeración visible al dueño quede correlativa y sin huecos.
+    const buildAttentionQuery = () => {
+      let q = supabase
+        .from('appointments')
+        .select('*', { count: 'exact', head: true })
+        .eq('barber_id', body.barber_id)
+        .eq('tenant_id', tenantId)
 
-    if (body.shift_id) {
-      attentionQuery = attentionQuery.eq('shift_id', body.shift_id)
-    } else {
-      // Si no hay shift_id, contar por día (backward compatibility)
-      const { start, end } = getArgentinaDayRange()
-      attentionQuery = attentionQuery
-        .gte('started_at', start)
-        .lte('started_at', end)
+      if (body.shift_id) {
+        q = q.eq('shift_id', body.shift_id)
+      } else {
+        // Si no hay shift_id, contar por día (backward compatibility)
+        const { start, end } = getArgentinaDayRange()
+        q = q.gte('started_at', start).lte('started_at', end)
+      }
+      return q
     }
 
-    const { count: attentionCount, error: attentionError } = await attentionQuery
+    const { count: attentionCount, error: attentionError } = await buildAttentionQuery()
 
     if (attentionError) {
       console.error('Attention count error:', attentionError)
@@ -363,25 +371,54 @@ export const handler = async (event: NetlifyFunctionEvent) => {
 
     const attentionNumber = (attentionCount || 0) + 1 // +1 para esta nueva atención
 
-    // 5. Calcular total_price sumando todos los servicios
+    // 3b. El TRAMO DE COMISIÓN se calcula aparte, contando solo las atenciones que
+    // tuvieron servicios (total_price > 0). Si contáramos las ventas sueltas de
+    // productos, un barbero avanzaría de tramo vendiendo gaseosas y se llevaría un
+    // porcentaje mayor en el próximo corte real.
+    // Backward compatible: hasta hoy toda atención tiene total_price > 0, así que
+    // este número coincide con attentionNumber en el flujo normal.
+    const { count: billableCount, error: billableError } = await buildAttentionQuery()
+      .gt('total_price', 0)
+
+    if (billableError) {
+      console.error('Billable attention count error:', billableError)
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Failed to count appointments' }),
+      }
+    }
+
+    const commissionTierNumber = (billableCount || 0) + 1
+
+    // 5. Calcular total_price sumando todos los servicios (0 en una venta suelta)
     const totalPrice = body.services.reduce((sum, service) => sum + service.price_charged, 0)
 
     // 6. Aplicar comisión sobre el TOTAL de la atención
     const { barber: commissionBarberEarning, owner: commissionOwnerEarning } = applyCommission(
       commissionRules.rules,
-      attentionNumber,
+      commissionTierNumber,
       totalPrice
     )
     // tip 100% al barbero; others 100% al dueño
     const totalBarberEarning = commissionBarberEarning + tipAmount
     const totalOwnerEarning  = commissionOwnerEarning  + othersAmount
 
-    // Validate numeric values
-    if (isNaN(totalPrice) || totalPrice <= 0) {
+    // Validate numeric values.
+    // En una venta suelta totalPrice es 0 legítimamente; en ese caso lo que no puede
+    // ser 0 es el importe de los productos.
+    if (isNaN(totalPrice) || totalPrice < 0 || (totalPrice === 0 && !isProductOnly)) {
       return {
         statusCode: 400,
         headers,
         body: JSON.stringify({ error: 'Invalid total price calculation' }),
+      }
+    }
+    if (isProductOnly && !(othersAmount > 0)) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Una venta sin servicios requiere productos con importe mayor a 0' }),
       }
     }
     if (isNaN(totalBarberEarning) || totalBarberEarning < 0) {
@@ -437,13 +474,16 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     }
 
     // 8. Calcular service_number_today para cada servicio (individual)
-    // Contar servicios existentes para determinar el número base
+    // Contar servicios existentes para determinar el número base.
+    // price_charged > 0 excluye las filas portadoras de ventas sueltas, que no son
+    // servicios: si no, el próximo corte real saltearía un número.
     let serviceCountQuery = supabase
       .from('service_logs')
       .select('*', { count: 'exact', head: true })
       .eq('barber_id', body.barber_id)
       .eq('tenant_id', tenantId)
       .eq('status', 'completed')
+      .gt('price_charged', 0)
 
     if (body.shift_id) {
       serviceCountQuery = serviceCountQuery.eq('shift_id', body.shift_id)
@@ -471,32 +511,57 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     const serviceLogs: Omit<ServiceLog, 'id'>[] = []
     const insertedServiceLogIds: string[] = []
 
-    // 9. Insertar service_logs para cada servicio
-    for (let i = 0; i < body.services.length; i++) {
-      const service = body.services[i]
-      const serviceNumberToday = currentServiceNumber + i + 1
-      const isFirst = i === 0
+    // 9. Insertar service_logs.
+    // Caso normal: una fila por servicio.
+    // Venta suelta (sin servicios): UNA sola fila portadora con service_id null y
+    // price_charged 0, que transporta el importe de los productos por el mismo
+    // camino que todo lo demás (panel en vivo, historial, cierre de caja, métricas
+    // leen service_logs, no appointments). service_number_today = 0 la marca como
+    // "no es un servicio".
+    const logsToInsert: Omit<ServiceLog, 'id'>[] = isProductOnly
+      ? [{
+          tenant_id: tenantId,
+          barber_id: body.barber_id,
+          service_id: null,
+          price_charged: 0,
+          barber_earning: tipAmount,
+          owner_earning: othersAmount,
+          service_number_today: 0,
+          appointment_id: appointment.id,
+          started_at: startedAtUTC,
+          ended_at: null,
+          status: 'completed',
+          shift_id: body.shift_id ?? null,
+          payment_method: paymentMethod,
+          tip_amount: tipAmount,
+          tip_payment_method: tipPaymentMethod,
+          others_amount: othersAmount,
+          others_payment_method: othersPaymentMethod,
+        }]
+      : body.services.map((service, i) => {
+          const isFirst = i === 0
+          return {
+            tenant_id: tenantId,
+            barber_id: body.barber_id,
+            service_id: service.service_id,
+            price_charged: service.price_charged,
+            barber_earning: commissionBarberEarning * (service.price_charged / totalPrice) + (isFirst ? tipAmount : 0),
+            owner_earning:  commissionOwnerEarning  * (service.price_charged / totalPrice) + (isFirst ? othersAmount : 0),
+            service_number_today: currentServiceNumber + i + 1,
+            appointment_id: appointment.id,
+            started_at: startedAtUTC,
+            ended_at: null,
+            status: 'completed' as const,
+            shift_id: body.shift_id ?? null,
+            payment_method: paymentMethod,
+            tip_amount:    isFirst ? tipAmount    : 0,
+            tip_payment_method: tipPaymentMethod,
+            others_amount: isFirst ? othersAmount : 0,
+            others_payment_method: othersPaymentMethod,
+          }
+        })
 
-      const serviceLog: Omit<ServiceLog, 'id'> = {
-        tenant_id: tenantId,
-        barber_id: body.barber_id,
-        service_id: service.service_id,
-        price_charged: service.price_charged,
-        barber_earning: commissionBarberEarning * (service.price_charged / totalPrice) + (isFirst ? tipAmount : 0),
-        owner_earning:  commissionOwnerEarning  * (service.price_charged / totalPrice) + (isFirst ? othersAmount : 0),
-        service_number_today: serviceNumberToday,
-        appointment_id: appointment.id,
-        started_at: startedAtUTC,
-        ended_at: null,
-        status: 'completed',
-        shift_id: body.shift_id ?? null,
-        payment_method: paymentMethod,
-        tip_amount:    isFirst ? tipAmount    : 0,
-        tip_payment_method: tipPaymentMethod,
-        others_amount: isFirst ? othersAmount : 0,
-        others_payment_method: othersPaymentMethod,
-      }
-
+    for (const serviceLog of logsToInsert) {
       const { data: insertedLog, error: logError } = await supabase
         .from('service_logs')
         .insert(serviceLog)
@@ -513,7 +578,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
         return {
           statusCode: 500,
           headers,
-          body: JSON.stringify({ error: `Failed to insert service log for service ${service.service_id}` }),
+          body: JSON.stringify({ error: `Failed to insert service log for service ${serviceLog.service_id ?? 'venta de productos'}` }),
         }
       }
 
@@ -564,7 +629,9 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       body: JSON.stringify({
         appointment: appointment,
         service_logs: serviceLogs,
-        message: `Attention #${attentionNumber} registered with ${body.services.length} services`,
+        message: isProductOnly
+          ? `Venta #${attentionNumber} registrada con ${products.length} producto${products.length === 1 ? '' : 's'}`
+          : `Attention #${attentionNumber} registered with ${body.services.length} services`,
         total_price: totalPrice,
         total_barber_earning: totalBarberEarning,
         total_owner_earning: totalOwnerEarning,

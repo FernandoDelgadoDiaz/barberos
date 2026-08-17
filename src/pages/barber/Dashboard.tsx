@@ -3,6 +3,7 @@ import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 import { GraceBanner } from '../../components/GraceBanner'
 import type { ServiceCatalog, ServiceLog, CommissionRules, Shift } from '../../types'
+import { isRealService } from '../../types'
 
 // =============================================================================
 // Palette — slate + blue (consistent with the owner panel: LivePanel / Metrics
@@ -230,8 +231,10 @@ export function Dashboard() {
         const servicesOnly = catalog.filter(s => s.category === 'servicio')
         const productsOnly = catalog.filter(s => s.category === 'producto')
 
-        // Calculate estimated earnings for each service based on next service number
-        const nextServiceNumber = (logsData?.length || 0) + 1
+        // Calculate estimated earnings for each service based on next service number.
+        // Solo cuentan los servicios reales: las filas portadoras de ventas sueltas de
+        // productos no mueven el tramo de comisión.
+        const nextServiceNumber = (logsData || []).filter(isRealService).length + 1
         const commissionRules = tenant.commission_rules?.rules || []
         const servicesWithEstimation: ServiceWithEstimation[] = servicesOnly.map(service => ({
           ...service,
@@ -430,7 +433,12 @@ export function Dashboard() {
   }
 
   const confirmAttention = async () => {
-    if (!tenant || !profile || selectedServices.length === 0) return
+    if (!tenant || !profile) return
+    // Se admite una venta suelta (solo productos, sin servicios), pero no una atención vacía.
+    if (selectedServices.length === 0 && selectedProducts.length === 0) {
+      setWizardError('Seleccioná al menos un servicio o un producto.')
+      return
+    }
     if (shiftStatus !== 'open') {
       setWizardError('No hay un turno abierto. Inicia un turno para registrar servicios.')
       return
@@ -512,6 +520,10 @@ export function Dashboard() {
     }
   }
 
+
+  // Una atención necesita al menos un servicio o un producto. Se evalúa en el paso 4,
+  // que es donde el barbero ya vio ambas listas.
+  const nothingSelected = selectedServices.length === 0 && selectedProducts.length === 0
 
   if (loading) {
     return (
@@ -745,7 +757,7 @@ export function Dashboard() {
         {/* Servicios */}
         <StatCard
           label="Servicios hoy"
-          value={String(todayLogs.length)}
+          value={String(todayLogs.filter(isRealService).length)}
           chipBg={C.blueBg}
           iconStroke={C.blue}
           icon={
@@ -902,12 +914,13 @@ export function Dashboard() {
                 <div style={{ fontFamily: fontBody, fontSize: '12px', color: C.slate500, marginBottom: '16px', minHeight: '18px' }}>
                   {selectedServices.length > 0
                     ? `${selectedServices.length} seleccionado${selectedServices.length !== 1 ? 's' : ''} · $${selectedServices.reduce((s, x) => s + x.base_price, 0).toLocaleString('es-AR')}`
-                    : 'Ningún servicio seleccionado'}
+                    : 'Ninguno · seguí para vender solo productos'}
                 </div>
+                {/* Se puede avanzar sin servicios: el cliente puede llevar solo un producto.
+                    La validación real está en el paso 5 (servicio o producto, al menos uno). */}
                 <button
                   onClick={() => setWizardStep(2)}
-                  disabled={selectedServices.length === 0}
-                  style={{ width: '100%', height: '48px', background: selectedServices.length > 0 ? `linear-gradient(135deg, ${C.blue} 0%, ${C.blueBright} 100%)` : '#E2E8F0', color: selectedServices.length > 0 ? '#fff' : C.slate400, border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: selectedServices.length > 0 ? 'pointer' : 'not-allowed' }}
+                  style={{ width: '100%', height: '48px', background: `linear-gradient(135deg, ${C.blue} 0%, ${C.blueBright} 100%)`, color: '#fff', border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
                 >
                   Siguiente →
                 </button>
@@ -985,7 +998,16 @@ export function Dashboard() {
                     <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate400, marginBottom: '16px', textAlign: 'center', padding: '12px' }}>
                       No hay productos en el catálogo
                     </div>
-                    <button onClick={() => setWizardStep(5)} style={{ width: '100%', height: '48px', background: C.blue, color: '#fff', border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}>
+                    {nothingSelected && (
+                      <div style={{ fontFamily: fontBody, fontSize: '12px', color: '#B45309', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '10px 12px', marginBottom: '12px', textAlign: 'center' }}>
+                        Volvé atrás y elegí al menos un servicio.
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setWizardStep(5)}
+                      disabled={nothingSelected}
+                      style={{ width: '100%', height: '48px', background: nothingSelected ? '#E2E8F0' : C.blue, color: nothingSelected ? C.slate400 : '#fff', border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: nothingSelected ? 'not-allowed' : 'pointer' }}
+                    >
                       Continuar →
                     </button>
                   </>
@@ -1039,7 +1061,16 @@ export function Dashboard() {
                         </div>
                       </>
                     )}
-                    <button onClick={() => setWizardStep(5)} style={{ width: '100%', height: '48px', background: C.blue, color: '#fff', border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}>
+                    {nothingSelected && (
+                      <div style={{ fontFamily: fontBody, fontSize: '12px', color: '#B45309', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '10px 12px', marginBottom: '12px', textAlign: 'center' }}>
+                        Elegí un producto, o volvé atrás y elegí un servicio.
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setWizardStep(5)}
+                      disabled={nothingSelected}
+                      style={{ width: '100%', height: '48px', background: nothingSelected ? '#E2E8F0' : C.blue, color: nothingSelected ? C.slate400 : '#fff', border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: nothingSelected ? 'not-allowed' : 'pointer' }}
+                    >
                       Siguiente →
                     </button>
                   </>
@@ -1050,15 +1081,24 @@ export function Dashboard() {
             {/* ── Step 5: Summary & confirm ── */}
             {wizardStep === 5 && (
               <>
-                <div style={{ fontFamily: fontTitle, fontWeight: 700, fontSize: '20px', color: C.ink, marginBottom: '20px', marginTop: '8px' }}>Confirmar cliente</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-                  {selectedServices.map(s => (
-                    <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: C.ink, fontFamily: fontBody }}>
-                      <span>{s.name}</span>
-                      <span style={{ fontWeight: 500 }}>${s.base_price.toLocaleString('es-AR')}</span>
-                    </div>
-                  ))}
+                <div style={{ fontFamily: fontTitle, fontWeight: 700, fontSize: '20px', color: C.ink, marginBottom: '20px', marginTop: '8px' }}>
+                  {selectedServices.length === 0 ? 'Confirmar venta' : 'Confirmar cliente'}
                 </div>
+                {selectedServices.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                    {selectedServices.map(s => (
+                      <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: C.ink, fontFamily: fontBody }}>
+                        <span>{s.name}</span>
+                        <span style={{ fontWeight: 500 }}>${s.base_price.toLocaleString('es-AR')}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {selectedServices.length === 0 && (
+                  <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate500, marginBottom: '16px' }}>
+                    Venta de productos, sin servicio.
+                  </div>
+                )}
                 {selectedProducts.length > 0 && (
                   <div style={{ borderTop: `1px solid ${C.borderLt}`, paddingTop: '12px', marginBottom: '16px' }}>
                     <div style={{ fontFamily: fontBody, fontSize: '11px', color: C.slate400, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>Productos (100% dueño)</div>
@@ -1076,9 +1116,13 @@ export function Dashboard() {
                   </div>
                 )}
                 <div style={{ borderTop: `1px solid ${C.borderLt}`, paddingTop: '12px', marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate500 }}>
-                    Método de pago: {wizardPaymentMethod === 'transferencia' ? '📲 Transferencia' : '💵 Efectivo'}
-                  </div>
+                  {/* Sin servicios el método de pago del servicio no aplica: los productos
+                      llevan el suyo propio, que se muestra más abajo. */}
+                  {selectedServices.length > 0 && (
+                    <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate500 }}>
+                      Método de pago: {wizardPaymentMethod === 'transferencia' ? '📲 Transferencia' : '💵 Efectivo'}
+                    </div>
+                  )}
                   {(parseFloat(wizardTip) || 0) > 0 && (
                     <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate500 }}>
                       Propina: <span style={{ color: C.blue, fontWeight: 600 }}>${(parseFloat(wizardTip) || 0).toLocaleString('es-AR')}</span> <span style={{ color: C.slate400 }}>(100% para vos · {wizardTipPaymentMethod === 'transferencia' ? '📲 Transferencia' : '💵 Efectivo'})</span>
