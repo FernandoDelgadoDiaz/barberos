@@ -67,16 +67,23 @@ interface ServiceItem {
   price_charged: number
 }
 
-// Detalle de un producto vendido (opcional en el body)
+// Detalle de un producto vendido (opcional en el body).
+// Solo product_id y quantity se leen; product_name, unit_price y line_total se
+// ignoran y se resuelven contra services_catalog. El cliente los sigue mandando,
+// así que quedan declarados como opcionales para documentar que llegan y se descartan.
 interface ProductItem {
   product_id: string
-  product_name: string
-  unit_price: number
   quantity: number
-  line_total: number
+  product_name?: string
+  unit_price?: number
+  line_total?: number
 }
 
-// Producto normalizado/validado del lado del servidor (line_total recalculado)
+// Se valida el formato antes de mandar el id a Postgres: un string cualquiera en un
+// `.in('id', ...)` sobre una columna uuid hace fallar la query entera.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// Producto normalizado/validado del lado del servidor (precio tomado del catálogo)
 type NormalizedProduct = {
   product_id: string
   product_name: string
@@ -215,37 +222,24 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     const othersPaymentMethod: 'efectivo' | 'transferencia' =
       body.others_payment_method === 'transferencia' ? 'transferencia' : 'efectivo'
 
-    // Normalizar y validar el detalle de productos (opcional, retrocompatible).
-    // El line_total se RECALCULA en el servidor; no se confía en el valor del cliente.
-    const products: NormalizedProduct[] = []
+    // Del cliente solo se aceptan product_id y quantity. El precio NO se toma del
+    // body: se resuelve contra services_catalog más abajo, una vez conocido el
+    // tenant. (Antes se confiaba en unit_price del cliente, lo que permitía
+    // subdeclarar una venta —vender una cera de $15.000 y reportarla en $0— y
+    // quedarse con la diferencia, porque los productos van 100% al dueño.)
+    const requestedProducts: { product_id: string; quantity: number }[] = []
     if (Array.isArray(body.products)) {
       for (const p of body.products) {
-        if (!p || typeof p.product_id !== 'string' || !p.product_id) {
-          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid product: product_id is required' }) }
+        if (!p || typeof p.product_id !== 'string' || !UUID_RE.test(p.product_id)) {
+          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Producto inválido: product_id es requerido' }) }
         }
         const quantity = Number(p.quantity)
-        const unitPrice = Number(p.unit_price)
         if (!Number.isInteger(quantity) || quantity <= 0) {
-          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid product: quantity must be a positive integer' }) }
+          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Producto inválido: quantity debe ser un entero positivo' }) }
         }
-        if (!Number.isFinite(unitPrice) || unitPrice < 0) {
-          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid product: unit_price must be a non-negative number' }) }
-        }
-        products.push({
-          product_id: p.product_id,
-          product_name: typeof p.product_name === 'string' && p.product_name.trim() ? p.product_name.trim() : 'Producto',
-          unit_price: unitPrice,
-          quantity,
-          line_total: unitPrice * quantity,
-        })
+        requestedProducts.push({ product_id: p.product_id, quantity })
       }
     }
-
-    // others_amount alimenta la ganancia del dueño. Si vino detalle de productos,
-    // se deriva de ahí (tamper-proof); si no, se usa el escalar del body (retrocompat).
-    const othersAmount = products.length > 0
-      ? products.reduce((sum, p) => sum + p.line_total, 0)
-      : (typeof body.others_amount === 'number' ? body.others_amount : 0)
 
     // Validar required fields
     if (!body.barber_id || !Array.isArray(body.services) || !body.started_at) {
@@ -258,7 +252,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
 
     // Una atención necesita al menos un servicio O al menos un producto.
     // services vacío + products => venta suelta de productos (sin servicio).
-    if (body.services.length === 0 && products.length === 0) {
+    if (body.services.length === 0 && requestedProducts.length === 0) {
       return {
         statusCode: 400,
         headers,
@@ -316,6 +310,78 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     }
 
     const commissionRules = tenant.commission_rules as CommissionRules
+
+    // 1c. Resolver los productos contra el catálogo del tenant. El precio unitario
+    // sale de acá, NUNCA del body: es plata del dueño y el cliente no es confiable.
+    const products: NormalizedProduct[] = []
+    if (requestedProducts.length > 0) {
+      const uniqueIds = [...new Set(requestedProducts.map(p => p.product_id))]
+      const { data: catalogRows, error: catalogError } = await supabase
+        .from('services_catalog')
+        .select('id, name, base_price, category')
+        .eq('tenant_id', tenantId)
+        .in('id', uniqueIds)
+
+      if (catalogError) {
+        console.error('Product catalog lookup error:', catalogError)
+        return { statusCode: 500, headers, body: JSON.stringify({ error: 'Failed to validate products' }) }
+      }
+
+      const catalogById = new Map(
+        (catalogRows ?? []).map(row => [row.id as string, row as { id: string; name: string; base_price: number; category: string }])
+      )
+
+      for (const requested of requestedProducts) {
+        // No está en el mapa => no existe, o es de otro tenant (el .eq('tenant_id')
+        // lo filtró). Los dos casos se rechazan igual, sin decir cuál fue.
+        const catalogItem = catalogById.get(requested.product_id)
+        if (!catalogItem) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Producto inválido: no existe en el catálogo de la barbería' }),
+          }
+        }
+        if (catalogItem.category !== 'producto') {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: `"${catalogItem.name.trim()}" no es un producto` }),
+          }
+        }
+        const unitPrice = Number(catalogItem.base_price)
+        if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: `"${catalogItem.name.trim()}" tiene un precio inválido en el catálogo` }),
+          }
+        }
+        products.push({
+          product_id: requested.product_id,
+          // Snapshot del nombre del catálogo (no el del cliente), para que el
+          // histórico refleje lo que la barbería tenía cargado en ese momento.
+          product_name: catalogItem.name.trim() || 'Producto',
+          unit_price: unitPrice,
+          quantity: requested.quantity,
+          line_total: unitPrice * requested.quantity,
+        })
+      }
+    }
+
+    // others_amount alimenta la ganancia del dueño. Si vino detalle de productos, se
+    // deriva de los precios del catálogo; si no, se usa el escalar del body (retrocompat
+    // con clientes viejos que mandaban others_amount suelto, sin detalle).
+    // El escalar solo se acepta si es un número finito y no negativo: un negativo
+    // descontaba de la ganancia del dueño (totalOwnerEarning solo se valida contra
+    // el 0 absoluto, así que la comisión de la atención absorbía el descuento).
+    const legacyOthersAmount = Number(body.others_amount ?? 0)
+    if (!Number.isFinite(legacyOthersAmount) || legacyOthersAmount < 0) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'others_amount inválido' }) }
+    }
+    const othersAmount = products.length > 0
+      ? products.reduce((sum, p) => sum + p.line_total, 0)
+      : legacyOthersAmount
 
     // 2. Validate shift if provided
     if (body.shift_id) {

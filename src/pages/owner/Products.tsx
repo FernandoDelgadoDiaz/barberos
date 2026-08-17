@@ -77,6 +77,7 @@ function fmtMoney(n: number): string {
 type ShortcutKey = 'week' | 'month' | 'custom'
 
 type ProductRow = {
+  key: string
   name: string
   units: number
   total: number
@@ -122,21 +123,47 @@ export function Products() {
 
       const { data, error } = await supabase
         .from('product_sales')
-        .select('product_name, quantity, line_total')
+        .select('product_id, product_name, quantity, line_total, sold_at')
         .eq('tenant_id', tenantId)
         .gte('sold_at', startUTC)
         .lte('sold_at', endUTC)
 
       if (error) throw error
 
-      // Aggregate by product_name in the client (Supabase JS has no GROUP BY).
-      const map = new Map<string, ProductRow>()
-      for (const r of (data || []) as { product_name: string; quantity: number; line_total: number }[]) {
-        const key = r.product_name
-        const acc = map.get(key) || { name: key, units: 0, total: 0 }
-        acc.units += r.quantity || 0
-        acc.total += r.line_total || 0
-        map.set(key, acc)
+      // Se agrupa por product_id, no por nombre: pueden coexistir dos productos
+      // distintos con el mismo nombre (p. ej. dos "Perfume" a $5.000 y $10.000) y
+      // agruparlos por nombre los fusionaba en una fila inservible para reponer stock.
+      // product_id puede ser null (ON DELETE SET NULL si borran el producto del
+      // catálogo): en ese caso se cae de nuevo al nombre como clave.
+      type SaleRow = {
+        product_id: string | null
+        product_name: string
+        quantity: number
+        line_total: number
+        sold_at: string
+      }
+      const map = new Map<string, ProductRow & { lastSoldAt: string }>()
+      for (const r of (data || []) as SaleRow[]) {
+        const key = r.product_id ?? `name:${r.product_name}`
+        const acc = map.get(key)
+        if (acc) {
+          acc.units += r.quantity || 0
+          acc.total += r.line_total || 0
+          // El nombre es un snapshot por venta: si renombraron el producto, mostrar
+          // el más reciente.
+          if (r.sold_at > acc.lastSoldAt) {
+            acc.name = r.product_name
+            acc.lastSoldAt = r.sold_at
+          }
+        } else {
+          map.set(key, {
+            key,
+            name: r.product_name,
+            units: r.quantity || 0,
+            total: r.line_total || 0,
+            lastSoldAt: r.sold_at,
+          })
+        }
       }
       const aggregated = Array.from(map.values()).sort((a, b) => b.units - a.units)
       setRows(aggregated)
@@ -157,6 +184,15 @@ export function Products() {
     const totalUnits = rows.reduce((s, r) => s + r.units, 0)
     const distinct = rows.length
     return { totalMoney, totalUnits, distinct }
+  }, [rows])
+
+  // Al agrupar por product_id pueden quedar dos filas con el mismo nombre (dos
+  // productos distintos del catálogo llamados igual). Para poder distinguirlas se
+  // muestra el precio unitario, pero solo en esas: el resto queda igual que antes.
+  const duplicatedNames = useMemo(() => {
+    const seen = new Map<string, number>()
+    for (const r of rows) seen.set(r.name, (seen.get(r.name) || 0) + 1)
+    return new Set(Array.from(seen.entries()).filter(([, n]) => n > 1).map(([name]) => name))
   }, [rows])
 
   const normStart = rangeStart <= rangeEnd ? rangeStart : rangeEnd
@@ -339,7 +375,7 @@ export function Products() {
           {/* Data rows */}
           {rows.map((r, i) => (
             <div
-              key={r.name}
+              key={r.key}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -363,6 +399,11 @@ export function Products() {
                 }}
               >
                 {r.name}
+                {duplicatedNames.has(r.name) && r.units > 0 && (
+                  <span style={{ color: C.slate400, fontWeight: 400 }}>
+                    {' '}· {fmtMoney(r.total / r.units)} c/u
+                  </span>
+                )}
               </span>
               <span
                 style={{
