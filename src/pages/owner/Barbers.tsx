@@ -190,12 +190,12 @@ export function Barbers() {
           .update({
             display_name: displayName.trim(),
             works_as_barber: editingBarber.role === 'barber' ? true : worksAsBarber,
-            earning_mode: earningMode,
+            earning_mode: editingBarber.role === 'owner' ? earningMode : 'tenant_rules',
           })
           .eq('id', editingBarber.id)
           .eq('tenant_id', tenantId)
         if (error) throw error
-        setBarbers(barbers.map(b => b.id === editingBarber.id ? { ...b, display_name: displayName.trim(), works_as_barber: editingBarber.role === 'barber' ? true : worksAsBarber, earning_mode: earningMode } : b))
+        setBarbers(barbers.map(b => b.id === editingBarber.id ? { ...b, display_name: displayName.trim(), works_as_barber: editingBarber.role === 'barber' ? true : worksAsBarber, earning_mode: editingBarber.role === 'owner' ? earningMode : 'tenant_rules' } : b))
         setShowModal(false)
       } else {
         const authHeader = await getAuthHeader()
@@ -753,7 +753,7 @@ export function Barbers() {
                 </label>
               )}
 
-              {(editingBarber?.role === 'barber' || (editingBarber?.role === 'owner' && worksAsBarber)) && (
+              {editingBarber?.role === 'owner' && worksAsBarber && (
                 <div>
                   <label style={modalLabelStyle}>Esquema de ganancias de sus servicios</label>
                   <select
