@@ -1,4 +1,5 @@
 export type UserRole = 'superadmin' | 'owner' | 'barber'
+export type EarningMode = 'tenant_rules' | 'owner_100'
 
 export type CommissionRule = {
   from_service: number
@@ -43,6 +44,8 @@ export type Profile = {
   display_name: string
   is_active: boolean | null
   created_at: string
+  works_as_barber?: boolean
+  earning_mode?: EarningMode
 }
 
 export type ServiceCatalog = {

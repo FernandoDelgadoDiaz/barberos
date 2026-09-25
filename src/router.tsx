@@ -44,7 +44,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/barber',
-    element: <PrivateRoute allowedRoles={['barber']} />,
+    element: <PrivateRoute allowedRoles={['barber', 'owner']} requireBarberCapability />,
     children: [
       {
         element: <BarberLayout />,

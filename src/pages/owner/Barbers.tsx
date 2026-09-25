@@ -74,6 +74,8 @@ export function Barbers() {
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [worksAsBarber, setWorksAsBarber] = useState(true)
+  const [earningMode, setEarningMode] = useState<'tenant_rules' | 'owner_100'>('tenant_rules')
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   const loadBarbers = useCallback(async () => {
@@ -88,10 +90,11 @@ export function Barbers() {
         .from('profiles')
         .select('*')
         .eq('tenant_id', tenantId)
-        .eq('role', 'barber')
+        .in('role', ['barber', 'owner'])
         .order('display_name')
       if (error) throw error
-      const barbersWithColor: Barber[] = (data || []).map(profile => ({
+      const visibleProfiles = (data || []).filter(p => p.role === 'barber' || p.role === 'owner')
+      const barbersWithColor: Barber[] = visibleProfiles.map(profile => ({
         ...profile,
         is_active: profile.is_active ?? false,
         avatar_color: profile.id.charCodeAt(0) % 2 === 0 ? 'gold' : 'purple'
@@ -142,6 +145,8 @@ export function Barbers() {
     setDisplayName(barber.display_name)
     setEmail('')
     setPassword('')
+    setWorksAsBarber(barber.role === 'barber' ? true : Boolean(barber.works_as_barber))
+    setEarningMode(barber.earning_mode === 'owner_100' ? 'owner_100' : 'tenant_rules')
     setModalError(null)
     setShowModal(true)
   }
@@ -151,6 +156,8 @@ export function Barbers() {
     setDisplayName('')
     setEmail('')
     setPassword('')
+    setWorksAsBarber(true)
+    setEarningMode('tenant_rules')
     setModalError(null)
     setShowModal(true)
   }
@@ -180,11 +187,15 @@ export function Barbers() {
       if (editingBarber) {
         const { error } = await supabase
           .from('profiles')
-          .update({ display_name: displayName.trim() })
+          .update({
+            display_name: displayName.trim(),
+            works_as_barber: editingBarber.role === 'barber' ? true : worksAsBarber,
+            earning_mode: editingBarber.role === 'owner' ? earningMode : 'tenant_rules',
+          })
           .eq('id', editingBarber.id)
           .eq('tenant_id', tenantId)
         if (error) throw error
-        setBarbers(barbers.map(b => b.id === editingBarber.id ? { ...b, display_name: displayName.trim() } : b))
+        setBarbers(barbers.map(b => b.id === editingBarber.id ? { ...b, display_name: displayName.trim(), works_as_barber: editingBarber.role === 'barber' ? true : worksAsBarber, earning_mode: editingBarber.role === 'owner' ? earningMode : 'tenant_rules' } : b))
         setShowModal(false)
       } else {
         const authHeader = await getAuthHeader()
@@ -211,6 +222,8 @@ export function Barbers() {
           is_active: true,
           avatar_color: data.profile_id.charCodeAt(0) % 2 === 0 ? 'gold' : 'purple',
           created_at: data.created_at,
+          works_as_barber: true,
+          earning_mode: 'tenant_rules',
         }
         setBarbers([...barbers, newBarber])
         setShowModal(false)
@@ -293,8 +306,9 @@ export function Barbers() {
   // ---------------------------------------------------------------------------
   // Main
   // ---------------------------------------------------------------------------
-  const activeCount = barbers.filter(b => b.is_active).length
-  const totalCount = barbers.length
+  const workingBarbers = barbers.filter(b => b.role === 'barber' || b.works_as_barber)
+  const activeCount = workingBarbers.filter(b => b.is_active).length
+  const totalCount = workingBarbers.length
 
   return (
     <div style={rootStyle}>
@@ -452,8 +466,13 @@ export function Barbers() {
                     lineHeight: 1.2,
                   }}
                 >
-                  Barbero
+                  {barber.role === 'owner' ? 'Dueño' : 'Barbero'}
                 </div>
+                {barber.role === 'owner' && barber.works_as_barber && (
+                  <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '11px', color: C.blue, fontWeight: 600 }}>
+                    También trabaja como barbero · {barber.earning_mode === 'owner_100' ? '100% de sus servicios' : 'reglas generales'}
+                  </span>
+                )}
                 <span
                   style={{
                     display: 'inline-flex',
@@ -722,6 +741,34 @@ export function Barbers() {
                   style={modalInputStyle}
                 />
               </div>
+
+              {editingBarber?.role === 'owner' && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', color: C.ink }}>
+                  <input
+                    type="checkbox"
+                    checked={worksAsBarber}
+                    onChange={(e) => setWorksAsBarber(e.target.checked)}
+                  />
+                  También trabajo como barbero
+                </label>
+              )}
+
+              {editingBarber?.role === 'owner' && worksAsBarber && (
+                <div>
+                  <label style={modalLabelStyle}>Esquema de ganancias de sus servicios</label>
+                  <select
+                    value={earningMode}
+                    onChange={(e) => setEarningMode(e.target.value as 'tenant_rules' | 'owner_100')}
+                    style={modalInputStyle}
+                  >
+                    <option value="tenant_rules">Usar reglas generales de la barbería</option>
+                    <option value="owner_100">Propietario/barbero — 100% para esta persona</option>
+                  </select>
+                  <div style={{ marginTop: '6px', fontSize: '12px', color: C.slate400, lineHeight: 1.4 }}>
+                    Esta opción cambia solo cómo se reparte el servicio. El rol de dueño y su panel de métricas permanecen separados.
+                  </div>
+                </div>
+              )}
 
               {!editingBarber && (
                 <>

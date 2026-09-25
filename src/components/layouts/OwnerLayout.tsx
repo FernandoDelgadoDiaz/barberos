@@ -61,7 +61,7 @@ const MOBILE_BOTTOM_NAV: { to: string; label: string; shortLabel: string }[] = [
 ]
 
 export function OwnerLayout() {
-  const { tenant } = useTenantStore()
+  const { tenant, profile } = useTenantStore()
   const { signOut } = useAuth()
   const navigate = useNavigate()
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
@@ -134,6 +134,11 @@ export function OwnerLayout() {
                   </NavLink>
                 ))}
               </nav>
+              {profile?.works_as_barber && (
+                <button onClick={() => navigate('/barber/dashboard')} style={{ background: '#EFF6FF', border: '1px solid #DBEAFE', borderRadius: '10px', padding: '12px', fontSize: '14px', cursor: 'pointer', color: '#2563EB', fontWeight: 600, marginBottom: '10px' }}>
+                  Ir a mi panel de barbero
+                </button>
+              )}
               <button
                 onClick={handleSignOut}
                 style={{ background: 'transparent', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '12px', fontSize: '14px', cursor: 'pointer', color: '#0F172A', fontWeight: 500 }}
@@ -250,6 +255,11 @@ export function OwnerLayout() {
         </nav>
 
         <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          {profile?.works_as_barber && (
+            <button onClick={() => navigate('/barber/dashboard')} style={{ width: '100%', background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '8px', padding: '9px 8px', color: '#fff', fontSize: '12px', cursor: 'pointer', fontWeight: 600, marginBottom: '10px' }}>
+              Mi panel de barbero
+            </button>
+          )}
           <button
             onClick={handleSignOut}
             style={{ background: 'transparent', border: 'none', padding: 0, color: 'var(--secondary, #D4A853)', fontSize: '12px', cursor: 'pointer', fontWeight: 500 }}

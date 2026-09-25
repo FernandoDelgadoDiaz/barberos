@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches:
+      - feature/multibarber-economic-config
+
+jobs:
+  build-and-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: node scripts/test-economic-scenarios.mjs
+      - run: npm run build
+      - run: npx eslint netlify/functions/log-service.ts src/components/PrivateRoute.tsx src/components/layouts/BarberLayout.tsx src/components/layouts/OwnerLayout.tsx src/pages/owner/Barbers.tsx src/pages/owner/Settings.tsx src/router.tsx src/types/index.ts

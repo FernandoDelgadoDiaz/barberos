@@ -4,9 +4,10 @@ import type { UserRole } from '../types'
 
 interface PrivateRouteProps {
   allowedRoles: UserRole[]
+  requireBarberCapability?: boolean
 }
 
-export function PrivateRoute({ allowedRoles }: PrivateRouteProps) {
+export function PrivateRoute({ allowedRoles, requireBarberCapability = false }: PrivateRouteProps) {
   const { profile, isLoading } = useTenantStore()
 
   if (isLoading) {
@@ -23,6 +24,10 @@ export function PrivateRoute({ allowedRoles }: PrivateRouteProps) {
 
   if (!allowedRoles.includes(profile.role)) {
     return <Navigate to="/login" replace />
+  }
+
+  if (requireBarberCapability && profile.role === 'owner' && !profile.works_as_barber) {
+    return <Navigate to="/owner/barbers" replace />
   }
 
   return <Outlet />
