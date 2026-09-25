@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
-import type { CommissionRule, CommissionRules, Tenant } from '../../types'
+import type { CommissionRule, CommissionRules, Tenant, TipPolicy, ProductPolicy } from '../../types'
 
 export function Settings() {
   const { tenant } = useTenantStore()
@@ -22,7 +22,7 @@ export function Settings() {
     rules: [],
     resets_daily: true,
   })
-  const [showAddRule, setShowAddRule] = useState(false)
+  const [tipPolicy, setTipPolicy] = useState<TipPolicy>({ enabled: true, mode: 'barber' })\n  const [productPolicy, setProductPolicy] = useState<ProductPolicy>({ enabled: true, mode: 'owner' })\n  const [showAddRule, setShowAddRule] = useState(false)
   const [newRule, setNewRule] = useState({
     from_service: '',
     to_service: '',
@@ -172,7 +172,7 @@ export function Settings() {
         name: tenantForm.name.trim(),
         opening_time: tenantForm.opening_time,
         closing_time: tenantForm.closing_time,
-        commission_rules: commissionRules,
+        commission_rules: commissionRules,\n        tip_policy: tipPolicy,\n        product_policy: productPolicy,
       }
 
       const { data, error } = await supabase
@@ -465,6 +465,31 @@ export function Settings() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Sección 3 — Políticas comerciales */}
+      <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '32px', marginBottom: '24px' }}>
+        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#1a1a2e', marginBottom: '24px' }}>Políticas comerciales</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', color: '#555', marginBottom: '8px' }}>Propinas</label>
+            <select value={tipPolicy.enabled ? tipPolicy.mode : 'disabled'} onChange={(e) => setTipPolicy(e.target.value === 'disabled' ? { enabled: false, mode: 'barber' } : { enabled: true, mode: e.target.value as TipPolicy['mode'] })} style={{ width: '100%', padding: '12px', border: '0.5px solid #e0e0e0', borderRadius: '6px' }}>
+              <option value="disabled">No aceptar propinas</option>
+              <option value="barber">100% al barbero que atendió</option>
+              <option value="pool" disabled>Fondo común (próximamente)</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', color: '#555', marginBottom: '8px' }}>Venta de productos</label>
+            <select value={productPolicy.enabled ? productPolicy.mode : 'disabled'} onChange={(e) => setProductPolicy(e.target.value === 'disabled' ? { enabled: false, mode: 'owner' } : { enabled: true, mode: e.target.value as ProductPolicy['mode'] })} style={{ width: '100%', padding: '12px', border: '0.5px solid #e0e0e0', borderRadius: '6px' }}>
+              <option value="disabled">No vender productos</option>
+              <option value="owner">100% al dueño</option>
+              <option value="seller" disabled>Comisión al vendedor (próximamente)</option>
+              <option value="margin_share" disabled>Reparto sobre margen (próximamente)</option>
+            </select>
+          </div>
+        </div>
+        <p style={{ color: '#aaa', fontSize: '12px', marginTop: '16px' }}>Cada barbería define sus propias políticas. Los modos de reparto que todavía no tienen motor contable aparecen deshabilitados para evitar cálculos incorrectos.</p>
       </div>
 
       {/* Sección 3 — Información */}
