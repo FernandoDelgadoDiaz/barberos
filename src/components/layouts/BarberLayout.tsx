@@ -124,6 +124,24 @@ export function BarberLayout() {
           >
             {initials}
           </div>
+          {profile?.role === 'owner' && (
+            <button
+              onClick={() => navigate('/owner/live')}
+              style={{
+                background: C.blueBg,
+                border: '1px solid #DBEAFE',
+                borderRadius: '10px',
+                padding: '7px 10px',
+                color: C.blue,
+                fontFamily: 'Space Grotesk, sans-serif',
+                fontWeight: 600,
+                fontSize: '11px',
+                cursor: 'pointer',
+              }}
+            >
+              Panel dueño
+            </button>
+          )}
           <button
             onClick={handleSignOut}
             style={{
