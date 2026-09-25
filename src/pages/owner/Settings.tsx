@@ -22,7 +22,9 @@ export function Settings() {
     rules: [],
     resets_daily: true,
   })
-  const [tipPolicy, setTipPolicy] = useState<TipPolicy>({ enabled: true, mode: 'barber' })\n  const [productPolicy, setProductPolicy] = useState<ProductPolicy>({ enabled: true, mode: 'owner' })\n  const [showAddRule, setShowAddRule] = useState(false)
+  const [tipPolicy, setTipPolicy] = useState<TipPolicy>({ enabled: true, mode: 'barber' })
+  const [productPolicy, setProductPolicy] = useState<ProductPolicy>({ enabled: true, mode: 'owner' })
+  const [showAddRule, setShowAddRule] = useState(false)
   const [newRule, setNewRule] = useState({
     from_service: '',
     to_service: '',
@@ -172,7 +174,9 @@ export function Settings() {
         name: tenantForm.name.trim(),
         opening_time: tenantForm.opening_time,
         closing_time: tenantForm.closing_time,
-        commission_rules: commissionRules,\n        tip_policy: tipPolicy,\n        product_policy: productPolicy,
+        commission_rules: commissionRules,
+        tip_policy: tipPolicy,
+        product_policy: productPolicy,
       }
 
       const { data, error } = await supabase
