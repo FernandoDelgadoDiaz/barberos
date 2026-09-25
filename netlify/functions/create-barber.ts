@@ -107,6 +107,8 @@ export const handler = async (event: NetlifyFunctionEvent) => {
         role: 'barber',
         display_name: body.display_name,
         is_active: true,
+        works_as_barber: true,
+        earning_mode: 'tenant_rules',
       })
       .select()
       .single()
