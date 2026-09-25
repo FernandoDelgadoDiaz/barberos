@@ -1,5 +1,7 @@
 export type UserRole = 'superadmin' | 'owner' | 'barber'
-export type EarningMode = 'tenant_rules' | 'owner_100'\nexport type TipPolicy = { enabled: boolean; mode: 'barber' | 'pool' }\nexport type ProductPolicy = { enabled: boolean; mode: 'owner' | 'seller' | 'margin_share' }
+export type EarningMode = 'tenant_rules' | 'owner_100'
+export type TipPolicy = { enabled: boolean; mode: 'barber' | 'pool' }
+export type ProductPolicy = { enabled: boolean; mode: 'owner' | 'seller' | 'margin_share' }
 
 export type CommissionRule = {
   from_service: number
