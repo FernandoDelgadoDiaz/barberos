@@ -284,7 +284,11 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     }
 
     const tenantId = barberProfile.tenant_id
-    const earningMode = barberProfile.earning_mode === 'owner_100' ? 'owner_100' : 'tenant_rules'
+    // Hired barbers always share the tenant-wide commission rules. owner_100 is
+    // reserved for the exceptional owner-who-also-works-as-barber configuration.
+    const earningMode = barberProfile.role === 'owner' && barberProfile.earning_mode === 'owner_100'
+      ? 'owner_100'
+      : 'tenant_rules'
 
     // 1b. Fetch tenant once: verify it's active (block suspended tenants) and
     // grab the commission rules used below. Fail-closed: a missing/failed lookup
