@@ -23,6 +23,8 @@ export type Tenant = {
   primary_color: string
   secondary_color: string
   commission_rules: CommissionRules
+  tip_policy?: TipPolicy
+  product_policy?: ProductPolicy
   is_active: boolean
   opening_time?: string
   closing_time?: string
