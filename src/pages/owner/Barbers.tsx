@@ -306,8 +306,9 @@ export function Barbers() {
   // ---------------------------------------------------------------------------
   // Main
   // ---------------------------------------------------------------------------
-  const activeCount = barbers.filter(b => b.is_active).length
-  const totalCount = barbers.length
+  const workingBarbers = barbers.filter(b => b.role === 'barber' || b.works_as_barber)
+  const activeCount = workingBarbers.filter(b => b.is_active).length
+  const totalCount = workingBarbers.length
 
   return (
     <div style={rootStyle}>
