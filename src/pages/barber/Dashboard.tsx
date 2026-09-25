@@ -229,7 +229,7 @@ export function Dashboard() {
         // Split catalog into services (commission-based) and products (100% owner)
         const catalog = servicesData || []
         const servicesOnly = catalog.filter(s => s.category === 'servicio')
-        const productsOnly = catalog.filter(s => s.category === 'producto')
+        const productsOnly = tenant?.product_policy?.enabled === false ? [] : catalog.filter(s => s.category === 'producto')
 
         // Calculate estimated earnings for each service based on next service number.
         // Solo cuentan los servicios reales: las filas portadoras de ventas sueltas de
@@ -934,13 +934,13 @@ export function Dashboard() {
                 <div style={{ fontFamily: fontTitle, fontWeight: 700, fontSize: '22px', color: C.ink, marginBottom: '24px' }}>Método de pago</div>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <button
-                    onClick={() => { setWizardPaymentMethod('efectivo'); setWizardTipPaymentMethod('efectivo'); setWizardOthersPaymentMethod('efectivo'); setWizardStep(3) }}
+                    onClick={() => { setWizardPaymentMethod('efectivo'); setWizardTipPaymentMethod('efectivo'); setWizardOthersPaymentMethod('efectivo'); setWizardStep((tenant?.tip_policy?.enabled === false ? (tenant?.product_policy?.enabled === false ? 5 : 4) : 3) as 0|1|2|3|4|5) }}
                     style={{ flex: 1, padding: '20px 12px', borderRadius: '12px', border: wizardPaymentMethod === 'efectivo' ? 'none' : `1px solid ${C.border}`, background: wizardPaymentMethod === 'efectivo' ? C.blue : '#F8FAFC', color: wizardPaymentMethod === 'efectivo' ? '#fff' : C.ink, fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
                   >
                     💵 Efectivo
                   </button>
                   <button
-                    onClick={() => { setWizardPaymentMethod('transferencia'); setWizardTipPaymentMethod('transferencia'); setWizardOthersPaymentMethod('transferencia'); setWizardStep(3) }}
+                    onClick={() => { setWizardPaymentMethod('transferencia'); setWizardTipPaymentMethod('transferencia'); setWizardOthersPaymentMethod('transferencia'); setWizardStep((tenant?.tip_policy?.enabled === false ? (tenant?.product_policy?.enabled === false ? 5 : 4) : 3) as 0|1|2|3|4|5) }}
                     style={{ flex: 1, padding: '20px 12px', borderRadius: '12px', border: wizardPaymentMethod === 'transferencia' ? 'none' : `1px solid ${C.border}`, background: wizardPaymentMethod === 'transferencia' ? C.blue : '#F8FAFC', color: wizardPaymentMethod === 'transferencia' ? '#fff' : C.ink, fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
                   >
                     📲 Transferencia
@@ -960,7 +960,7 @@ export function Dashboard() {
                     <button onClick={() => setWizardTipEnabled(true)} style={{ flex: 1, padding: '16px', borderRadius: '12px', border: `1px solid ${C.border}`, background: '#F8FAFC', color: C.ink, fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
                       Sí, hubo propina
                     </button>
-                    <button onClick={() => { setWizardTip(''); setWizardStep(4) }} style={{ flex: 1, padding: '16px', borderRadius: '12px', border: 'none', background: C.blue, color: '#fff', fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+                    <button onClick={() => { setWizardTip(''); setWizardStep((tenant?.product_policy?.enabled === false ? 5 : 4) as 0|1|2|3|4|5) }} style={{ flex: 1, padding: '16px', borderRadius: '12px', border: 'none', background: C.blue, color: '#fff', fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
                       No, continuar →
                     </button>
                   </div>
@@ -979,7 +979,7 @@ export function Dashboard() {
                         📲 Transferencia
                       </button>
                     </div>
-                    <button onClick={() => setWizardStep(4)} style={{ width: '100%', height: '48px', background: C.blue, color: '#fff', border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}>
+                    <button onClick={() => setWizardStep((tenant?.product_policy?.enabled === false ? 5 : 4) as 0|1|2|3|4|5)} style={{ width: '100%', height: '48px', background: C.blue, color: '#fff', border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}>
                       Siguiente →
                     </button>
                   </>

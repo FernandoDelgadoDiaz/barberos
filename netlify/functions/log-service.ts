@@ -295,7 +295,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     // also blocks.
     const { data: tenant } = await supabase
       .from('tenants')
-      .select('is_active, commission_rules')
+      .select('is_active, commission_rules, tip_policy, product_policy')
       .eq('id', tenantId)
       .single()
 
@@ -303,7 +303,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       return { statusCode: 403, headers, body: JSON.stringify({ error: 'Tenant suspendido' }) }
     }
 
-    const commissionRules = tenant.commission_rules as CommissionRules
+    const commissionRules = tenant.commission_rules as CommissionRules\n    const tipPolicy = (tenant.tip_policy ?? { enabled: true, mode: 'barber' }) as { enabled: boolean; mode: string }\n    const productPolicy = (tenant.product_policy ?? { enabled: true, mode: 'owner' }) as { enabled: boolean; mode: string }\n\n    if (!tipPolicy.enabled && tipAmount > 0) {\n      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Esta barbería no acepta propinas' }) }\n    }\n    if (tipPolicy.enabled && tipPolicy.mode !== 'barber' && tipAmount > 0) {\n      return { statusCode: 400, headers, body: JSON.stringify({ error: 'La política de propinas configurada todavía no tiene motor de reparto habilitado' }) }\n    }\n    if (!productPolicy.enabled && requestedProducts.length > 0) {\n      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Esta barbería no vende productos' }) }\n    }\n    if (productPolicy.enabled && productPolicy.mode !== 'owner' && requestedProducts.length > 0) {\n      return { statusCode: 400, headers, body: JSON.stringify({ error: 'La política de productos configurada todavía no tiene motor de reparto habilitado' }) }\n    }
 
     // 1c. Resolver los productos contra el catálogo del tenant. El precio unitario
     // sale de acá, NUNCA del body: es plata del dueño y el cliente no es confiable.
@@ -468,7 +468,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     // We keep a single allocation (barber=100, owner=0) to avoid double counting.
     const commissionBarberEarning = earningMode === 'owner_100' ? totalPrice : tenantCommission.barber
     const commissionOwnerEarning  = earningMode === 'owner_100' ? 0 : tenantCommission.owner
-    // tip 100% al barbero; others 100% al dueño
+    // La asignación depende de la política del tenant. En esta versión, los modos\n    // ejecutables son barber para propinas y owner para productos; otros modos\n    // fallan cerrados arriba hasta contar con su motor de reparto.
     const totalBarberEarning = commissionBarberEarning + tipAmount
     const totalOwnerEarning  = commissionOwnerEarning  + othersAmount
 
