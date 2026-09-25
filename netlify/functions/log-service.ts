@@ -280,7 +280,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     // 1. Get barber profile to obtain tenant_id — also verifies ownership via user_id
     const { data: barberProfile, error: barberError } = await supabase
       .from('profiles')
-      .select('tenant_id')
+      .select('tenant_id, role, works_as_barber, earning_mode')
       .eq('id', body.barber_id)
       .eq('user_id', user.id)
       .single()
@@ -294,7 +294,14 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
+    // Authorization role and operating capability are separate. A profile can remain
+    // owner (and keep the owner dashboard) while also working as a barber.
+    if (barberProfile.role !== 'barber' && !(barberProfile.role === 'owner' && barberProfile.works_as_barber)) {
+      return { statusCode: 403, headers, body: JSON.stringify({ error: 'El perfil no está habilitado para trabajar como barbero' }) }
+    }
+
     const tenantId = barberProfile.tenant_id
+    const earningMode = barberProfile.earning_mode === 'owner_100' ? 'owner_100' : 'tenant_rules'
 
     // 1b. Fetch tenant once: verify it's active (block suspended tenants) and
     // grab the commission rules used below. Fail-closed: a missing/failed lookup
@@ -443,8 +450,23 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     // porcentaje mayor en el próximo corte real.
     // Backward compatible: hasta hoy toda atención tiene total_price > 0, así que
     // este número coincide con attentionNumber en el flujo normal.
-    const { count: billableCount, error: billableError } = await buildAttentionQuery()
+    // Commission scope follows the tenant setting. Daily reset counts billable
+    // attentions in the Argentina calendar day; cumulative mode counts the full
+    // history for that barber. This is intentionally independent from the visible
+    // attention number, which can still be shift-based.
+    let billableQuery = supabase
+      .from('appointments')
+      .select('*', { count: 'exact', head: true })
+      .eq('barber_id', body.barber_id)
+      .eq('tenant_id', tenantId)
       .gt('total_price', 0)
+
+    if (commissionRules.resets_daily) {
+      const { start, end } = getArgentinaDayRange()
+      billableQuery = billableQuery.gte('started_at', start).lte('started_at', end)
+    }
+
+    const { count: billableCount, error: billableError } = await billableQuery
 
     if (billableError) {
       console.error('Billable attention count error:', billableError)
@@ -461,11 +483,16 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     const totalPrice = body.services.reduce((sum, service) => sum + service.price_charged, 0)
 
     // 6. Aplicar comisión sobre el TOTAL de la atención
-    const { barber: commissionBarberEarning, owner: commissionOwnerEarning } = applyCommission(
+    const tenantCommission = applyCommission(
       commissionRules.rules,
       commissionTierNumber,
       totalPrice
     )
+    // owner_100 means the person keeps 100% of the service as the working barber.
+    // Their authorization role remains owner, so they still have the full owner panel.
+    // We keep a single allocation (barber=100, owner=0) to avoid double counting.
+    const commissionBarberEarning = earningMode === 'owner_100' ? totalPrice : tenantCommission.barber
+    const commissionOwnerEarning  = earningMode === 'owner_100' ? 0 : tenantCommission.owner
     // tip 100% al barbero; others 100% al dueño
     const totalBarberEarning = commissionBarberEarning + tipAmount
     const totalOwnerEarning  = commissionOwnerEarning  + othersAmount
