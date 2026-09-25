@@ -64,6 +64,25 @@ export function Settings() {
     }
   }
 
+  const validateCommissionRules = (rules: CommissionRule[]): string | null => {
+    if (rules.length === 0) return 'Debés configurar al menos una regla de comisión.'
+    const sorted = [...rules].sort((a, b) => a.from_service - b.from_service)
+    if (sorted[0].from_service !== 1) return 'Las reglas deben comenzar en la atención 1.'
+    for (let i = 0; i < sorted.length; i++) {
+      const rule = sorted[i]
+      if (rule.barber_pct < 0 || rule.owner_pct < 0 || rule.barber_pct > 100 || rule.owner_pct > 100 || rule.barber_pct + rule.owner_pct !== 100) {
+        return 'Cada regla debe repartir exactamente el 100% entre barbero y dueño.'
+      }
+      if (i < sorted.length - 1) {
+        if (rule.to_service === null) return 'Solo la última regla puede ser abierta (en adelante).'
+        if (sorted[i + 1].from_service !== rule.to_service + 1) return 'Las reglas no pueden tener huecos ni superponerse.'
+      } else if (rule.to_service !== null) {
+        return 'La última regla debe cubrir desde su inicio en adelante.'
+      }
+    }
+    return null
+  }
+
   const handleAddRule = () => {
     // Validate
     if (!newRule.from_service || !newRule.barber_pct || !newRule.owner_pct) {
@@ -82,6 +101,10 @@ export function Settings() {
     }
     if (to !== null && to < from) {
       setError('El servicio final debe ser mayor o igual al inicial')
+      return
+    }
+    if (barberPct < 0 || ownerPct < 0 || barberPct > 100 || ownerPct > 100) {
+      setError('Los porcentajes deben estar entre 0% y 100%')
       return
     }
     if (barberPct + ownerPct !== 100) {
@@ -139,6 +162,12 @@ export function Settings() {
     setSuccess(null)
 
     try {
+      const commissionError = validateCommissionRules(commissionRules.rules)
+      if (commissionError) {
+        setError(commissionError)
+        return
+      }
+
       const updates: Partial<Tenant> = {
         name: tenantForm.name.trim(),
         opening_time: tenantForm.opening_time,
@@ -405,7 +434,7 @@ export function Settings() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: '#aaa' }}>
-              {commissionRules.resets_daily ? 'Las reglas se reinician cada día.' : 'Las reglas son acumulativas.'}
+              {commissionRules.resets_daily ? 'El tramo de comisión vuelve a empezar cada día.' : 'El tramo de comisión se acumula históricamente.'}
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
