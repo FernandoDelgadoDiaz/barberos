@@ -433,23 +433,11 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     // porcentaje mayor en el próximo corte real.
     // Backward compatible: hasta hoy toda atención tiene total_price > 0, así que
     // este número coincide con attentionNumber en el flujo normal.
-    // Commission scope follows the tenant setting. Daily reset counts billable
-    // attentions in the Argentina calendar day; cumulative mode counts the full
-    // history for that barber. This is intentionally independent from the visible
-    // attention number, which can still be shift-based.
-    let billableQuery = supabase
-      .from('appointments')
-      .select('*', { count: 'exact', head: true })
-      .eq('barber_id', body.barber_id)
-      .eq('tenant_id', tenantId)
+    // Preserve existing production behavior: the commission tier follows the
+    // same shift/day scope used by attention_number. Product-only appointments
+    // remain excluded because only total_price > 0 advances the tier.
+    const { count: billableCount, error: billableError } = await buildAttentionQuery()
       .gt('total_price', 0)
-
-    if (commissionRules.resets_daily) {
-      const { start, end } = getArgentinaDayRange()
-      billableQuery = billableQuery.gte('started_at', start).lte('started_at', end)
-    }
-
-    const { count: billableCount, error: billableError } = await billableQuery
 
     if (billableError) {
       console.error('Billable attention count error:', billableError)
