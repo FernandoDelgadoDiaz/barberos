@@ -107,23 +107,6 @@ interface RequestBody {
   products?: ProductItem[]  // Opcional: detalle de productos vendidos
 }
 
-// Interfaz para appointment (local)
-interface Appointment {
-  id: string
-  tenant_id: string
-  barber_id: string
-  shift_id: string | null
-  attention_number: number
-  total_price: number
-  total_barber_earning: number
-  total_owner_earning: number
-  started_at: string
-  ended_at: string | null
-  status: string
-  created_at: string
-  updated_at: string | null
-}
-
 // Interfaz para service_log (local, con appointment_id)
 interface ServiceLog {
   tenant_id: string
@@ -600,7 +583,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
-    let currentServiceNumber = serviceCount || 0
+    const currentServiceNumber = serviceCount || 0
     const serviceLogs: Omit<ServiceLog, 'id'>[] = []
     const insertedServiceLogIds: string[] = []
 
