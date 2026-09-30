@@ -850,7 +850,7 @@ export function Dashboard() {
       {/* Wizard Modal */}
       {wizardStep > 0 && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
-          <div style={{ background: '#fff', maxWidth: '440px', width: '100%', borderRadius: '20px', padding: '28px', position: 'relative', boxShadow: '0 24px 60px rgba(15,23,42,0.28)', boxSizing: 'border-box' }}>
+          <div style={{ background: '#fff', maxWidth: '440px', width: '100%', maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto', WebkitOverflowScrolling: 'touch', borderRadius: '20px', padding: '28px', position: 'relative', boxShadow: '0 24px 60px rgba(15,23,42,0.28)', boxSizing: 'border-box' }}>
 
             {/* Progress bar */}
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: C.borderLt, borderRadius: '20px 20px 0 0', overflow: 'hidden' }}>
