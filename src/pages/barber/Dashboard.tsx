@@ -4,6 +4,7 @@ import { supabase } from '../../config/supabase'
 import { GraceBanner } from '../../components/GraceBanner'
 import type { ServiceCatalog, ServiceLog, CommissionRules, Shift } from '../../types'
 import { isRealService } from '../../types'
+import { normalizeCustomerPhone } from '../../utils/customerPhone'
 
 // =============================================================================
 // Palette — slate + blue (consistent with the owner panel: LivePanel / Metrics
@@ -93,6 +94,15 @@ export function Dashboard() {
   const [selectedProducts, setSelectedProducts] = useState<ServiceCatalog[]>([])
   const [productQty, setProductQty] = useState<Record<string, number>>({})
   const [wizardStep, setWizardStep] = useState<0|1|2|3|4|5>(0)
+  const [customerPhone, setCustomerPhone] = useState('')
+  const [customerName, setCustomerName] = useState('')
+  const [customerSkipped, setCustomerSkipped] = useState(false)
+  const [customerLookup, setCustomerLookup] = useState<{
+    phone: string; status: 'loading' | 'found' | 'new' | 'error'; name?: string
+  } | null>(null)
+  const normalizedPhone = normalizeCustomerPhone(customerPhone)
+  const resolvedCustomer = !customerSkipped && normalizedPhone && customerLookup?.phone === normalizedPhone
+    ? customerLookup : null
   const [wizardPaymentMethod, setWizardPaymentMethod] = useState<'efectivo'|'transferencia'>('efectivo')
   // Tip and products have their OWN payment method (cash register reconciliation):
   // the client may pay the service by transfer but the tip in cash, etc. They default
@@ -125,8 +135,33 @@ export function Dashboard() {
     setWizardTip('')
     setWizardTipEnabled(false)
     setWizardError(null)
+    setCustomerPhone('')
+    setCustomerName('')
+    setCustomerSkipped(false)
+    setCustomerLookup(null)
     setProcessing(false)
   }
+
+  useEffect(() => {
+    if (wizardStep !== 1 || customerSkipped || !normalizedPhone || !tenant?.id) return
+    let active = true
+    const timeout = setTimeout(async () => {
+      setCustomerLookup({ phone: normalizedPhone, status: 'loading' })
+      const { data, error: lookupError } = await supabase
+        .from('customers')
+        .select('name')
+        .eq('tenant_id', tenant.id)
+        .eq('phone_normalized', normalizedPhone)
+        .maybeSingle()
+      if (!active) return
+      setCustomerLookup({
+        phone: normalizedPhone,
+        status: lookupError ? 'error' : data ? 'found' : 'new',
+        name: data?.name,
+      })
+    }, 350)
+    return () => { active = false; clearTimeout(timeout) }
+  }, [wizardStep, customerSkipped, normalizedPhone, tenant?.id])
 
 
   useEffect(() => {
@@ -443,6 +478,12 @@ export function Dashboard() {
       setWizardError('No hay un turno abierto. Inicia un turno para registrar servicios.')
       return
     }
+    if (!customerSkipped && (!normalizedPhone || !resolvedCustomer ||
+      !['found', 'new'].includes(resolvedCustomer.status) ||
+      (resolvedCustomer.status === 'new' && !customerName.trim()))) {
+      setWizardError('Identificá al cliente con teléfono y nombre, o elegí continuar sin teléfono.')
+      return
+    }
 
     setProcessing(true)
     setError(null)
@@ -471,6 +512,7 @@ export function Dashboard() {
         headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
         body: JSON.stringify({
           barber_id: profile.id,
+          customer: customerSkipped ? null : { phone: customerPhone, name: customerName.trim() },
           tenant_id: tenant.id,
           services: servicesPayload,
           started_at: new Date().toISOString(),
@@ -503,7 +545,7 @@ export function Dashboard() {
       setRefreshTrigger(prev => prev + 1)
       resetWizard()
 
-      setSuccessMessage(`¡Cliente registrado! ${result?.message ?? ''}`.trim())
+      setSuccessMessage(`¡Atención registrada! ${result?.message ?? ''}`.trim())
       setTimeout(() => setSuccessMessage(null), 5000)
     } catch (err: unknown) {
       console.error('Error confirming attention:', err)
@@ -884,7 +926,30 @@ export function Dashboard() {
             {/* ── Step 1: Services ── */}
             {wizardStep === 1 && (
               <>
-                <div style={{ fontFamily: fontBody, fontSize: '11px', color: C.slate400, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px', marginTop: '8px' }}>Paso 1 de 5 · Servicios</div>
+                <div style={{ fontFamily: fontBody, fontSize: '11px', color: C.slate400, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px', marginTop: '8px' }}>Paso 1 de 5 · Cliente y servicios</div>
+                <div style={{ fontFamily: fontTitle, fontWeight: 700, fontSize: '20px', color: C.ink, marginBottom: '8px' }}>¿A quién atendiste?</div>
+                {!customerSkipped ? (
+                  <div style={{ marginBottom: '22px' }}>
+                    <label htmlFor="customer-phone" style={{ display: 'block', fontFamily: fontBody, fontSize: '13px', color: C.slate600, marginBottom: '8px' }}>Celular del cliente</label>
+                    <input
+                      id="customer-phone" type="tel" inputMode="tel" autoComplete="off"
+                      placeholder="Ej. 11 1234 5678" value={customerPhone}
+                      onChange={e => { setCustomerPhone(e.target.value); setCustomerName(''); setWizardError(null) }}
+                      style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, borderRadius: '10px', padding: '12px', fontSize: '16px', fontFamily: fontBody, color: C.ink }}
+                    />
+                    {customerPhone && !normalizedPhone && <div style={{ fontFamily: fontBody, fontSize: '12px', color: C.red, marginTop: '6px' }}>Ingresá un número válido con código de área.</div>}
+                    {resolvedCustomer?.status === 'loading' && <div style={{ fontFamily: fontBody, fontSize: '12px', color: C.slate500, marginTop: '8px' }}>Buscando cliente…</div>}
+                    {resolvedCustomer?.status === 'error' && <div style={{ fontFamily: fontBody, fontSize: '12px', color: C.red, marginTop: '8px' }}>No se pudo buscar. Revisá la conexión o seguí sin teléfono.</div>}
+                    {resolvedCustomer?.status === 'found' && <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.green, background: C.greenBg, borderRadius: '10px', padding: '10px', marginTop: '8px' }}>Cliente registrado: <strong>{resolvedCustomer.name}</strong></div>}
+                    {resolvedCustomer?.status === 'new' && (
+                      <div style={{ marginTop: '10px' }}>
+                        <label htmlFor="customer-name" style={{ display: 'block', fontFamily: fontBody, fontSize: '12px', color: C.slate600, marginBottom: '6px' }}>Número no registrado · nombre del cliente</label>
+                        <input id="customer-name" type="text" maxLength={100} autoComplete="off" placeholder="Nombre y apellido" value={customerName} onChange={e => setCustomerName(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, borderRadius: '10px', padding: '12px', fontSize: '16px', fontFamily: fontBody, color: C.ink }} />
+                      </div>
+                    )}
+                    <button type="button" onClick={() => { setCustomerSkipped(true); setWizardError(null) }} style={{ border: 'none', background: 'transparent', color: C.blue, fontFamily: fontBody, fontSize: '13px', marginTop: '10px', padding: '4px 0', cursor: 'pointer' }}>Continuar sin teléfono</button>
+                  </div>
+                ) : <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate500, marginBottom: '22px' }}>Atención sin cliente identificado · <button type="button" onClick={() => setCustomerSkipped(false)} style={{ border: 'none', background: 'transparent', color: C.blue, fontFamily: fontBody, cursor: 'pointer' }}>Agregar teléfono</button></div>}
                 <div style={{ fontFamily: fontTitle, fontWeight: 700, fontSize: '20px', color: C.ink, marginBottom: '20px' }}>¿Qué servicios?</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto', marginBottom: '12px' }}>
                   {services.length === 0 && (
@@ -920,7 +985,8 @@ export function Dashboard() {
                     La validación real está en el paso 5 (servicio o producto, al menos uno). */}
                 <button
                   onClick={() => setWizardStep(2)}
-                  style={{ width: '100%', height: '48px', background: `linear-gradient(135deg, ${C.blue} 0%, ${C.blueBright} 100%)`, color: '#fff', border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
+                  disabled={!customerSkipped && !(resolvedCustomer?.status === 'found' || (resolvedCustomer?.status === 'new' && customerName.trim().length > 0))}
+                  style={{ width: '100%', height: '48px', background: !customerSkipped && !(resolvedCustomer?.status === 'found' || (resolvedCustomer?.status === 'new' && customerName.trim().length > 0)) ? C.border : `linear-gradient(135deg, ${C.blue} 0%, ${C.blueBright} 100%)`, color: '#fff', border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
                 >
                   Siguiente →
                 </button>
@@ -1083,6 +1149,9 @@ export function Dashboard() {
               <>
                 <div style={{ fontFamily: fontTitle, fontWeight: 700, fontSize: '20px', color: C.ink, marginBottom: '20px', marginTop: '8px' }}>
                   {selectedServices.length === 0 ? 'Confirmar venta' : 'Confirmar cliente'}
+                </div>
+                <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate600, marginBottom: '14px' }}>
+                  Cliente: {customerSkipped ? 'sin teléfono' : resolvedCustomer?.status === 'found' ? resolvedCustomer.name : customerName.trim()}
                 </div>
                 {selectedServices.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>

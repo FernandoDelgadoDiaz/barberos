@@ -141,6 +141,7 @@ export type Shift = {
 export type Appointment = {
   id: string
   tenant_id: string
+  customer_id: string | null
   barber_id: string
   shift_id: string | null
   attention_number: number
@@ -161,6 +162,7 @@ export interface ServiceItem {
 
 export interface LogServiceRequest {
   barber_id: string
+  customer?: { phone: string; name?: string } | null
   services: ServiceItem[]
   started_at: string
   ended_at?: string

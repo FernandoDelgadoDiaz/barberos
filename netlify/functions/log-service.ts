@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { normalizeCustomerPhone } from '../../src/utils/customerPhone'
 
 const supabaseUrl = process.env.SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -95,6 +96,7 @@ type NormalizedProduct = {
 // Request body actualizado: array de servicios
 interface RequestBody {
   barber_id: string
+  customer?: { phone: string; name?: string } | null
   services: ServiceItem[]  // Puede venir vacío si hay products (venta suelta)
   started_at: string
   ended_at?: string        // Opcional, se ignora (ended_at será null)
@@ -504,9 +506,62 @@ export const handler = async (event: NetlifyFunctionEvent) => {
       }
     }
 
+    // Resolver la identidad dentro del tenant. Jamás confiar en un customer_id
+    // enviado por el navegador: un ID de otro local podría mezclar historiales.
+    let customerId: string | null = null
+    if (body.customer != null) {
+      const rawPhone = body.customer.phone
+      const phone = typeof rawPhone === 'string' ? normalizeCustomerPhone(rawPhone) : null
+      if (!phone) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Número de teléfono inválido' }) }
+      }
+      const { data: existing, error: lookupError } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .eq('phone_normalized', phone)
+        .maybeSingle()
+      if (lookupError) {
+        console.error('Customer lookup error:', lookupError)
+        return { statusCode: 500, headers, body: JSON.stringify({ error: 'No se pudo buscar al cliente' }) }
+      }
+      if (existing) {
+        customerId = existing.id
+      } else {
+        const name = typeof body.customer.name === 'string' ? body.customer.name.trim().replace(/\s+/g, ' ') : ''
+        if (!name || name.length > 100) {
+          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Ingresá el nombre del cliente (hasta 100 caracteres)' }) }
+        }
+        const { data: created, error: createError } = await supabase
+          .from('customers')
+          .insert({ tenant_id: tenantId, phone_normalized: phone, name })
+          .select('id')
+          .single()
+        if (createError?.code === '23505') {
+          // Otra caja registró el mismo número mientras se confirmaba.
+          const { data: concurrent, error: retryError } = await supabase
+            .from('customers')
+            .select('id')
+            .eq('tenant_id', tenantId)
+            .eq('phone_normalized', phone)
+            .single()
+          if (retryError || !concurrent) {
+            return { statusCode: 500, headers, body: JSON.stringify({ error: 'No se pudo identificar al cliente' }) }
+          }
+          customerId = concurrent.id
+        } else if (createError || !created) {
+          console.error('Customer creation error:', createError)
+          return { statusCode: 500, headers, body: JSON.stringify({ error: 'No se pudo guardar al cliente' }) }
+        } else {
+          customerId = created.id
+        }
+      }
+    }
+
     // 7. Crear appointment
     const appointmentData = {
       tenant_id: tenantId,
+      customer_id: customerId,
       barber_id: body.barber_id,
       shift_id: body.shift_id ?? null,
       attention_number: attentionNumber,
