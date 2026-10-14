@@ -313,9 +313,9 @@ export function Settings() {
   }
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#1a1a2e', marginBottom: '8px' }}>Configuración</h1>
-      <p style={{ color: '#aaa', fontSize: '14px', marginBottom: '32px' }}>Personaliza tu barbería</p>
+    <div className="premium-settings" style={{ maxWidth: '1000px', margin: '0 auto' }}>
+      <h1 className="premium-settings-title" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '26px', color: '#1a1a2e', marginBottom: '8px' }}>Configuración</h1>
+      <p className="premium-settings-subtitle" style={{ color: '#aaa', fontSize: '14px', marginBottom: '32px' }}>Personalizá tu barbería y administrá sus reglas</p>
 
       {/* Success message */}
       {success && (
@@ -350,7 +350,7 @@ export function Settings() {
       )}
 
       {/* Sección 1 — Identidad de la barbería */}
-      <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '32px', marginBottom: '24px' }}>
+      <div className="premium-settings-section" style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '32px', marginBottom: '24px' }}>
         <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#1a1a2e', marginBottom: '24px' }}>
           Identidad de la barbería
         </h2>
@@ -377,33 +377,6 @@ export function Settings() {
               }}
             />
           </div>
-
-          <div>
-            <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
-              Logo
-            </label>
-            <div style={{
-              width: '100%',
-              height: '120px',
-              background: '#f8f8f8',
-              border: '1px dashed #e0e0e0',
-              borderRadius: '6px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#aaa',
-              fontFamily: 'Space Grotesk, sans-serif',
-              fontWeight: 400,
-              fontSize: '14px',
-            }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginBottom: '8px' }}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              Sube tu logo (próximamente)
-            </div>
-          </div>
-
 
           {/* La portada es opcional y se configura de forma independiente por tenant. */}
           <section className="premium-cover-settings" aria-label="Foto de portada de la barbería">
@@ -477,11 +450,17 @@ export function Settings() {
             )}
           </section>
 
-          <div>
+          <div className="premium-settings-logo-note">
+            <span className="premium-settings-logo-symbol" aria-hidden="true">◇</span>
+            <span><strong>Logo de la barbería</strong><small>Disponible próximamente</small></span>
+          </div>
+
+          <div className="premium-settings-hours">
             <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
-              Horario del local
+              Horario habitual del local
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            <p className="premium-settings-hours-note">Se utiliza en Inicio como referencia, sin confirmar apertura real.</p>
+            <div className="premium-settings-time-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
               <div>
                 <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>
                   Horario de apertura
@@ -530,12 +509,13 @@ export function Settings() {
       </div>
 
       {/* Sección 2 — Reglas de comisión */}
-      <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '32px', marginBottom: '24px' }}>
+      <div className="premium-settings-section premium-settings-rules" style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '32px', marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#1a1a2e' }}>
             Reglas de comisión
           </h2>
           <button
+            className="premium-settings-add-rule"
             onClick={() => setShowAddRule(true)}
             style={{
               background: 'var(--primary, #3D3A8C)',
@@ -577,6 +557,7 @@ export function Settings() {
             commissionRules.rules.map((rule, index) => (
               <div
                 key={index}
+                className="premium-settings-rule-card"
                 style={{
                   background: '#f8f8f8',
                   border: '0.5px solid #e0e0e0',
@@ -591,6 +572,7 @@ export function Settings() {
                   {formatRule(rule)}
                 </div>
                 <button
+                  className="premium-settings-remove-rule"
                   onClick={() => handleRemoveRule(index)}
                   style={{
                     background: 'transparent',
@@ -620,7 +602,7 @@ export function Settings() {
             <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '12px', color: commissionRules.resets_daily ? 'var(--primary, #3D3A8C)' : '#aaa' }}>
               {commissionRules.resets_daily ? 'Reinicio diario' : 'Acumulativo'}
             </div>
-            <div
+            <button type="button" className="premium-settings-switch" role="switch" aria-label="Reinicio diario de comisiones" aria-checked={commissionRules.resets_daily}
               onClick={handleToggleResetDaily}
               style={{
                 width: '36px',
@@ -641,13 +623,13 @@ export function Settings() {
                 left: commissionRules.resets_daily ? '18px' : '2px',
                 transition: 'left 0.2s',
               }} />
-            </div>
+            </button>
           </div>
         </div>
       </div>
 
       {/* Sección 3 — Información */}
-      <div style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '32px', marginBottom: '32px' }}>
+      <div className="premium-settings-section" style={{ background: '#fff', border: '0.5px solid #e0e0e0', borderRadius: '10px', padding: '32px', marginBottom: '32px' }}>
         <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#1a1a2e', marginBottom: '24px' }}>
           Información
         </h2>
@@ -692,7 +674,7 @@ export function Settings() {
       </div>
 
       {/* Save button */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px' }}>
+      <div className="premium-settings-save" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px' }}>
         {success && (
           <span style={{
             fontFamily: 'Space Grotesk, sans-serif',
@@ -712,6 +694,7 @@ export function Settings() {
           </span>
         )}
         <button
+          className="premium-settings-save-button"
           onClick={handleSaveTenant}
           disabled={saving}
           style={{
@@ -733,7 +716,7 @@ export function Settings() {
 
       {/* Modal para agregar regla */}
       {showAddRule && (
-        <div style={{
+        <div className="premium-settings-modal-overlay" style={{
           position: 'fixed',
           top: 0,
           left: 0,
@@ -745,7 +728,7 @@ export function Settings() {
           justifyContent: 'center',
           zIndex: 1000,
         }}>
-          <div style={{
+          <div className="premium-settings-modal" style={{
             background: '#fff',
             border: '0.5px solid #e0e0e0',
             borderRadius: '12px',
