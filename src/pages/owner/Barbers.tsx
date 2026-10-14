@@ -67,6 +67,7 @@ export function Barbers() {
   const [barbers, setBarbers] = useState<Barber[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [editingBarber, setEditingBarber] = useState<Barber | null>(null)
   const [modalLoading, setModalLoading] = useState(false)
@@ -77,6 +78,7 @@ export function Barbers() {
   const [worksAsBarber, setWorksAsBarber] = useState(true)
   const [earningMode, setEarningMode] = useState<'tenant_rules' | 'owner_100'>('tenant_rules')
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [showArchived, setShowArchived] = useState(false)
 
   const loadBarbers = useCallback(async () => {
     setError(null)
@@ -126,17 +128,40 @@ export function Barbers() {
 
   const handleToggleActive = async (id: string) => {
     const barber = barbers.find(b => b.id === id)
-    if (!barber || !tenantId) return
+    if (!barber || !tenantId || barber.role !== 'barber') return
     try {
       const { error } = await supabase
         .from('profiles')
         .update({ is_active: !barber.is_active })
         .eq('id', id)
         .eq('tenant_id', tenantId)
+        .select('id')
+        .single()
       if (error) throw error
       setBarbers(barbers.map(b => b.id === id ? { ...b, is_active: !b.is_active } : b))
+      setActionError(null)
     } catch (error) {
       console.error('Error updating barber status:', error)
+      setActionError('No se pudo cambiar el estado del barbero. Intentá de nuevo.')
+    }
+  }
+
+  const handleDelete = async (barber: Barber) => {
+    if (barber.role !== 'barber') return
+    if (!window.confirm(`¿Eliminar definitivamente a ${barber.display_name}? Solo se permite si nunca registró actividad. Esta acción también elimina su acceso y no se puede deshacer.`)) return
+    setActionError(null)
+    try {
+      const authHeader = await getAuthHeader()
+      const response = await fetch('/api/delete-barber', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+        body: JSON.stringify({ barber_id: barber.id }),
+      })
+      const payload = await response.json() as { error?: string }
+      if (!response.ok) throw new Error(payload.error || 'No se pudo eliminar el barbero')
+      setBarbers(current => current.filter(b => b.id !== barber.id))
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'No se pudo eliminar el barbero')
     }
   }
 
@@ -308,11 +333,18 @@ export function Barbers() {
   // ---------------------------------------------------------------------------
   const workingBarbers = barbers.filter(b => b.role === 'barber' || b.works_as_barber)
   const activeCount = workingBarbers.filter(b => b.is_active).length
-  const totalCount = workingBarbers.length
+  const archivedCount = barbers.filter(b => b.role === 'barber' && !b.is_active).length
+  const visibleBarbers = barbers.filter(b => b.is_active || b.role === 'owner' || showArchived)
 
   return (
     <div style={rootStyle}>
       <ScreenHeader />
+
+      {actionError && (
+        <div role="alert" style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '12px', padding: '12px', marginTop: '16px', color: C.red, fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px' }}>
+          {actionError}
+        </div>
+      )}
 
       {/* Stat cards */}
       <div
@@ -331,8 +363,8 @@ export function Barbers() {
           icon={<UsersIcon />}
         />
         <StatCard
-          label="Total"
-          count={totalCount}
+          label="Archivados"
+          count={archivedCount}
           chipBg="#EDE9FE"
           iconStroke="#7C3AED"
           icon={<UserIcon />}
@@ -387,9 +419,19 @@ export function Barbers() {
         </svg>
       </button>
 
+      {archivedCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowArchived(value => !value)}
+          style={{ marginTop: '16px', padding: '10px 4px', background: 'transparent', border: 'none', color: C.blue, fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+        >
+          {showArchived ? 'Ocultar archivados' : `Ver archivados (${archivedCount})`}
+        </button>
+      )}
+
       {/* Barber list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
-        {barbers.map((barber) => {
+        {visibleBarbers.map((barber) => {
           const menuOpen = openMenuId === barber.id
           return (
             <div
@@ -571,27 +613,42 @@ export function Barbers() {
                           </svg>
                         }
                       />
-                      <div style={{ height: 1, background: C.borderLt, margin: '4px 8px' }} />
-                      <MenuItem
-                        label={barber.is_active ? 'Desactivar' : 'Activar'}
-                        color={barber.is_active ? C.red : C.green}
-                        onClick={() => {
-                          setOpenMenuId(null)
-                          handleToggleActive(barber.id)
-                        }}
-                        icon={
-                          barber.is_active ? (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                              <circle cx="12" cy="12" r="10" />
-                              <path d="M4.93 4.93l14.14 14.14" />
-                            </svg>
-                          ) : (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M20 6L9 17l-5-5" />
-                            </svg>
-                          )
-                        }
-                      />
+                      {barber.role === 'barber' && (
+                        <>
+                          <div style={{ height: 1, background: C.borderLt, margin: '4px 8px' }} />
+                          <MenuItem
+                            label={barber.is_active ? 'Desactivar y archivar' : 'Reactivar'}
+                            color={barber.is_active ? C.red : C.green}
+                            onClick={() => {
+                              setOpenMenuId(null)
+                              handleToggleActive(barber.id)
+                            }}
+                            icon={barber.is_active ? (
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M4.93 4.93l14.14 14.14" />
+                              </svg>
+                            ) : (
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            )}
+                          />
+                          <MenuItem
+                            label="Eliminar definitivamente"
+                            color={C.red}
+                            onClick={() => {
+                              setOpenMenuId(null)
+                              void handleDelete(barber)
+                            }}
+                            icon={
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m5 4v7m4-7v7" />
+                              </svg>
+                            }
+                          />
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
