@@ -1,3 +1,4 @@
+import '../../styles/owner-premium.css'
 import { useState, useEffect } from 'react'
 import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
@@ -298,6 +299,7 @@ export function Services() {
     return (
       <div
         key={service.id}
+        className="premium-item"
         style={{
           position: 'relative',
           background: '#fff',
@@ -504,6 +506,7 @@ export function Services() {
           </div>
 
           <button
+            aria-label={`Editar ${service.name}`}
             onClick={() => handleEdit(service)}
             style={{
               display: 'inline-flex',
@@ -538,11 +541,11 @@ export function Services() {
   // Main
   // ---------------------------------------------------------------------------
   return (
-    <div style={rootStyle}>
+    <div className="premium-directory premium-services" style={rootStyle}>
       <ScreenHeader tenantName={tenant?.name} />
 
       {/* Stat cards (derived real data) */}
-      <div
+      <div className="premium-stats"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
@@ -569,7 +572,7 @@ export function Services() {
       </div>
 
       {/* CTA card */}
-      <button onClick={handleAdd} style={ctaCardStyle}>
+      <button className="premium-create" onClick={handleAdd} style={ctaCardStyle}>
         <div
           style={{
             width: 48,
@@ -975,7 +978,7 @@ function StatCard({
   icon: React.ReactNode
 }) {
   return (
-    <div
+    <div className="premium-stat"
       style={{
         background: '#fff',
         border: `1px solid ${C.borderLt}`,

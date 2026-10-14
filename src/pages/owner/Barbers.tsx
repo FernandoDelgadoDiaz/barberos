@@ -1,3 +1,4 @@
+import '../../styles/owner-premium.css'
 import { Fragment, useState, useEffect, useCallback } from 'react'
 import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
@@ -348,7 +349,7 @@ export function Barbers() {
   )
 
   return (
-    <div style={rootStyle}>
+    <div className="premium-directory premium-barbers" style={rootStyle}>
       <ScreenHeader />
 
       {actionError && (
@@ -358,7 +359,7 @@ export function Barbers() {
       )}
 
       {/* Stat cards */}
-      <div
+      <div className="premium-stats"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(2, 1fr)',
@@ -383,7 +384,7 @@ export function Barbers() {
       </div>
 
       {/* CTA card */}
-      <button onClick={handleAdd} style={ctaCardStyle}>
+      <button className="premium-create" onClick={handleAdd} style={ctaCardStyle}>
         <div
           style={{
             width: 48,
@@ -447,7 +448,7 @@ export function Barbers() {
                 </span>
               </div>
             )}
-            <div
+            <div className="premium-item"
               style={{
                 position: 'relative',
                 background: '#fff',
@@ -666,6 +667,7 @@ export function Barbers() {
                 </div>
 
                 <button
+                  aria-label={`Editar a ${barber.display_name}`}
                   onClick={() => handleEdit(barber)}
                   style={{
                     display: 'inline-flex',
@@ -1002,7 +1004,7 @@ function StatCard({
   icon: React.ReactNode
 }) {
   return (
-    <div
+    <div className="premium-stat"
       style={{
         background: '#fff',
         border: `1px solid ${C.borderLt}`,
