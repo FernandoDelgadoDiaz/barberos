@@ -110,7 +110,7 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     // 1. Get barber profile to obtain tenant_id — also verifies ownership via user_id
     const { data: barberProfile, error: barberError } = await supabase
       .from('profiles')
-      .select('tenant_id')
+      .select('tenant_id, is_active')
       .eq('id', body.barber_id)
       .eq('user_id', user.id)
       .single()
@@ -122,6 +122,9 @@ export const handler = async (event: NetlifyFunctionEvent) => {
         headers,
         body: JSON.stringify({ error: 'Barber not found' }),
       }
+    }
+    if (!barberProfile.is_active) {
+      return { statusCode: 403, headers, body: JSON.stringify({ error: 'La cuenta del barbero está desactivada' }) }
     }
 
     const tenantId = barberProfile.tenant_id
