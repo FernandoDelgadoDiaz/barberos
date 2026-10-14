@@ -7,6 +7,8 @@ import { ExpandableBarberCard, cleanName } from '../../components/owner/Expandab
 import { GraceBanner } from '../../components/GraceBanner'
 import type { ServiceLog, Profile, DailyExpense } from '../../types'
 import { isRealService } from '../../types'
+import { getOwnerDayStatus } from '../../utils/ownerDayStatus'
+import '../../styles/owner-premium.css'
 
 function getArgentinaDateString(date = new Date()): string {
   return date.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
@@ -88,6 +90,7 @@ export function LivePanel() {
   const [logs, setLogs] = useState<ServiceLogWithDetails[]>([])
   const [barbers, setBarbers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [highlightBarberId, setHighlightBarberId] = useState<string | null>(null)
   const [currentDate, setCurrentDate] = useState<string>('')
   const [expenses, setExpenses] = useState<DailyExpense[]>([])
@@ -160,10 +163,16 @@ export function LivePanel() {
 
   const loadInitialData = useCallback(async () => {
     if (!tenantId) {
-      if (isMounted.current) setLoading(false)
+      if (isMounted.current) {
+        setLoadError('No se pudo identificar la barbería.')
+        setLoading(false)
+      }
       return
     }
-    if (isMounted.current) setLoading(true)
+    if (isMounted.current) {
+      setLoadError(null)
+      setLoading(true)
+    }
 
     try {
       const now = new Date()
@@ -210,15 +219,20 @@ export function LivePanel() {
       if (barbersError) throw barbersError
       if (isMounted.current) setBarbers(barbersData || [])
 
-      const { data: expensesData } = await supabase
+      const { data: expensesData, error: expensesError } = await supabase
         .from('daily_expenses')
         .select('*')
         .eq('tenant_id', tenantId)
         .eq('expense_date', targetArgentina)
         .order('created_at', { ascending: true })
-      if (isMounted.current) setExpenses(expensesData || [])
+      if (expensesError) throw expensesError
+      if (isMounted.current) {
+        setExpenses(expensesData || [])
+        setLoadError(null)
+      }
     } catch (error) {
       console.error('Error loading initial data:', error)
+      if (isMounted.current) setLoadError('No pudimos cargar los datos del negocio. Reintentá para ver la información actualizada.')
     } finally {
       if (isMounted.current) setLoading(false)
     }
@@ -364,6 +378,7 @@ export function LivePanel() {
     return h >= 0 && h < 6
   })()
   const periodLabel = isPostMidnight ? 'Última jornada' : 'Hoy'
+  const dayStatus = getOwnerDayStatus({ isOpen, isPostMidnight, serviceCount: totalServices, recordCount: logs.length })
 
   if (loading) {
     return (
@@ -373,8 +388,18 @@ export function LivePanel() {
     )
   }
 
-  // Build a smooth SVG curve for the hero
-  const heroCurve = "M0,90 C40,80 80,30 130,40 C180,50 220,90 270,75 C320,60 360,20 410,25"
+  if (loadError) {
+    return (
+      <div className="premium-live" style={{ maxWidth: '430px', margin: '0 auto', padding: '16px', color: '#0F172A' }}>
+        <GraceBanner style={{ marginBottom: '12px' }} />
+        <div role="alert" style={{ background: '#fff', border: '1px solid #FECACA', borderRadius: '16px', padding: '20px' }}>
+          <strong style={{ display: 'block', marginBottom: '8px', fontFamily: 'Syne, sans-serif' }}>No se pudo actualizar Inicio</strong>
+          <p style={{ color: '#64748B', fontSize: '13px', lineHeight: 1.5, margin: '0 0 16px' }}>{loadError}</p>
+          <button type="button" onClick={() => void loadInitialData()} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 18px', fontWeight: 600, cursor: 'pointer' }}>Reintentar</button>
+        </div>
+      </div>
+    )
+  }
 
   // Responsive font helpers: clamp(min, preferred-vw, max).
   // Anchor is @390px width (mockup reference). Preferred values use vw so they scale
@@ -387,12 +412,12 @@ export function LivePanel() {
     stateLink: 'clamp(11px, 3.33vw, 13px)',        // 13px @390
     heroLabel: 'clamp(11px, 3.33vw, 13px)',        // 13px @390
     heroPill: 'clamp(10px, 3.08vw, 12px)',         // 12px @390
-    heroNumber: 'clamp(34px, 11.79vw, 46px)',      // 46px @390
+    heroNumber: 'clamp(34px, 10.8vw, 42px)',      // 46px @390
     heroNeutralPill: 'clamp(10px, 3.08vw, 12px)',  // 12px @390
-    metricLabel: 'clamp(12px, 3.33vw, 14px)',
-    metricNumber: 'clamp(17px, 4.62vw, 20px)',
+    metricLabel: 'clamp(11px, 3.10vw, 12px)',
+    metricNumber: 'clamp(16px, 4.35vw, 18px)',
     metricSub: 'clamp(11px, 3.08vw, 12px)',
-    sectionTitle: 'clamp(14px, 4.1vw, 16px)',      // 16px @390
+    sectionTitle: 'clamp(16px, 4.6vw, 18px)',      // 16px @390
     sectionLink: 'clamp(11px, 3.33vw, 13px)',      // 13px @390
     insightKicker: 'clamp(10px, 2.82vw, 11px)',    // 11px @390
     insightTitle: 'clamp(13px, 3.59vw, 14px)',     // 14px @390
@@ -400,7 +425,7 @@ export function LivePanel() {
   }
 
   return (
-    <div style={{ maxWidth: '430px', margin: '0 auto', width: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
+    <div className="premium-live" style={{ maxWidth: '430px', margin: '0 auto', width: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
       {/* Aviso de gracia (suscripción vencida) — primer elemento del contenido */}
       <GraceBanner style={{ margin: '12px 16px 0' }} />
 
@@ -440,7 +465,7 @@ export function LivePanel() {
               textOverflow: 'ellipsis',
               lineHeight: 1.2,
             }}>
-              {tenant?.name || 'Tu barbería'} <span aria-hidden="true">💈</span>
+              {tenant?.name || 'Tu barbería'}
             </div>
             <div style={{
               fontSize: fs.headerGreeting,
@@ -452,8 +477,8 @@ export function LivePanel() {
               textOverflow: 'ellipsis',
             }}>
               {greetingName
-                ? <>¡{greeting}, <span style={{ fontWeight: 500, color: '#2563EB' }}>{greetingName}</span>! <span aria-hidden="true">👋</span></>
-                : <>¡{greeting}! <span aria-hidden="true">👋</span></>}
+                ? <>{greeting}, <span style={{ fontWeight: 500, color: '#2563EB' }}>{greetingName}</span></>
+                : <>{greeting}</>}
             </div>
           </div>
         </div>
@@ -507,7 +532,7 @@ export function LivePanel() {
 
       {/* Daily revenue summary. */}
       <div style={{ margin: '0 16px' }}>
-        <div style={{
+        <div className="premium-live-hero" style={{
           position: 'relative',
           borderRadius: '20px',
           padding: '14px 16px',
@@ -521,22 +546,6 @@ export function LivePanel() {
           justifyContent: 'space-between',
           boxSizing: 'border-box',
         }}>
-          {/* Decorative curve */}
-          <svg
-            viewBox="0 0 430 110"
-            preserveAspectRatio="none"
-            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, width: '100%', height: '80px', opacity: 0.7, pointerEvents: 'none' }}
-            aria-hidden="true"
-          >
-            <defs>
-              <linearGradient id="heroCurveGradient" x1="0" y1="1" x2="1" y2="0">
-                <stop offset="0%" stopColor="rgba(255,255,255,0)" />
-                <stop offset="100%" stopColor="rgba(255,255,255,0.55)" />
-              </linearGradient>
-            </defs>
-            <path d={heroCurve} stroke="url(#heroCurveGradient)" strokeWidth="2" fill="none" />
-            <path d={`${heroCurve} L 430 110 L 0 110 Z`} fill="rgba(255,255,255,0.08)" />
-          </svg>
 
           <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
@@ -579,7 +588,7 @@ export function LivePanel() {
           </div>
 
           <div style={{ position: 'relative', zIndex: 1, marginTop: '4px' }}>
-            <span style={{
+            <span className="premium-live-records" style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
@@ -595,11 +604,10 @@ export function LivePanel() {
                 width: '6px',
                 height: '6px',
                 borderRadius: '50%',
-                background: '#22C55E',
+                background: dayStatus.hasActivity ? '#10B981' : '#94A3B8',
                 display: 'inline-block',
-                boxShadow: '0 0 0 3px rgba(34,197,94,0.25)',
               }} aria-hidden="true" />
-              Registros de la jornada
+              {dayStatus.recordLabel}
             </span>
           </div>
         </div>
@@ -607,7 +615,7 @@ export function LivePanel() {
 
       {/* Two columns keep labels and amounts readable on narrow phones. */}
       <div style={{ padding: '12px 0 0' }}>
-        <div
+        <div className="premium-live-stats"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
@@ -665,7 +673,7 @@ export function LivePanel() {
           <MetricCard
             iconBg="#EA580C"
             label="Ticket promedio"
-            value={ticketsToday > 0 ? `$${avgTicket.toLocaleString()}` : '$0'}
+            value={ticketsToday > 0 ? `$${avgTicket.toLocaleString()}` : '—'}
             sub="Por atención"
             labelSize={fs.metricLabel}
             valueSize={fs.metricNumber}
@@ -681,8 +689,8 @@ export function LivePanel() {
       </div>
 
       {/* Today's recorded activity by enabled barber. */}
-      <div style={{ padding: '14px 16px 0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
+      <div className="premium-live-section" style={{ padding: '16px 16px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
           <h2 style={{
             fontFamily: 'Syne, sans-serif',
             fontWeight: 700,
@@ -700,7 +708,7 @@ export function LivePanel() {
             <p style={{ fontSize: '12px', margin: 0, color: '#94A3B8' }}>Agrega barberos en la configuración</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div className="premium-live-barbers" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {barberStats.map((stats) => (
               <ExpandableBarberCard key={stats.barber.id} stats={stats} />
             ))}
@@ -710,10 +718,11 @@ export function LivePanel() {
 
       {/* Gastos del día */}
       <div style={{ padding: '20px 16px 0' }}>
-        <div style={{ background: '#fff', border: '1px solid #F1F5F9', borderRadius: '16px', padding: '16px', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
+        <div className="premium-live-expenses" style={{ background: '#fff', border: '1px solid #F1F5F9', borderRadius: '16px', padding: '16px', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: expenses.length > 0 ? '12px' : '0' }}>
             <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(13px, 3.59vw, 14px)', color: '#0F172A', margin: 0 }}>Gastos del día</h2>
             <button
+              className="premium-live-add-expense"
               onClick={() => setShowExpenseModal(true)}
               style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: '10px', padding: '8px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
             >
@@ -790,150 +799,27 @@ export function LivePanel() {
         </div>
       )}
 
-      {/* Insight card — LAST. 358×78 base (grows for text), padding 16, lavender bg.
-          Square chart icon on the left + neutral copy + 3D bars + ✨ on the right. */}
-      <div style={{ padding: '24px 16px 0' }}>
-        <div style={{
-          background: 'linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 60%, #C7D2FE 100%)',
-          borderRadius: '20px',
-          padding: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
-          boxShadow: '0 6px 18px rgba(99, 102, 241, 0.12)',
-          overflow: 'hidden',
-          position: 'relative',
-          minHeight: '78px',
-        }}>
-          {/* Left: square chart icon */}
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #6366F1, #4338CA)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            boxShadow: '0 4px 10px rgba(67, 56, 202, 0.30)',
-          }} aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M4 19V5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/>
-              <path d="M4 19h16" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/>
-              <rect x="7" y="12" width="2.5" height="5" rx="0.5" fill="#fff"/>
-              <rect x="11" y="9" width="2.5" height="8" rx="0.5" fill="#fff"/>
-              <rect x="15" y="6" width="2.5" height="11" rx="0.5" fill="#fff"/>
-            </svg>
-          </div>
-
-          {/* Middle: text */}
+      {/* Estado operativo contextual: no elogios ni tendencias ficticias. */}
+      <div style={{ padding: '20px 16px 0' }}>
+        <section className="premium-live-status" aria-label="Estado de la jornada">
+          <span className="premium-live-status-icon" aria-hidden="true">
+            {dayStatus.hasActivity ? (
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+                <path d="M4 18h16M6 14l4-4 3 3 5-6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M15 7h3v3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            ) : (
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.7"/>
+                <path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </span>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{
-              fontFamily: 'Syne, sans-serif',
-              fontSize: fs.insightTitle,
-              fontWeight: 700,
-              color: '#1E1B4B',
-              lineHeight: 1.25,
-            }}>
-              ¡Vas excelente! <span aria-hidden="true">🚀</span>
-            </div>
-            <div style={{
-              fontSize: fs.insightBody,
-              fontWeight: 400,
-              color: '#3730A3',
-              marginTop: '2px',
-              opacity: 0.92,
-              lineHeight: 1.35,
-            }}>
-              Datos actualizados en tiempo real
-            </div>
+            <div className="premium-live-status-title">{dayStatus.title}</div>
+            <p className="premium-live-status-body">{dayStatus.detail}</p>
           </div>
-
-          {/* Right: 3D ascending bars + ✨ */}
-          <div style={{ flexShrink: 0, position: 'relative', width: '88px', height: '64px' }} aria-hidden="true">
-            <svg width="88" height="64" viewBox="0 0 88 64" fill="none">
-              <defs>
-                <linearGradient id="bar3dGrad1" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#A5B4FC" />
-                  <stop offset="100%" stopColor="#6366F1" />
-                </linearGradient>
-                <linearGradient id="bar3dGrad2" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#818CF8" />
-                  <stop offset="100%" stopColor="#4F46E5" />
-                </linearGradient>
-                <linearGradient id="bar3dGrad3" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#6366F1" />
-                  <stop offset="100%" stopColor="#4338CA" />
-                </linearGradient>
-                <linearGradient id="bar3dGrad4" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#4F46E5" />
-                  <stop offset="100%" stopColor="#312E81" />
-                </linearGradient>
-                <linearGradient id="barSideGrad" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="rgba(49, 46, 129, 0.55)" />
-                  <stop offset="100%" stopColor="rgba(49, 46, 129, 0.20)" />
-                </linearGradient>
-              </defs>
-
-              {/* Ground shadow */}
-              <ellipse cx="44" cy="60" rx="38" ry="2.5" fill="rgba(49, 46, 129, 0.18)" />
-
-              {/* Bar 1 (shortest) */}
-              <g>
-                <polygon points="6,58 11,53 11,40 6,45" fill="url(#barSideGrad)" />
-                <polygon points="6,45 11,40 21,40 16,45" fill="rgba(255,255,255,0.5)" />
-                <rect x="6" y="45" width="10" height="13" rx="1.5" fill="url(#bar3dGrad1)" />
-              </g>
-
-              {/* Bar 2 */}
-              <g>
-                <polygon points="24,58 29,53 29,32 24,37" fill="url(#barSideGrad)" />
-                <polygon points="24,37 29,32 39,32 34,37" fill="rgba(255,255,255,0.55)" />
-                <rect x="24" y="37" width="10" height="21" rx="1.5" fill="url(#bar3dGrad2)" />
-              </g>
-
-              {/* Bar 3 */}
-              <g>
-                <polygon points="42,58 47,53 47,22 42,27" fill="url(#barSideGrad)" />
-                <polygon points="42,27 47,22 57,22 52,27" fill="rgba(255,255,255,0.60)" />
-                <rect x="42" y="27" width="10" height="31" rx="1.5" fill="url(#bar3dGrad3)" />
-              </g>
-
-              {/* Bar 4 (tallest) */}
-              <g>
-                <polygon points="60,58 65,53 65,12 60,17" fill="url(#barSideGrad)" />
-                <polygon points="60,17 65,12 75,12 70,17" fill="rgba(255,255,255,0.65)" />
-                <rect x="60" y="17" width="10" height="41" rx="1.5" fill="url(#bar3dGrad4)" />
-              </g>
-
-              {/* Ascending trend line */}
-              <path
-                d="M11 47 L 29 38 L 47 28 L 65 18"
-                stroke="#312E81"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                fill="none"
-                opacity="0.75"
-              />
-              {/* Arrow head at the tip */}
-              <path
-                d="M65 18 L 61 17 M 65 18 L 64 22"
-                stroke="#312E81"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                fill="none"
-                opacity="0.85"
-              />
-              <circle cx="65" cy="18" r="2.2" fill="#312E81" />
-
-              {/* Sparkle */}
-              <g transform="translate(80, 8)" opacity="0.95">
-                <path d="M0 -4 L 1 -1 L 4 0 L 1 1 L 0 4 L -1 1 L -4 0 L -1 -1 Z" fill="#FACC15" />
-              </g>
-            </svg>
-          </div>
-        </div>
+        </section>
       </div>
 
       {/* Bottom spacer (clears the floating bottom nav ~64px + 16px margin) */}
@@ -1003,7 +889,7 @@ function MetricCard({
   subSize: string
 }) {
   return (
-    <div style={{
+    <div className="premium-live-metric" style={{
       background: '#fff',
       borderRadius: '16px',
       padding: '8px',
