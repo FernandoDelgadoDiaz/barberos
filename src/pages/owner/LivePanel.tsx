@@ -405,7 +405,7 @@ export function LivePanel() {
       <GraceBanner style={{ margin: '12px 16px 0' }} />
 
       {/* Top header (mobile) */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 4px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
           <button
             onClick={() => ctx.onOpenDrawer?.()}
@@ -460,7 +460,7 @@ export function LivePanel() {
       </div>
 
       {/* Open/closed status */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px 24px', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 16px 12px', gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
           <span style={{
             width: '7px',
@@ -510,8 +510,8 @@ export function LivePanel() {
         <div style={{
           position: 'relative',
           borderRadius: '20px',
-          padding: '18px',
-          minHeight: '160px',
+          padding: '14px 16px',
+          minHeight: '124px',
           background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 55%, #1D4ED8 100%)',
           color: '#fff',
           overflow: 'hidden',
@@ -525,7 +525,7 @@ export function LivePanel() {
           <svg
             viewBox="0 0 430 110"
             preserveAspectRatio="none"
-            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, width: '100%', height: '110px', opacity: 0.7, pointerEvents: 'none' }}
+            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, width: '100%', height: '80px', opacity: 0.7, pointerEvents: 'none' }}
             aria-hidden="true"
           >
             <defs>
@@ -578,7 +578,7 @@ export function LivePanel() {
             </div>
           </div>
 
-          <div style={{ position: 'relative', zIndex: 1, marginTop: '8px' }}>
+          <div style={{ position: 'relative', zIndex: 1, marginTop: '4px' }}>
             <span style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -587,7 +587,7 @@ export function LivePanel() {
               fontWeight: 600,
               color: '#fff',
               background: 'rgba(255,255,255,0.20)',
-              padding: '5px 12px',
+              padding: '4px 10px',
               borderRadius: '999px',
               border: '1px solid rgba(255,255,255,0.28)',
             }}>
@@ -606,13 +606,13 @@ export function LivePanel() {
       </div>
 
       {/* Two columns keep labels and amounts readable on narrow phones. */}
-      <div style={{ padding: '20px 0 0' }}>
+      <div style={{ padding: '12px 0 0' }}>
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-            gap: '10px',
-            padding: '4px 16px',
+            gap: '8px',
+            padding: '0 16px',
           }}
         >
           <MetricCard
@@ -681,8 +681,8 @@ export function LivePanel() {
       </div>
 
       {/* Today's recorded activity by enabled barber. */}
-      <div style={{ padding: '24px 16px 0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
+      <div style={{ padding: '14px 16px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
           <h2 style={{
             fontFamily: 'Syne, sans-serif',
             fontWeight: 700,
@@ -982,7 +982,7 @@ export function LivePanel() {
   )
 }
 
-/* Internal metric card — two columns on mobile, so amounts remain readable. */
+/* Compact metric card keeps all four figures visible before the barber list. */
 function MetricCard({
   iconBg,
   label,
@@ -1006,21 +1006,22 @@ function MetricCard({
     <div style={{
       background: '#fff',
       borderRadius: '16px',
-      padding: '10px',
+      padding: '8px',
       border: '1px solid #F1F5F9',
       boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '6px',
+      display: 'grid',
+      gridTemplateColumns: '28px minmax(0, 1fr)',
+      alignItems: 'start',
+      columnGap: '7px',
       width: '100%',
       minWidth: 0,
       boxSizing: 'border-box',
-      minHeight: '100px',
+      minHeight: '76px',
     }}>
       <div style={{
-        width: '32px',
-        height: '32px',
-        borderRadius: '10px',
+        width: '28px',
+        height: '28px',
+        borderRadius: '8px',
         background: iconBg,
         display: 'flex',
         alignItems: 'center',
@@ -1029,39 +1030,40 @@ function MetricCard({
       }}>
         {icon}
       </div>
-      <div style={{
-        fontSize: labelSize,
-        color: '#64748B',
-        fontWeight: 500,
-        whiteSpace: 'normal',
-        overflowWrap: 'break-word',
-        letterSpacing: '-0.2px',
-        lineHeight: 1.15,
-      }}>
-        {label}
-      </div>
-      <div style={{
-        fontFamily: 'Syne, sans-serif',
-        fontSize: valueSize,
-        fontWeight: 700,
-        color: '#0F172A',
-        lineHeight: 1.1,
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-      }}>
-        {value}
-      </div>
-      <div style={{
-        fontSize: subSize,
-        color: '#94A3B8',
-        fontWeight: 400,
-        whiteSpace: 'normal',
-        overflowWrap: 'break-word',
-        lineHeight: 1.15,
-        marginTop: 'auto',
-      }}>
-        {sub}
+      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <div style={{
+          fontSize: labelSize,
+          color: '#64748B',
+          fontWeight: 500,
+          whiteSpace: 'normal',
+          overflowWrap: 'break-word',
+          letterSpacing: '-0.2px',
+          lineHeight: 1.15,
+        }}>
+          {label}
+        </div>
+        <div style={{
+          fontFamily: 'Syne, sans-serif',
+          fontSize: valueSize,
+          fontWeight: 700,
+          color: '#0F172A',
+          lineHeight: 1.1,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }} title={value}>
+          {value}
+        </div>
+        <div style={{
+          fontSize: subSize,
+          color: '#94A3B8',
+          fontWeight: 400,
+          whiteSpace: 'normal',
+          overflowWrap: 'break-word',
+          lineHeight: 1.15,
+        }}>
+          {sub}
+        </div>
       </div>
     </div>
   )
