@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 import type { CommissionRule, CommissionRules, Tenant } from '../../types'
+import { TENANT_COVER_BUCKET, getTenantCoverUrl, prepareCoverImage } from '../../utils/tenantCover'
+import '../../styles/owner-premium.css'
 
 export function Settings() {
   const { tenant } = useTenantStore()
@@ -9,6 +11,9 @@ export function Settings() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [coverBusy, setCoverBusy] = useState(false)
+  const [coverPosition, setCoverPosition] = useState(50)
+  const coverFileRef = useRef<HTMLInputElement>(null)
 
   // Tenant form data
   const [tenantForm, setTenantForm] = useState({
@@ -39,6 +44,7 @@ export function Settings() {
         opening_time: tenant.opening_time || '09:00',
         closing_time: tenant.closing_time || '21:00',
       })
+      setCoverPosition(tenant.cover_image_position ?? 50)
       setCommissionRules(tenant.commission_rules || {
         rules: [],
         resets_daily: true,
@@ -53,6 +59,106 @@ export function Settings() {
 
     applyTenant()
   }, [tenant])
+
+
+  // Portadas: guardado independiente del formulario de comisiones/horarios.
+  // Los objetos se aíslan por tenant en Supabase Storage mediante RLS.
+  const coverUrl = tenant ? getTenantCoverUrl(tenant.id, tenant.cover_image_path) : null
+
+  const handleCoverUpload = async (file?: File) => {
+    if (!tenant || !file || coverBusy) return
+    setCoverBusy(true)
+    setError(null)
+    setSuccess(null)
+
+    let uploadedPath: string | null = null
+    const oldPath = tenant.cover_image_path
+    try {
+      const optimizedImage = await prepareCoverImage(file)
+      const path = `${tenant.id}/${crypto.randomUUID()}.jpg`
+      const { error: uploadError } = await supabase.storage
+        .from(TENANT_COVER_BUCKET)
+        .upload(path, optimizedImage, { contentType: 'image/jpeg', upsert: false, cacheControl: '31536000' })
+      if (uploadError) throw uploadError
+      uploadedPath = path
+
+      const { data, error: updateError } = await supabase
+        .from('tenants')
+        .update({ cover_image_path: path, cover_image_position: 50 })
+        .eq('id', tenant.id)
+        .select()
+        .single()
+      if (updateError || !data) throw updateError ?? new Error('No se pudo guardar la portada.')
+
+      useTenantStore.getState().setTenant(data as Tenant)
+      setCoverPosition(50)
+      setSuccess('Portada actualizada. Ya se muestra en Inicio.')
+      if (oldPath?.startsWith(`${tenant.id}/`) && oldPath !== path) {
+        const { error: deleteError } = await supabase.storage.from(TENANT_COVER_BUCKET).remove([oldPath])
+        if (deleteError) console.warn('No se pudo limpiar la portada anterior:', deleteError)
+      }
+    } catch (err: unknown) {
+      if (uploadedPath) {
+        const { error: cleanupError } = await supabase.storage.from(TENANT_COVER_BUCKET).remove([uploadedPath])
+        if (cleanupError) console.warn('No se pudo limpiar una carga incompleta:', cleanupError)
+      }
+      setError(err instanceof Error ? err.message : 'No se pudo cargar la portada.')
+    } finally {
+      if (coverFileRef.current) coverFileRef.current.value = ''
+      setCoverBusy(false)
+    }
+  }
+
+  const handleSaveCoverPosition = async () => {
+    if (!tenant || coverBusy || !coverUrl) return
+    setCoverBusy(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      const position = Math.round(Math.min(100, Math.max(0, coverPosition)))
+      const { data, error: updateError } = await supabase
+        .from('tenants')
+        .update({ cover_image_position: position })
+        .eq('id', tenant.id)
+        .select()
+        .single()
+      if (updateError || !data) throw updateError ?? new Error('No se pudo guardar el encuadre.')
+      useTenantStore.getState().setTenant(data as Tenant)
+      setSuccess('Encuadre de la portada guardado.')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'No se pudo guardar el encuadre.')
+    } finally {
+      setCoverBusy(false)
+    }
+  }
+
+  const handleRemoveCover = async () => {
+    if (!tenant || coverBusy || !coverUrl) return
+    const oldPath = tenant.cover_image_path
+    setCoverBusy(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      const { data, error: updateError } = await supabase
+        .from('tenants')
+        .update({ cover_image_path: null, cover_image_position: 50 })
+        .eq('id', tenant.id)
+        .select()
+        .single()
+      if (updateError || !data) throw updateError ?? new Error('No se pudo quitar la portada.')
+      useTenantStore.getState().setTenant(data as Tenant)
+      setCoverPosition(50)
+      setSuccess('Portada quitada. Inicio vuelve al diseño predeterminado.')
+      if (oldPath?.startsWith(`${tenant.id}/`)) {
+        const { error: deleteError } = await supabase.storage.from(TENANT_COVER_BUCKET).remove([oldPath])
+        if (deleteError) console.warn('No se pudo borrar el archivo anterior:', deleteError)
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'No se pudo quitar la portada.')
+    } finally {
+      setCoverBusy(false)
+    }
+  }
 
   const formatRule = (rule: CommissionRule) => {
     if (rule.to_service === null) {
@@ -297,6 +403,73 @@ export function Settings() {
               Sube tu logo (próximamente)
             </div>
           </div>
+
+
+          {/* La portada es opcional y se configura de forma independiente por tenant. */}
+          <section className="premium-cover-settings" aria-label="Foto de portada de la barbería">
+            <div className="premium-cover-heading">Foto de portada de Inicio</div>
+            <p className="premium-cover-explanation">
+              Dale identidad a tu panel con una foto de tu local. La imagen aparecerá suavizada detrás de la facturación para mantener los números legibles.
+            </p>
+            <div
+              className={`premium-cover-preview${coverUrl ? ' has-photo' : ''}`}
+              style={coverUrl ? {
+                backgroundImage: `linear-gradient(rgba(240,246,255,0.74), rgba(240,246,255,0.74)), url("${coverUrl}")`,
+                backgroundPosition: `center, center ${coverPosition}%`,
+              } : undefined}
+              role="img"
+              aria-label={coverUrl ? 'Vista previa de la portada sobre la facturación' : 'Portada sin foto, diseño predeterminado'}
+            >
+              <span className="premium-cover-preview-label">Facturación hoy</span>
+              <strong className="premium-cover-preview-value">$0</strong>
+              <span className="premium-cover-preview-meta">Diseño ilustrativo · tus valores reales no cambian</span>
+            </div>
+            <input
+              ref={coverFileRef}
+              type="file"
+              accept="image/*"
+              aria-label="Seleccionar foto de portada"
+              className="premium-cover-hidden-file"
+              disabled={coverBusy}
+              onChange={(e) => { void handleCoverUpload(e.target.files?.[0]) }}
+            />
+            <div className="premium-cover-actions">
+              <button
+                type="button"
+                className="premium-cover-primary"
+                onClick={() => coverFileRef.current?.click()}
+                disabled={coverBusy}
+              >
+                {coverBusy ? 'Guardando...' : coverUrl ? 'Cambiar foto' : 'Subir foto'}
+              </button>
+              {coverUrl && (
+                <button type="button" className="premium-cover-secondary" onClick={() => { void handleRemoveCover() }} disabled={coverBusy}>
+                  Quitar foto
+                </button>
+              )}
+            </div>
+            <p className="premium-cover-hint">
+              JPG, PNG o fotos compatibles con tu celular. Máximo 10 MB; BarberOS las optimiza antes de subirlas. La portada se puede ver en el panel y su archivo tiene una URL pública.
+            </p>
+            {coverUrl && (
+              <div className="premium-cover-position">
+                <label htmlFor="cover-vertical-position">Ajustar encuadre vertical</label>
+                <input
+                  id="cover-vertical-position"
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={coverPosition}
+                  disabled={coverBusy}
+                  onChange={(e) => setCoverPosition(Number(e.target.value))}
+                />
+                <button type="button" className="premium-cover-secondary" onClick={() => { void handleSaveCoverPosition() }}
+                  disabled={coverBusy || coverPosition === (tenant?.cover_image_position ?? 50)}>
+                  Guardar encuadre
+                </button>
+              </div>
+            )}
+          </section>
 
           <div>
             <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>

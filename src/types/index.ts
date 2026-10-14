@@ -18,6 +18,8 @@ export type Tenant = {
   slug: string
   name: string
   logo_url: string | null
+  cover_image_path?: string | null
+  cover_image_position?: number | null
   primary_color: string
   secondary_color: string
   commission_rules: CommissionRules
