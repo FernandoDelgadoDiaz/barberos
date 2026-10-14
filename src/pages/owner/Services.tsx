@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 import type { ServiceCatalog } from '../../types'
+import { summarizeActiveServices } from '../../utils/serviceCatalogSummary'
 
 // =============================================================================
 // Palette — slate + blue (consistent with Barbers / LivePanel / Metrics / History)
@@ -278,12 +279,9 @@ export function Services() {
   }
 
   // ---------------------------------------------------------------------------
-  // Derived metrics (real data — M7 / M8). No persistence, computed in render.
+  // KPIs only reflect ACTIVE SERVICES: neither products nor inactive records.
   // ---------------------------------------------------------------------------
-  const activeCount = services.filter(s => s.is_active).length
-  const avgPrice = services.length
-    ? Math.round(services.reduce((sum, s) => sum + s.base_price, 0) / services.length)
-    : 0
+  const { activeCount, avgPrice } = summarizeActiveServices(services)
 
   const servicioItems = services
     .filter((s) => s.category === 'servicio')
@@ -563,8 +561,8 @@ export function Services() {
         />
         <StatCard
           label="Precio promedio"
-          value={`$${avgPrice.toLocaleString()}`}
-          suffix="promedio"
+          value={avgPrice === null ? "—" : `$${avgPrice.toLocaleString("es-AR")}`}
+          suffix="servicios activos"
           chipBg="#EDE9FE"
           iconStroke="#7C3AED"
           icon={<TagIcon />}
@@ -658,8 +656,8 @@ export function Services() {
       ) : (
         <>
           <div style={{ marginTop: '20px' }}>
-            <h2 style={sectionTitleStyle}>Catálogo de servicios</h2>
-            <p style={sectionSubtitleStyle}>Gestioná los precios, estados y disponibilidad</p>
+            <h2 className="premium-section-title" style={sectionTitleStyle}>Catálogo de servicios</h2>
+            <p style={sectionSubtitleStyle}>Gestioná precios, estados y disponibilidad</p>
           </div>
 
           {servicioItems.length > 0 && (

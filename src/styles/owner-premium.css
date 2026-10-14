@@ -79,3 +79,48 @@
  .premium-metrics .premium-mini-card>div:nth-child(3){font-size:14px!important}
 }
 @media(prefers-reduced-motion:reduce){.premium-directory .premium-create{transition:none}}
+
+/* Final refinement: quieter typography/actions, matching History's hierarchy. */
+.premium-directory > div:first-child > h1 {
+  font-weight: 600 !important;
+  font-size: clamp(17px, 4.6vw, 19px) !important;
+  letter-spacing: -0.45px !important;
+}
+.premium-directory .premium-section-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 600 !important;
+  font-size: clamp(17px, 4.45vw, 18px) !important;
+  letter-spacing: -0.45px !important;
+  line-height: 1.3 !important;
+}
+.premium-directory .premium-item > div:nth-child(2) > div:first-child {
+  font-weight: 600 !important;
+  letter-spacing: -0.35px !important;
+}
+.premium-directory .premium-item > div:nth-child(3) > button {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: #64748B !important;
+  font-weight: 500 !important;
+  min-height: 44px !important;
+  transition: background .16s ease, color .16s ease;
+}
+.premium-directory .premium-item > div:nth-child(3) > button:hover,
+.premium-directory .premium-item > div:nth-child(3) > button:focus-visible {
+  background: #F1F5F9 !important;
+  color: #2563EB !important;
+}
+.premium-directory .premium-item > div:nth-child(3) > button:active {
+  background: #DBEAFE !important;
+}
+.premium-metrics .premium-period-caption {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  color: #94A3B8;
+  margin: -3px 0 14px;
+  line-height: 1.4;
+}
+@media (prefers-reduced-motion: reduce) {
+  .premium-directory .premium-item > div:nth-child(3) > button { transition: none; }
+}

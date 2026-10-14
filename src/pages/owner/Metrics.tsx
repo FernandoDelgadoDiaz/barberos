@@ -549,9 +549,9 @@ function MainContent({
           <SmallMetricCard
             iconBg="#DCFCE7"
             icon={<TrendingUpIcon color="#16A34A" />}
-            label="Ganancia neta"
+            label="Total del dueño"
             value={formatCurrency(metrics.historico.total_owner)}
-            sub="Histórico"
+            sub="Histórico · antes de gastos"
             fs={fs}
           />
           <SmallMetricCard
@@ -559,7 +559,7 @@ function MainContent({
             icon={<ScissorsSmallIcon color="#7C3AED" />}
             label="Servicios totales"
             value={formatNumber(metrics.historico.total_servicios)}
-            sub="Histórico"
+            sub="Histórico acumulado"
             fs={fs}
           />
           <SmallMetricCard
@@ -567,15 +567,15 @@ function MainContent({
             icon={<ReceiptSmallIcon color="#EA580C" />}
             label="Gastos del mes"
             value={formatCurrency(metrics.gastos_mes || 0)}
-            sub="Este mes"
+            sub="Mes actual"
             fs={fs}
           />
           <SmallMetricCard
             iconBg="#DBEAFE"
             icon={<CalendarSmallIcon color="#2563EB" />}
-            label="Más activo"
+            label="Día récord"
             value={metrics.dia_mas_cortes ? dayNameFromISO(metrics.dia_mas_cortes.fecha) : '—'}
-            sub={metrics.hora_pico ? `Pico: ${metrics.hora_pico.hora}hs` : 'Sin datos'}
+            sub={metrics.hora_pico ? `Histórico · hora pico ${metrics.hora_pico.hora} h` : 'Histórico · sin datos'}
             fs={fs}
           />
         </div>
@@ -602,7 +602,7 @@ function MainContent({
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
               }}>
-                Facturación diaria
+                {barMetric === 'facturado' ? 'Ingresos por día' : 'Servicios por día'}
               </h2>
               <InfoIcon color="#94A3B8" size={13} />
             </div>
@@ -672,6 +672,10 @@ function MainContent({
               )}
             </div>
           </div>
+
+          <p className="premium-period-caption">
+            Semana actual · lunes a domingo · horario argentino
+          </p>
 
           {/* Chart: Y axis + gridlines + baseline always render, even when every value is 0 */}
           <div style={{ display: 'flex', gap: '8px' }}>
