@@ -282,3 +282,29 @@
 .premium-live-hours-dot.within{background:#3B82F6}
 @media(max-width:370px){.premium-settings{padding-left:12px;padding-right:12px}.premium-settings-section{padding:14px!important}}
 @media(max-width:320px){.premium-settings-time-grid{grid-template-columns:minmax(0,1fr)!important}}
+
+/* Tenant logo UI; brand mark remains independent of its cover image. */
+.premium-tenant-avatar{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;min-width:40px;overflow:hidden;border-radius:50%;border:1px solid #DFE8F5;background:linear-gradient(135deg,#EFF6FF,#DBEAFE);color:#2563EB}
+.premium-tenant-avatar-image{display:block;width:100%;height:100%;object-fit:contain}
+.premium-tenant-avatar-letter{font-family:'Syne',sans-serif;font-size:18px;font-weight:700}
+.premium-owner-logo-trigger{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;min-width:46px;border:1px solid #DFE8F5;border-radius:50%;background:#fff;padding:2px;cursor:pointer;box-shadow:0 1px 2px rgba(15,23,42,.06)}
+.premium-owner-logo-trigger:focus-visible{outline:2px solid #2563EB;outline-offset:2px}
+.premium-settings-logo-editor{display:flex;flex-direction:column;gap:12px;background:#F8FAFC;border:1px solid #E7EDF6;border-radius:14px;padding:14px}
+.premium-settings-logo-row{display:flex;align-items:center;gap:12px}
+.premium-settings-logo-row .premium-tenant-avatar{width:54px;height:54px;min-width:54px}
+.premium-settings-logo-row .premium-tenant-avatar-letter{font-size:23px}
+.premium-settings-logo-description{min-width:0;display:flex;flex-direction:column;gap:4px}
+.premium-settings-logo-description strong{font-weight:600;font-size:13px;color:#0F172A}
+.premium-settings-logo-description small{font-size:11px;color:#94A3B8;line-height:1.4}
+.premium-owner-account-overlay{position:fixed;inset:0;z-index:205;display:flex;align-items:flex-end;justify-content:center}
+.premium-owner-account-scrim{position:absolute;inset:0;background:rgba(15,23,42,.33);border:0;cursor:pointer}
+.premium-owner-account-sheet{position:relative;width:100%;max-width:430px;background:#fff;border-radius:22px 22px 0 0;padding:20px 18px max(28px,env(safe-area-inset-bottom));box-shadow:0 -8px 34px rgba(15,23,42,.13);display:flex;flex-direction:column;gap:8px}
+.premium-owner-account-heading{display:flex;align-items:center;gap:11px;border-bottom:1px solid #E7EDF6;padding:0 2px 12px;margin-bottom:5px}
+.premium-owner-account-heading>span:nth-child(2){display:flex;flex:1;min-width:0;flex-direction:column;gap:2px}
+.premium-owner-account-heading strong{font-family:'Syne',sans-serif;font-size:15px;font-weight:650;color:#0F172A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.premium-owner-account-heading small{font-size:11px;color:#94A3B8}
+.premium-owner-account-close{background:#F1F5F9;border:0;border-radius:50%;height:40px;width:40px;min-width:40px;color:#475569;font-size:25px;cursor:pointer}
+.premium-owner-account-action{background:#F8FAFC;border:1px solid #E7EDF6;border-radius:12px;min-height:48px;padding:12px 14px;text-align:left;font-weight:600;font-size:14px;color:#334155;cursor:pointer}
+.premium-owner-account-action:active{background:#DBEAFE}
+.premium-owner-account-action:focus-visible,.premium-owner-account-close:focus-visible{outline:2px solid #2563EB;outline-offset:2px}
+.premium-owner-account-logout{color:#64748B;background:white}

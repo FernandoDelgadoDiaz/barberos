@@ -10,6 +10,7 @@ import { isRealService } from '../../types'
 import { getOwnerDayStatus } from '../../utils/ownerDayStatus'
 import { businessHoursStatus } from '../../utils/businessHoursStatus'
 import { getTenantCoverUrl } from '../../utils/tenantCover'
+import { TenantLogoAvatar } from '../../components/owner/TenantLogoAvatar'
 import '../../styles/owner-premium.css'
 
 function getArgentinaDateString(date = new Date()): string {
@@ -443,26 +444,13 @@ export function LivePanel() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 16px 2px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
           <button
+            type="button"
+            className="premium-owner-logo-trigger"
             onClick={() => ctx.onOpenDrawer?.()}
-            aria-label="Abrir menú"
-            style={{
-              background: '#fff',
-              border: '1px solid #E2E8F0',
-              borderRadius: '50%',
-              width: '36px',
-              height: '36px',
-              minWidth: '36px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              padding: 0,
-              flexShrink: 0,
-            }}
+            aria-label="Abrir opciones de la barbería"
+            aria-haspopup="dialog"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M4 7h16M4 12h16M4 17h16" stroke="#0F172A" strokeWidth="1.8" strokeLinecap="round"/>
-            </svg>
+            <TenantLogoAvatar tenantId={tenant?.id} logoPath={tenant?.logo_url} name={tenant?.name} />
           </button>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{

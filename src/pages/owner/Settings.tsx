@@ -3,6 +3,8 @@ import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 import type { CommissionRule, CommissionRules, Tenant } from '../../types'
 import { TENANT_COVER_BUCKET, getTenantCoverUrl, prepareCoverImage } from '../../utils/tenantCover'
+import { TENANT_LOGO_BUCKET, getTenantLogoUrl, prepareTenantLogo } from '../../utils/tenantLogo'
+import { TenantLogoAvatar } from '../../components/owner/TenantLogoAvatar'
 import '../../styles/owner-premium.css'
 
 export function Settings() {
@@ -12,6 +14,8 @@ export function Settings() {
   const [success, setSuccess] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [coverBusy, setCoverBusy] = useState(false)
+  const [logoBusy, setLogoBusy] = useState(false)
+  const logoFileRef = useRef<HTMLInputElement>(null)
   const [coverPosition, setCoverPosition] = useState(50)
   const coverFileRef = useRef<HTMLInputElement>(null)
 
@@ -64,6 +68,7 @@ export function Settings() {
   // Portadas: guardado independiente del formulario de comisiones/horarios.
   // Los objetos se aíslan por tenant en Supabase Storage mediante RLS.
   const coverUrl = tenant ? getTenantCoverUrl(tenant.id, tenant.cover_image_path) : null
+  const logoUrl = tenant ? getTenantLogoUrl(tenant.id, tenant.logo_url) : null
 
   const handleCoverUpload = async (file?: File) => {
     if (!tenant || !file || coverBusy) return
@@ -157,6 +162,67 @@ export function Settings() {
       setError(err instanceof Error ? err.message : 'No se pudo quitar la portada.')
     } finally {
       setCoverBusy(false)
+    }
+  }
+
+
+  // Logo is distinct from the cover image and its Storage policies are tenant-scoped.
+  const handleLogoUpload = async (file?: File) => {
+    if (!tenant || !file || logoBusy) return
+    setLogoBusy(true)
+    setError(null)
+    setSuccess(null)
+    let uploadedPath: string | null = null
+    const previous = tenant.logo_url
+    try {
+      const optimized = await prepareTenantLogo(file)
+      const path = tenant.id + '/' + crypto.randomUUID() + '.png'
+      const { error: uploadedError } = await supabase.storage.from(TENANT_LOGO_BUCKET)
+        .upload(path, optimized, { contentType: 'image/png', upsert: false, cacheControl: '31536000' })
+      if (uploadedError) throw uploadedError
+      uploadedPath = path
+
+      const { data, error: saveError } = await supabase.from('tenants')
+        .update({ logo_url: path }).eq('id', tenant.id).select().single()
+      if (saveError || !data) throw saveError ?? new Error('No se pudo guardar el logo.')
+      useTenantStore.getState().setTenant(data as Tenant)
+      setSuccess('Logo guardado. Ya está disponible en Inicio y Métricas.')
+      if (previous?.startsWith(tenant.id + '/') && previous !== path) {
+        const { error: oldError } = await supabase.storage.from(TENANT_LOGO_BUCKET).remove([previous])
+        if (oldError) console.warn('Logo anterior pendiente de limpieza:', oldError)
+      }
+    } catch (err: unknown) {
+      if (uploadedPath) {
+        const { error: cleanup } = await supabase.storage.from(TENANT_LOGO_BUCKET).remove([uploadedPath])
+        if (cleanup) console.warn('Logo temporal pendiente de limpieza:', cleanup)
+      }
+      setError(err instanceof Error ? err.message : 'No se pudo subir el logo.')
+    } finally {
+      if (logoFileRef.current) logoFileRef.current.value = ''
+      setLogoBusy(false)
+    }
+  }
+
+  const handleRemoveLogo = async () => {
+    if (!tenant || !logoUrl || logoBusy) return
+    const previous = tenant.logo_url
+    setLogoBusy(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      const { data, error: saveError } = await supabase.from('tenants')
+        .update({ logo_url: null }).eq('id', tenant.id).select().single()
+      if (saveError || !data) throw saveError ?? new Error('No se pudo quitar el logo.')
+      useTenantStore.getState().setTenant(data as Tenant)
+      setSuccess('Logo quitado. Ahora se muestra la inicial del local.')
+      if (previous?.startsWith(tenant.id + '/')) {
+        const { error: cleanup } = await supabase.storage.from(TENANT_LOGO_BUCKET).remove([previous])
+        if (cleanup) console.warn('Logo anterior pendiente de limpieza:', cleanup)
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'No se pudo quitar el logo.')
+    } finally {
+      setLogoBusy(false)
     }
   }
 
@@ -450,10 +516,31 @@ export function Settings() {
             )}
           </section>
 
-          <div className="premium-settings-logo-note">
-            <span className="premium-settings-logo-symbol" aria-hidden="true">◇</span>
-            <span><strong>Logo de la barbería</strong><small>Disponible próximamente</small></span>
-          </div>
+          <section className="premium-settings-logo-editor" aria-label="Logo de la barbería">
+            <div className="premium-cover-heading">Logo de la barbería</div>
+            <p className="premium-cover-explanation">Subí tu logo para el círculo que abre las opciones de cuenta. Es independiente de la foto de portada.</p>
+            <div className="premium-settings-logo-row">
+              <TenantLogoAvatar tenantId={tenant?.id} logoPath={tenant?.logo_url} name={tenant?.name} />
+              <span className="premium-settings-logo-description">
+                <strong>{logoUrl ? 'Logo personalizado' : 'Inicial predeterminada'}</strong>
+                <small>JPG, PNG o WebP · Máximo 10 MB · Se optimiza automáticamente</small>
+              </span>
+            </div>
+            <input ref={logoFileRef} type="file" className="premium-cover-hidden-file"
+              aria-label="Seleccionar logo de la barbería" disabled={logoBusy}
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+              onChange={(event) => { void handleLogoUpload(event.target.files?.[0]) }} />
+            <div className="premium-cover-actions">
+              <button type="button" className="premium-cover-primary" disabled={logoBusy}
+                onClick={() => logoFileRef.current?.click()}>
+                {logoBusy ? 'Guardando...' : logoUrl ? 'Cambiar logo' : 'Subir logo'}
+              </button>
+              {logoUrl && (
+                <button type="button" className="premium-cover-secondary" disabled={logoBusy}
+                  onClick={() => { void handleRemoveLogo() }}>Quitar logo</button>
+              )}
+            </div>
+          </section>
 
           <div className="premium-settings-hours">
             <label style={{ display: 'block', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 400, fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>

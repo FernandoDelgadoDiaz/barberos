@@ -2,6 +2,7 @@ import '../../styles/owner-premium.css'
 import { useEffect, useMemo, useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { useTenantStore } from '../../stores/tenantStore'
+import { TenantLogoAvatar } from '../../components/owner/TenantLogoAvatar'
 import { supabase } from '../../config/supabase'
 
 async function getAuthHeader(): Promise<string> {
@@ -212,24 +213,13 @@ export function Metrics() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
           <button
+            type="button"
+            className="premium-owner-logo-trigger"
             onClick={() => ctx.onOpenDrawer?.()}
-            aria-label="Abrir menú"
-            style={{
-              background: '#fff',
-              border: '1px solid #E2E8F0',
-              borderRadius: '50%',
-              width: '36px',
-              height: '36px',
-              minWidth: '36px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              padding: 0,
-              flexShrink: 0,
-            }}
+            aria-label="Abrir opciones de la barbería"
+            aria-haspopup="dialog"
           >
-            <HamburgerIcon />
+            <TenantLogoAvatar tenantId={tenant?.id} logoPath={tenant?.logo_url} name={tenant?.name} />
           </button>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
