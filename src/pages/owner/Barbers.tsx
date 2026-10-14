@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { Fragment, useState, useEffect, useCallback } from 'react'
 import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 import type { Profile } from '../../types'
@@ -333,8 +333,19 @@ export function Barbers() {
   // ---------------------------------------------------------------------------
   const workingBarbers = barbers.filter(b => b.role === 'barber' || b.works_as_barber)
   const activeCount = workingBarbers.filter(b => b.is_active).length
-  const archivedCount = barbers.filter(b => b.role === 'barber' && !b.is_active).length
-  const visibleBarbers = barbers.filter(b => b.is_active || b.role === 'owner' || showArchived)
+  const activeBarbers = barbers.filter(b => b.is_active || b.role === 'owner')
+  const archivedBarbers = barbers.filter(b => b.role === 'barber' && !b.is_active)
+  const archivedCount = archivedBarbers.length
+  const visibleBarbers = showArchived ? [...activeBarbers, ...archivedBarbers] : activeBarbers
+  const archivedToggle = archivedCount > 0 && (
+    <button
+      type="button"
+      onClick={() => setShowArchived(value => !value)}
+      style={{ alignSelf: 'flex-start', padding: '10px 4px', background: 'transparent', border: 'none', color: C.blue, fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+    >
+      {showArchived ? 'Ocultar archivados' : `Ver archivados (${archivedCount})`}
+    </button>
+  )
 
   return (
     <div style={rootStyle}>
@@ -419,23 +430,24 @@ export function Barbers() {
         </svg>
       </button>
 
-      {archivedCount > 0 && (
-        <button
-          type="button"
-          onClick={() => setShowArchived(value => !value)}
-          style={{ marginTop: '16px', padding: '10px 4px', background: 'transparent', border: 'none', color: C.blue, fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
-        >
-          {showArchived ? 'Ocultar archivados' : `Ver archivados (${archivedCount})`}
-        </button>
-      )}
-
       {/* Barber list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
-        {visibleBarbers.map((barber) => {
+        <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '17px', color: C.ink }}>
+          Equipo activo
+        </div>
+        {visibleBarbers.map((barber, index) => {
           const menuOpen = openMenuId === barber.id
           return (
+            <Fragment key={barber.id}>
+            {showArchived && index === activeBarbers.length && (
+              <div style={{ marginTop: '12px', paddingTop: '20px', borderTop: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
+                {archivedToggle}
+                <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '17px', color: C.slate600 }}>
+                  Barberos archivados ({archivedCount})
+                </span>
+              </div>
+            )}
             <div
-              key={barber.id}
               style={{
                 position: 'relative',
                 background: '#fff',
@@ -539,7 +551,7 @@ export function Barbers() {
                       background: barber.is_active ? C.greenDot : C.slate400,
                     }}
                   />
-                  {barber.is_active ? 'Disponible' : 'No disponible'}
+                  {barber.is_active ? 'Disponible' : barber.role === 'barber' ? 'Archivado' : 'No disponible'}
                 </span>
               </div>
 
@@ -681,8 +693,10 @@ export function Barbers() {
                 </button>
               </div>
             </div>
+            </Fragment>
           )
         })}
+        {!showArchived && archivedToggle}
       </div>
 
       {/* Info card */}
