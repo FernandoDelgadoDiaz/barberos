@@ -2,6 +2,7 @@ import '../../styles/owner-premium.css'
 import { useEffect, useMemo, useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { useTenantStore } from '../../stores/tenantStore'
+import { TenantLogoAvatar } from '../../components/owner/TenantLogoAvatar'
 import { supabase } from '../../config/supabase'
 
 async function getAuthHeader(): Promise<string> {
@@ -85,12 +86,6 @@ const CalendarBtnIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <rect x="3" y="5" width="18" height="16" rx="2" stroke="#475569" strokeWidth="1.6" />
     <path d="M16 3v4M8 3v4M3 10h18" stroke="#475569" strokeWidth="1.6" strokeLinecap="round" />
-  </svg>
-)
-
-const HamburgerIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M4 7h16M4 12h16M4 17h16" stroke="#0F172A" strokeWidth="1.8" strokeLinecap="round" />
   </svg>
 )
 
@@ -212,24 +207,13 @@ export function Metrics() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
           <button
+            type="button"
+            className="premium-owner-logo-trigger"
             onClick={() => ctx.onOpenDrawer?.()}
-            aria-label="Abrir menú"
-            style={{
-              background: '#fff',
-              border: '1px solid #E2E8F0',
-              borderRadius: '50%',
-              width: '36px',
-              height: '36px',
-              minWidth: '36px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              padding: 0,
-              flexShrink: 0,
-            }}
+            aria-label="Abrir opciones de la barbería"
+            aria-haspopup="dialog"
           >
-            <HamburgerIcon />
+            <TenantLogoAvatar tenantId={tenant?.id} logoPath={tenant?.logo_url} name={tenant?.name} />
           </button>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

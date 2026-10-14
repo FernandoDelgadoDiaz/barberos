@@ -4,6 +4,8 @@ import { useTenantStore } from '../../stores/tenantStore'
 import { useAuth } from '../../hooks/useAuth'
 import { TrialExpiredGuard } from '../TrialExpiredGuard'
 import { SuspendedGuard } from '../SuspendedGuard'
+import { TenantLogoAvatar } from '../owner/TenantLogoAvatar'
+import '../../styles/owner-premium.css'
 
 // Bottom-nav / drawer icons. 24px nominal stroke icons.
 const NavIcon = ({ label, active }: { label: string; active?: boolean }) => {
@@ -68,6 +70,13 @@ export function OwnerLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   useEffect(() => {
+    if (!drawerOpen) return
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setDrawerOpen(false) }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [drawerOpen])
+
+  useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768)
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
@@ -96,57 +105,38 @@ export function OwnerLayout() {
   if (isMobile) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#F4F6FA', overflowX: 'hidden' }}>
-        {/* Drawer (hamburger menu) — includes Configuración and logout */}
+        {/* Account actions only; navigation lives in the fixed bottom bar. */}
         {drawerOpen && (
-          <>
-            <div
-              onClick={() => setDrawerOpen(false)}
-              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200 }}
-            />
-            <div style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: '78%', maxWidth: '320px', background: '#fff', zIndex: 201, padding: '24px 20px', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: '#0F172A', marginBottom: '4px' }}>
-                {tenant?.name}
+          <div className="premium-owner-account-overlay">
+            <button type="button" className="premium-owner-account-scrim"
+              aria-label="Cerrar opciones de la barbería" onClick={() => setDrawerOpen(false)} />
+            <section className="premium-owner-account-sheet" role="dialog" aria-modal="true"
+              aria-label="Opciones de la barbería">
+              <div className="premium-owner-account-heading">
+                <TenantLogoAvatar tenantId={tenant?.id} logoPath={tenant?.logo_url} name={tenant?.name} />
+                <span>
+                  <strong>{tenant?.name || 'Tu barbería'}</strong>
+                  <small>Opciones de cuenta</small>
+                </span>
+                <button type="button" className="premium-owner-account-close"
+                  aria-label="Cerrar opciones" onClick={() => setDrawerOpen(false)}>×</button>
               </div>
-              <div style={{ fontSize: '12px', color: '#94A3B8', marginBottom: '24px' }}>
-                Panel de administración
-              </div>
-              <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {navItems.map(({ to, label }) => (
-                  <NavLink
-                    key={to}
-                    to={to}
-                    onClick={() => setDrawerOpen(false)}
-                    style={({ isActive }) => ({
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      padding: '12px 12px',
-                      borderRadius: '10px',
-                      fontSize: '14px',
-                      fontWeight: 500,
-                      color: isActive ? '#2563EB' : '#475569',
-                      background: isActive ? '#EFF6FF' : 'transparent',
-                      textDecoration: 'none',
-                    })}
-                  >
-                    <NavIcon label={label} active={false} />
-                    <span>{label}</span>
-                  </NavLink>
-                ))}
-              </nav>
+              <button type="button" className="premium-owner-account-action"
+                onClick={() => { setDrawerOpen(false); navigate('/owner/settings') }}>
+                Configuración
+              </button>
               {profile?.works_as_barber && (
-                <button onClick={() => navigate('/barber/dashboard')} style={{ background: '#EFF6FF', border: '1px solid #DBEAFE', borderRadius: '10px', padding: '12px', fontSize: '14px', cursor: 'pointer', color: '#2563EB', fontWeight: 600, marginBottom: '10px' }}>
+                <button type="button" className="premium-owner-account-action"
+                  onClick={() => { setDrawerOpen(false); navigate('/barber/dashboard') }}>
                   Ir a mi panel de barbero
                 </button>
               )}
-              <button
-                onClick={handleSignOut}
-                style={{ background: 'transparent', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '12px', fontSize: '14px', cursor: 'pointer', color: '#0F172A', fontWeight: 500 }}
-              >
+              <button type="button" className="premium-owner-account-action premium-owner-account-logout"
+                onClick={() => { setDrawerOpen(false); void handleSignOut() }}>
                 Cerrar sesión
               </button>
-            </div>
-          </>
+            </section>
+          </div>
         )}
 
         {/* Content */}
