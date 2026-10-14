@@ -155,9 +155,9 @@ export function LivePanel() {
   const totalBarberEarningsExTips = logs.reduce((sum, log) => sum + log.barber_earning - (log.tip_amount ?? 0), 0)
   const totalOthers = logs.reduce((sum, log) => sum + (log.others_amount ?? 0), 0)
 
-  // Real "barberos activos X de Y" — based on existing isActive (had a service in last hour).
-  const activeBarbersCount = barberStats.filter(s => s.isActive).length
-  const totalBarbersCount = barbers.length
+  // The panel only loads enabled barbers; recent service activity is tracked
+  // separately by BarberStats.isActive for the individual cards.
+  const activeBarbersCount = barbers.length
 
   // Real average ticket
   const avgTicket = totalServices > 0 ? Math.round(totalDay / totalServices) : 0
@@ -208,6 +208,7 @@ export function LivePanel() {
         .select('*')
         .eq('tenant_id', tenantId)
         .eq('role', 'barber')
+        .eq('is_active', true)
         .order('display_name')
 
       if (barbersError) throw barbersError
@@ -699,7 +700,7 @@ export function LivePanel() {
             iconBg="#7C3AED"
             label="Barberos activos"
             value={`${activeBarbersCount}`}
-            sub={`de ${totalBarbersCount}`}
+            sub="Habilitados"
             labelSize={fs.metricLabel}
             valueSize={fs.metricNumber}
             subSize={fs.metricSub}
