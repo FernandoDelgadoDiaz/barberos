@@ -8,6 +8,7 @@ import { GraceBanner } from '../../components/GraceBanner'
 import type { ServiceLog, Profile, DailyExpense } from '../../types'
 import { isRealService } from '../../types'
 import { getOwnerDayStatus } from '../../utils/ownerDayStatus'
+import { getTenantCoverUrl } from '../../utils/tenantCover'
 import '../../styles/owner-premium.css'
 
 function getArgentinaDateString(date = new Date()): string {
@@ -378,6 +379,7 @@ export function LivePanel() {
     return h >= 0 && h < 6
   })()
   const periodLabel = isPostMidnight ? 'Última jornada' : 'Hoy'
+  const coverUrl = tenant ? getTenantCoverUrl(tenant.id, tenant.cover_image_path) : null
   const dayStatus = getOwnerDayStatus({ isOpen, isPostMidnight, serviceCount: totalServices, recordCount: logs.length })
 
   if (loading) {
@@ -610,6 +612,16 @@ export function LivePanel() {
               {dayStatus.recordLabel}
             </span>
           </div>
+          {coverUrl && (
+            <div
+              className="premium-live-cover"
+              aria-hidden="true"
+              style={{
+                backgroundImage: `url("${coverUrl}")`,
+                backgroundPosition: `center ${tenant?.cover_image_position ?? 50}%`,
+              }}
+            />
+          )}
         </div>
       </div>
 
