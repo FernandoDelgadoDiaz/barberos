@@ -431,6 +431,20 @@ export function LivePanel() {
       {/* Aviso de gracia (suscripción vencida) — primer elemento del contenido */}
       <GraceBanner style={{ margin: '12px 16px 0' }} />
 
+      {/* Identidad del local: imagen panorámica propia, fuera de toda métrica.
+          Si el tenant no configuró portada, no se reserva espacio vacío. */}
+      {coverUrl && (
+        <div
+          className="premium-live-cover-banner"
+          role="img"
+          aria-label={`Portada de ${tenant?.name || 'la barbería'}`}
+          style={{
+            backgroundImage: `url("${coverUrl}")`,
+            backgroundPosition: `center ${tenant?.cover_image_position ?? 50}%`,
+          }}
+        />
+      )}
+
       {/* Top header (mobile) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 4px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
@@ -612,16 +626,6 @@ export function LivePanel() {
               {dayStatus.recordLabel}
             </span>
           </div>
-          {coverUrl && (
-            <div
-              className="premium-live-cover"
-              aria-hidden="true"
-              style={{
-                backgroundImage: `url("${coverUrl}")`,
-                backgroundPosition: `center ${tenant?.cover_image_position ?? 50}%`,
-              }}
-            />
-          )}
         </div>
       </div>
 

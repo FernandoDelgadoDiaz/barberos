@@ -161,14 +161,26 @@
 .premium-live-status-body{margin:4px 0 0;font-family:'Space Grotesk',sans-serif;font-size:clamp(12px,3.1vw,13px);font-weight:400;line-height:1.45;color:var(--live-muted)}
 @media(max-width:355px){.premium-live-metric{padding:10px!important;gap:5px!important}.premium-live-metric>div:nth-child(2)>div:nth-child(2){font-size:15px!important}}
 
-/* Tenant cover: identity stays behind verified financial totals. */
-.premium-live-hero{isolation:isolate}
-.premium-live-hero>.premium-live-cover{
-  position:absolute;inset:0;z-index:0;pointer-events:none;
-  background-size:cover;background-repeat:no-repeat;
-  opacity:.19;filter:saturate(.78) blur(.5px);
+/* Tenant identity is its own compact, vibrant header; never overlays the amounts. */
+.premium-live .premium-live-cover-banner {
+  display: block;
+  position: relative;
+  width: calc(100% - 32px);
+  height: 112px;
+  margin: 8px 16px 10px;
+  border: 1px solid #D7E6FF;
+  border-radius: 16px;
+  box-sizing: border-box;
+  background-color: #E8F1FF;
+  background-repeat: no-repeat;
+  background-size: cover;
+  /* Position is controlled independently by each owner's settings. */
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .065);
 }
-.premium-live-hero>div:not(.premium-live-cover){position:relative;z-index:1}
+@media (max-width: 355px) {
+  .premium-live .premium-live-cover-banner { height: 100px; }
+}
 .premium-cover-settings{
   display:flex;flex-direction:column;gap:12px;
   font-family:'Space Grotesk',sans-serif;color:#0F172A;
@@ -176,14 +188,47 @@
 .premium-cover-heading{font-family:'Syne',sans-serif;font-weight:600;font-size:16px;letter-spacing:-.25px}
 .premium-cover-explanation{margin:0;color:#64748B;font-size:13px;line-height:1.5}
 .premium-cover-preview{
-  position:relative;min-height:154px;display:flex;flex-direction:column;align-items:flex-start;
-  justify-content:center;gap:7px;overflow:hidden;box-sizing:border-box;
-  border:1px solid #D7E6FF;border-radius:16px;padding:18px 20px;
-  background:#EFF6FF;background-repeat:no-repeat;background-size:cover;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  background:#F8FAFC;
+  border:1px solid #E7EDF6;
+  border-radius:16px;
+  padding:10px;
 }
-.premium-cover-preview-label{position:relative;color:#64748B;font-size:12px;font-weight:500}
-.premium-cover-preview-value{position:relative;font-family:'Inter',system-ui,sans-serif;font-size:38px;font-weight:700;line-height:1.15;letter-spacing:-1px;color:#0F172A}
-.premium-cover-preview-meta{position:relative;color:#64748B;font-size:11px;line-height:1.25}
+.premium-cover-preview-photo{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:110px;
+  height:110px;
+  border-radius:11px;
+  background:#EAF1FA;
+  background-repeat:no-repeat;
+  background-size:cover;
+  color:#64748B;
+  font-size:12px;
+  font-weight:500;
+}
+.premium-cover-preview-name{
+  padding:3px 6px 2px;
+  font-family:'Syne',sans-serif;
+  font-weight:650;
+  color:#0F172A;
+  font-size:14px;
+}
+.premium-cover-preview-revenue{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  padding:12px 14px;
+  border:1px solid #D7E6FF;
+  border-radius:12px;
+  background:linear-gradient(135deg,#F0F5FF,#E8F1FF);
+}
+.premium-cover-preview-label{color:#64748B;font-size:12px;font-weight:500}
+.premium-cover-preview-value{font-family:'Inter',system-ui,sans-serif;font-size:28px;font-weight:700;color:#0F172A;line-height:1.1}
+.premium-cover-preview-meta{color:#94A3B8;font-size:11px;line-height:1.3}
 .premium-cover-hidden-file{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
 .premium-cover-actions{display:flex;gap:10px;flex-wrap:wrap}
 .premium-cover-actions button,.premium-cover-position button{min-height:44px;padding:9px 16px;border-radius:11px;font-size:13px;font-family:'Space Grotesk',sans-serif;font-weight:600;cursor:pointer}

@@ -409,20 +409,26 @@ export function Settings() {
           <section className="premium-cover-settings" aria-label="Foto de portada de la barbería">
             <div className="premium-cover-heading">Foto de portada de Inicio</div>
             <p className="premium-cover-explanation">
-              Dale identidad a tu panel con una foto de tu local. La imagen aparecerá suavizada detrás de la facturación para mantener los números legibles.
+              Mostrá tu barbería en el encabezado de Inicio. La foto conserva sus colores; la facturación se muestra debajo, en una tarjeta independiente.
             </p>
-            <div
-              className={`premium-cover-preview${coverUrl ? ' has-photo' : ''}`}
-              style={coverUrl ? {
-                backgroundImage: `linear-gradient(rgba(240,246,255,0.74), rgba(240,246,255,0.74)), url("${coverUrl}")`,
-                backgroundPosition: `center, center ${coverPosition}%`,
-              } : undefined}
-              role="img"
-              aria-label={coverUrl ? 'Vista previa de la portada sobre la facturación' : 'Portada sin foto, diseño predeterminado'}
-            >
-              <span className="premium-cover-preview-label">Facturación hoy</span>
-              <strong className="premium-cover-preview-value">$0</strong>
-              <span className="premium-cover-preview-meta">Diseño ilustrativo · tus valores reales no cambian</span>
+            <div className="premium-cover-preview" aria-label="Vista previa del encabezado de Inicio">
+              <div
+                className={`premium-cover-preview-photo${coverUrl ? ' has-photo' : ''}`}
+                style={coverUrl ? {
+                  backgroundImage: `url("${coverUrl}")`,
+                  backgroundPosition: `center ${coverPosition}%`,
+                } : undefined}
+                role="img"
+                aria-label={coverUrl ? 'Portada del local a color' : 'Sin foto de portada'}
+              >
+                {!coverUrl && <span>Sin foto de portada</span>}
+              </div>
+              <div className="premium-cover-preview-name">{tenant?.name || 'Tu barbería'}</div>
+              <div className="premium-cover-preview-revenue">
+                <span className="premium-cover-preview-label">Facturación hoy</span>
+                <strong className="premium-cover-preview-value">—</strong>
+                <span className="premium-cover-preview-meta">Ejemplo visual · no son datos de facturación</span>
+              </div>
             </div>
             <input
               ref={coverFileRef}
@@ -453,7 +459,7 @@ export function Settings() {
             </p>
             {coverUrl && (
               <div className="premium-cover-position">
-                <label htmlFor="cover-vertical-position">Ajustar encuadre vertical</label>
+                <label htmlFor="cover-vertical-position">Ajustar encuadre de la foto del encabezado</label>
                 <input
                   id="cover-vertical-position"
                   type="range"
