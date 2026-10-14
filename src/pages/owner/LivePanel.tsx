@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 import { useServiceLogsRealtime } from '../../hooks/useRealtime'
@@ -71,8 +71,7 @@ export type BarberStats = {
   servicesCount: number
   totalGenerated: number
   ownerCommission: number
-  lastServiceAt: string | null
-  isActive: boolean
+  hasRecordsInPeriod: boolean
   highlight: boolean
   appointments: AppointmentWithServices[]
   barberEarnings: number
@@ -83,6 +82,7 @@ type OutletCtx = { onOpenDrawer?: () => void }
 export function LivePanel() {
   const { tenant, profile } = useTenantStore()
   const tenantId = tenant?.id || profile?.tenant_id
+  const navigate = useNavigate()
   const ctx = useOutletContext<OutletCtx>() || {}
 
   const [logs, setLogs] = useState<ServiceLogWithDetails[]>([])
@@ -110,12 +110,7 @@ export function LivePanel() {
     const totalGenerated = barberLogs.reduce((sum, log) => sum + log.price_charged, 0)
     const ownerCommission = barberLogs.reduce((sum, log) => sum + log.owner_earning, 0)
     const barberEarnings = barberLogs.reduce((sum, log) => sum + log.barber_earning, 0)
-    const lastServiceAt = barberLogs.length > 0
-      ? barberLogs[barberLogs.length - 1].started_at
-      : null
-    const isActive = lastServiceAt
-      ? (Date.now() - new Date(lastServiceAt).getTime()) < 60 * 60 * 1000
-      : false
+    const hasRecordsInPeriod = barberLogs.length > 0
 
     const appointmentsMap = new Map<string, AppointmentWithServices>()
     barberLogs.forEach(log => {
@@ -144,8 +139,7 @@ export function LivePanel() {
       totalGenerated,
       ownerCommission,
       barberEarnings,
-      lastServiceAt,
-      isActive,
+      hasRecordsInPeriod,
       highlight: highlightBarberId === barber.id,
       appointments
     }
@@ -155,12 +149,14 @@ export function LivePanel() {
   const totalBarberEarningsExTips = logs.reduce((sum, log) => sum + log.barber_earning - (log.tip_amount ?? 0), 0)
   const totalOthers = logs.reduce((sum, log) => sum + (log.others_amount ?? 0), 0)
 
-  // The panel only loads enabled barbers; recent service activity is tracked
-  // separately by BarberStats.isActive for the individual cards.
+  // The panel only loads enabled barbers. A recorded visit does not establish
+  // whether a barber is currently free or busy.
   const activeBarbersCount = barbers.length
 
-  // Real average ticket
-  const avgTicket = totalServices > 0 ? Math.round(totalDay / totalServices) : 0
+  // A visit can contain several services (or products), but is one ticket.
+  // Older logs without an appointment use the same fallback grouping as History.
+  const ticketsToday = new Set(logs.map(log => log.appointment_id || `${log.barber_id}-${log.started_at}`)).size
+  const avgTicket = ticketsToday > 0 ? Math.round(totalDay / ticketsToday) : 0
 
   const loadInitialData = useCallback(async () => {
     if (!tenantId) {
@@ -290,8 +286,8 @@ export function LivePanel() {
   useEffect(() => {
     if (!tenantId) return
     const checkDateChange = () => {
-      const todayArgentina = getArgentinaDateString()
-      if (currentDate && currentDate !== todayArgentina) {
+      const targetArgentina = getTargetArgentinaDate()
+      if (currentDate && currentDate !== targetArgentina) {
         loadInitialData()
       }
     }
@@ -352,6 +348,13 @@ export function LivePanel() {
   }
 
   const greetingName = profile?.display_name?.split(' ')[0] || ''
+  const localHour = Number(new Date().toLocaleString('en-US', {
+    hour: 'numeric', hour12: false,
+    timeZone: 'America/Argentina/Buenos_Aires'
+  }))
+  const greeting = localHour >= 6 && localHour < 12
+    ? 'Buenos días'
+    : localHour >= 12 && localHour < 20 ? 'Buenas tardes' : 'Buenas noches'
 
   const isPostMidnight = (() => {
     const h = parseInt(new Date().toLocaleString('en-US', {
@@ -360,6 +363,7 @@ export function LivePanel() {
     }))
     return h >= 0 && h < 6
   })()
+  const periodLabel = isPostMidnight ? 'Última jornada' : 'Hoy'
 
   if (loading) {
     return (
@@ -385,9 +389,9 @@ export function LivePanel() {
     heroPill: 'clamp(10px, 3.08vw, 12px)',         // 12px @390
     heroNumber: 'clamp(34px, 11.79vw, 46px)',      // 46px @390
     heroNeutralPill: 'clamp(10px, 3.08vw, 12px)',  // 12px @390
-    metricLabel: 'clamp(9px, 2.82vw, 11px)',       // 11px @390 (min 9px @320)
-    metricNumber: 'clamp(13px, 4.1vw, 16px)',      // 16px @390
-    metricSub: 'clamp(9px, 2.56vw, 10px)',         // 10px @390
+    metricLabel: 'clamp(12px, 3.33vw, 14px)',
+    metricNumber: 'clamp(17px, 4.62vw, 20px)',
+    metricSub: 'clamp(11px, 3.08vw, 12px)',
     sectionTitle: 'clamp(14px, 4.1vw, 16px)',      // 16px @390
     sectionLink: 'clamp(11px, 3.33vw, 13px)',      // 13px @390
     insightKicker: 'clamp(10px, 2.82vw, 11px)',    // 11px @390
@@ -448,62 +452,10 @@ export function LivePanel() {
               textOverflow: 'ellipsis',
             }}>
               {greetingName
-                ? <>¡Buenos días, <span style={{ fontWeight: 500, color: '#2563EB' }}>{greetingName}</span>! <span aria-hidden="true">👋</span></>
-                : <>¡Buenos días! <span aria-hidden="true">👋</span></>}
+                ? <>¡{greeting}, <span style={{ fontWeight: 500, color: '#2563EB' }}>{greetingName}</span>! <span aria-hidden="true">👋</span></>
+                : <>¡{greeting}! <span aria-hidden="true">👋</span></>}
             </div>
           </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, marginLeft: '8px' }}>
-          <button
-            aria-label="Notificaciones"
-            style={{
-              position: 'relative',
-              background: '#fff',
-              border: '1px solid #E2E8F0',
-              borderRadius: '50%',
-              width: '36px',
-              height: '36px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              padding: 0,
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M6 8a6 6 0 1 1 12 0c0 5 2 6 2 7H4c0-1 2-2 2-7z" stroke="#475569" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M10 19a2 2 0 0 0 4 0" stroke="#475569" strokeWidth="1.6" strokeLinecap="round"/>
-            </svg>
-            <span style={{
-              position: 'absolute',
-              top: '8px',
-              right: '9px',
-              width: '7px',
-              height: '7px',
-              borderRadius: '50%',
-              background: '#2563EB',
-              border: '1.5px solid #fff',
-            }} aria-hidden="true" />
-          </button>
-          <button
-            aria-label="Mensajes"
-            style={{
-              background: '#fff',
-              border: '1px solid #E2E8F0',
-              borderRadius: '50%',
-              width: '36px',
-              height: '36px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              padding: 0,
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-4 4V6z" stroke="#475569" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
         </div>
       </div>
 
@@ -526,14 +478,14 @@ export function LivePanel() {
             overflow: 'hidden',
             textOverflow: 'ellipsis',
           }}>
-            {isOpen ? 'Abierto' : 'Cerrado'}
+            {isOpen ? 'Dentro del horario' : 'Fuera de horario'}
             <span style={{ color: '#64748B' }}>
               {' · '}
-              {isOpen ? `Cierra a las ${formatClosing(closingTime)}` : `Abre a las ${formatClosing(openingTime)}`}
+              {formatClosing(openingTime)}–{formatClosing(closingTime)}
             </span>
           </span>
         </div>
-        <span style={{
+        <button type="button" onClick={() => navigate('/owner/settings')} style={{
           fontSize: fs.stateLink,
           color: '#2563EB',
           fontWeight: 600,
@@ -541,21 +493,25 @@ export function LivePanel() {
           alignItems: 'center',
           gap: '2px',
           flexShrink: 0,
+          background: 'transparent',
+          border: 0,
+          cursor: 'pointer',
+          padding: '8px 0 8px 8px',
         }}>
           Ver horario
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M9 6l6 6-6 6" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-        </span>
+        </button>
       </div>
 
-      {/* Hero: blue gradient with curve — 358×180 @390 */}
+      {/* Daily revenue summary. */}
       <div style={{ margin: '0 16px' }}>
         <div style={{
           position: 'relative',
           borderRadius: '20px',
           padding: '18px',
-          minHeight: '180px',
+          minHeight: '160px',
           background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 55%, #1D4ED8 100%)',
           color: '#fff',
           overflow: 'hidden',
@@ -585,7 +541,7 @@ export function LivePanel() {
           <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: fs.heroLabel, color: '#fff', fontWeight: 600 }}>
-                <span>Facturación hoy</span>
+                <span>{isPostMidnight ? 'Facturación última jornada' : 'Facturación hoy'}</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.9)" strokeWidth="1.6" />
                   <path d="M12 11v5" stroke="rgba(255,255,255,0.9)" strokeWidth="1.8" strokeLinecap="round" />
@@ -604,10 +560,7 @@ export function LivePanel() {
                 fontWeight: 500,
                 flexShrink: 0,
               }}>
-                <span>Hoy</span>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M6 9l6 6 6-6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <span>{periodLabel}</span>
               </div>
             </div>
             <div style={{
@@ -646,31 +599,27 @@ export function LivePanel() {
                 display: 'inline-block',
                 boxShadow: '0 0 0 3px rgba(34,197,94,0.25)',
               }} aria-hidden="true" />
-              En tiempo real
+              Registros de la jornada
             </span>
           </div>
         </div>
       </div>
 
-      {/* 4 metric cards — horizontal row, fits in 390, scrolls only if narrower */}
+      {/* Two columns keep labels and amounts readable on narrow phones. */}
       <div style={{ padding: '20px 0 0' }}>
         <div
           style={{
-            display: 'flex',
-            flexDirection: 'row',
-            gap: '8px',
-            overflowX: 'auto',
-            overflowY: 'hidden',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+            gap: '10px',
             padding: '4px 16px',
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'none',
           }}
         >
           <MetricCard
             iconBg="#2563EB"
-            label="Servicios hoy"
+            label={isPostMidnight ? 'Servicios última jornada' : 'Servicios hoy'}
             value={totalServices.toString()}
-            sub="En vivo"
+            sub={periodLabel}
             labelSize={fs.metricLabel}
             valueSize={fs.metricNumber}
             subSize={fs.metricSub}
@@ -683,9 +632,9 @@ export function LivePanel() {
           />
           <MetricCard
             iconBg="#059669"
-            label="Ganancia hoy"
+            label="Parte del dueño"
             value={`$${ownerEarning.toLocaleString()}`}
-            sub="En vivo"
+            sub="Antes de gastos"
             labelSize={fs.metricLabel}
             valueSize={fs.metricNumber}
             subSize={fs.metricSub}
@@ -716,8 +665,8 @@ export function LivePanel() {
           <MetricCard
             iconBg="#EA580C"
             label="Ticket promedio"
-            value={totalServices > 0 ? `$${avgTicket.toLocaleString()}` : '$0'}
-            sub="Por servicio"
+            value={ticketsToday > 0 ? `$${avgTicket.toLocaleString()}` : '$0'}
+            sub="Por atención"
             labelSize={fs.metricLabel}
             valueSize={fs.metricNumber}
             subSize={fs.metricSub}
@@ -731,7 +680,7 @@ export function LivePanel() {
         </div>
       </div>
 
-      {/* Barberos en tiempo real */}
+      {/* Today's recorded activity by enabled barber. */}
       <div style={{ padding: '24px 16px 0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
           <h2 style={{
@@ -741,9 +690,9 @@ export function LivePanel() {
             color: '#0F172A',
             margin: 0,
           }}>
-            Barberos en tiempo real
+            Actividad por barbero
           </h2>
-          <span style={{ fontSize: fs.sectionLink, color: '#2563EB', fontWeight: 600 }}>Ver todos</span>
+          <button type="button" onClick={() => navigate('/owner/barbers')} style={{ fontSize: fs.sectionLink, color: '#2563EB', fontWeight: 600, background: 'transparent', border: 0, cursor: 'pointer', padding: '8px 0 8px 8px' }}>Ver barberos</button>
         </div>
         {barberStats.length === 0 ? (
           <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', textAlign: 'center', color: '#64748B', border: '1px solid #F1F5F9' }}>
@@ -1033,8 +982,7 @@ export function LivePanel() {
   )
 }
 
-/* Internal metric card — 82×105 @390, padding 10, radius 16. White bg + 32×32 colored
-   icon square. No progress bars, no "Objetivo" copy. */
+/* Internal metric card — two columns on mobile, so amounts remain readable. */
 function MetricCard({
   iconBg,
   label,
@@ -1064,14 +1012,10 @@ function MetricCard({
       display: 'flex',
       flexDirection: 'column',
       gap: '6px',
-      // Fluid width: ~82px @390 (4 cards + 3 gaps + 32px padding ≈ 390)
-      // Use percentage minus gap allowance so 4 cards fit holgado @390.
-      width: 'calc((100% - 24px) / 4)',
-      minWidth: '78px',
-      maxWidth: '110px',
-      flexShrink: 0,
+      width: '100%',
+      minWidth: 0,
       boxSizing: 'border-box',
-      minHeight: '105px',
+      minHeight: '100px',
     }}>
       <div style={{
         width: '32px',

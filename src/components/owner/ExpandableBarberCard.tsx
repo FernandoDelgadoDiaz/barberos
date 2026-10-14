@@ -60,7 +60,7 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
     .reduce((sum, s) => sum + s.price_charged, 0)
 
   const clientCount = stats.appointments.length
-  const isWorking = stats.isActive
+  const hasRecordsInPeriod = stats.hasRecordsInPeriod
 
   // Responsive font helpers (anchor @390 mockup width).
   const fs = {
@@ -96,7 +96,7 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
           }}>
             {initial}
           </div>
-          {/* Status dot: 12px, green if active, gray if inactive */}
+          {/* The dot indicates recorded activity in the selected period, not live availability. */}
           <span style={{
             position: 'absolute',
             bottom: 0,
@@ -104,7 +104,7 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
             width: '12px',
             height: '12px',
             borderRadius: '50%',
-            background: isWorking ? '#22C55E' : '#94A3B8',
+            background: hasRecordsInPeriod ? '#22C55E' : '#94A3B8',
             border: '2px solid #fff',
           }} aria-hidden="true" />
         </div>
@@ -128,12 +128,12 @@ export function ExpandableBarberCard({ stats }: ExpandableBarberCardProps) {
               fontSize: fs.badge,
               padding: '2px 8px',
               borderRadius: '999px',
-              background: isWorking ? '#DCFCE7' : '#F1F5F9',
-              color: isWorking ? '#15803D' : '#64748B',
+              background: hasRecordsInPeriod ? '#DCFCE7' : '#F1F5F9',
+              color: hasRecordsInPeriod ? '#15803D' : '#64748B',
               fontWeight: 600,
               whiteSpace: 'nowrap',
             }}>
-              {isWorking ? 'Trabajando' : 'Disponible'}
+              {hasRecordsInPeriod ? 'Con registros' : 'Sin registros'}
             </span>
           </div>
           <div style={{
