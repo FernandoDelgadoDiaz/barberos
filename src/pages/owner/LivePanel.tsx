@@ -8,6 +8,7 @@ import { GraceBanner } from '../../components/GraceBanner'
 import type { ServiceLog, Profile, DailyExpense } from '../../types'
 import { isRealService } from '../../types'
 import { getOwnerDayStatus } from '../../utils/ownerDayStatus'
+import { businessHoursStatus } from '../../utils/businessHoursStatus'
 import { getTenantCoverUrl } from '../../utils/tenantCover'
 import '../../styles/owner-premium.css'
 
@@ -94,11 +95,19 @@ export function LivePanel() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [highlightBarberId, setHighlightBarberId] = useState<string | null>(null)
   const [currentDate, setCurrentDate] = useState<string>('')
+  const [clockNow, setClockNow] = useState(() => new Date())
   const [expenses, setExpenses] = useState<DailyExpense[]>([])
   const [showExpenseModal, setShowExpenseModal] = useState(false)
   const [expenseForm, setExpenseForm] = useState({ description: '', amount: '' })
   const [savingExpense, setSavingExpense] = useState(false)
   const isMounted = useRef(true)
+
+  useEffect(() => {
+    const tick = () => setClockNow(new Date())
+    const interval = window.setInterval(tick, 60_000)
+    window.addEventListener('focus', tick)
+    return () => { window.clearInterval(interval); window.removeEventListener('focus', tick) }
+  }, [])
 
   // Totals.
   // La plata suma TODAS las filas (incluidas las portadoras de ventas sueltas de
@@ -337,30 +346,15 @@ export function LivePanel() {
 
   useServiceLogsRealtime(tenantId || '', handleNewLog)
 
-  // Open/close logic for "estado abierto"
-  const parseTimeToMinutes = (timeStr: string) => {
-    const [hours, minutes] = timeStr.split(':').map(Number)
-    return hours * 60 + minutes
-  }
+  // Horario configurado: no equivale a apertura física comprobada.
   const closingTime = tenant?.closing_time || '21:00'
   const openingTime = tenant?.opening_time || '09:00'
-  const isOpen = (() => {
-    const argTimeStr = new Date().toLocaleTimeString('en-GB', {
-      hour: '2-digit', minute: '2-digit', hour12: false,
-      timeZone: 'America/Argentina/Buenos_Aires'
-    })
-    const nowMin = parseTimeToMinutes(argTimeStr)
-    return nowMin >= parseTimeToMinutes(openingTime) && nowMin < parseTimeToMinutes(closingTime)
-  })()
-  // Format "10:00 p.m."
-  const formatClosing = (timeStr: string): string => {
-    const [hStr, mStr] = timeStr.split(':')
-    const h = parseInt(hStr)
-    const m = parseInt(mStr)
-    const period = h >= 12 ? 'p.m.' : 'a.m.'
-    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
-    return `${h12}:${m.toString().padStart(2, '0')} ${period}`
-  }
+  const argentinaLocalTime = clockNow.toLocaleTimeString('en-GB', {
+    hour: '2-digit', minute: '2-digit', hour12: false,
+    timeZone: 'America/Argentina/Buenos_Aires',
+  })
+  const hoursStatus = businessHoursStatus(openingTime, closingTime, argentinaLocalTime)
+  const isOpen = hoursStatus.withinHours
 
   const greetingName = profile?.display_name?.split(' ')[0] || ''
   const localHour = Number(new Date().toLocaleString('en-US', {
@@ -446,7 +440,7 @@ export function LivePanel() {
       )}
 
       {/* Top header (mobile) */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 4px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 16px 2px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
           <button
             onClick={() => ctx.onOpenDrawer?.()}
@@ -500,50 +494,10 @@ export function LivePanel() {
         </div>
       </div>
 
-      {/* Open/closed status */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 16px 12px', gap: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
-          <span style={{
-            width: '7px',
-            height: '7px',
-            borderRadius: '50%',
-            background: isOpen ? '#22C55E' : '#94A3B8',
-            display: 'inline-block',
-            flexShrink: 0,
-          }} />
-          <span style={{
-            fontSize: fs.stateMain,
-            fontWeight: 500,
-            color: '#0F172A',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}>
-            {isOpen ? 'Dentro del horario' : 'Fuera de horario'}
-            <span style={{ color: '#64748B' }}>
-              {' · '}
-              {formatClosing(openingTime)}–{formatClosing(closingTime)}
-            </span>
-          </span>
-        </div>
-        <button type="button" onClick={() => navigate('/owner/settings')} style={{
-          fontSize: fs.stateLink,
-          color: '#2563EB',
-          fontWeight: 600,
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '2px',
-          flexShrink: 0,
-          background: 'transparent',
-          border: 0,
-          cursor: 'pointer',
-          padding: '8px 0 8px 8px',
-        }}>
-          Ver horario
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M9 6l6 6-6 6" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
+      {/* Horario habitual, sin estado comercial no confirmado ni enlace redundante. */}
+      <div className="premium-live-hours" aria-label="Estado del horario habitual">
+        <span className={`premium-live-hours-dot ${hoursStatus.withinHours ? 'within' : 'outside'}`} aria-hidden="true" />
+        <span>{hoursStatus.label}</span>
       </div>
 
       {/* Daily revenue summary. */}

@@ -21,5 +21,6 @@ jobs:
       - run: node scripts/test-service-catalog-summary.mjs
       - run: node scripts/test-owner-day-status.mjs
       - run: node scripts/test-owner-cover-layout.mjs
+      - run: node scripts/test-business-hours-status.mjs
       - run: npm run build
       - run: npx eslint netlify/functions/log-service.ts src/components/PrivateRoute.tsx src/components/layouts/BarberLayout.tsx src/components/layouts/OwnerLayout.tsx src/pages/owner/Barbers.tsx src/pages/owner/Settings.tsx src/router.tsx src/types/index.ts
