@@ -1,3 +1,4 @@
+import '../../styles/owner-premium.css'
 import { useEffect, useMemo, useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { useTenantStore } from '../../stores/tenantStore'
@@ -475,12 +476,12 @@ function MainContent({
   const badgeBg = isFlat ? '#F1F5F9' : (badgeUp ? '#DCFCE7' : '#FEE2E2')
 
   return (
-    <div style={{ maxWidth: '430px', margin: '0 auto', width: '100%', boxSizing: 'border-box', overflowX: 'hidden', paddingBottom: '120px' }}>
+    <div className="premium-metrics" style={{ maxWidth: '430px', margin: '0 auto', width: '100%', boxSizing: 'border-box', overflowX: 'hidden', paddingBottom: '120px' }}>
       {renderHeader()}
 
       {/* ── HERO — Facturación total (gradient, decorative curve) ─────────── */}
       <div style={{ padding: '12px 16px 0' }}>
-        <div style={{
+        <div className="premium-metrics-hero" style={{
           position: 'relative',
           borderRadius: '20px',
           padding: '18px',
@@ -537,7 +538,7 @@ function MainContent({
 
       {/* ── 4 CARDS ──────────────────────────────────────────────────────── */}
       <div style={{ padding: '20px 16px 0' }}>
-        <div style={{
+        <div className="premium-metrics-grid" style={{
           display: 'flex',
           gap: '8px',
           alignItems: 'stretch',
@@ -582,7 +583,7 @@ function MainContent({
 
       {/* ── FACTURACIÓN DIARIA — bar chart with toggle ───────────────────── */}
       <div style={{ padding: '24px 16px 0' }}>
-        <div style={{
+        <div className="premium-metrics-chart" style={{
           background: '#fff',
           border: '1px solid #F1F5F9',
           borderRadius: '20px',
@@ -949,7 +950,7 @@ function SmallMetricCard({
   fs: FsScale
 }) {
   return (
-    <div style={{
+    <div className="premium-mini-card" style={{
       background: '#fff',
       border: '1px solid #F1F5F9',
       borderRadius: '16px',
