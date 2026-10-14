@@ -433,7 +433,7 @@ export function Barbers() {
 
       {/* Barber list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '17px', color: C.ink }}>
+        <div className="premium-section-title" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '17px', color: C.ink }}>
           Equipo activo
         </div>
         {visibleBarbers.map((barber, index) => {
@@ -552,7 +552,7 @@ export function Barbers() {
                       background: barber.is_active ? C.greenDot : C.slate400,
                     }}
                   />
-                  {barber.is_active ? 'Disponible' : barber.role === 'barber' ? 'Archivado' : 'No disponible'}
+                  {barber.is_active ? 'Activo' : barber.role === 'barber' ? 'Archivado' : 'Inactivo'}
                 </span>
               </div>
 
