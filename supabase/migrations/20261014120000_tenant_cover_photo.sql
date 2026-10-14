@@ -9,7 +9,7 @@ ALTER TABLE public.tenants
   ADD CONSTRAINT tenant_cover_must_belong_to_tenant CHECK (
     cover_image_path IS NULL OR (
       split_part(cover_image_path, '/', 1) = id::text
-      AND cover_image_path ~ '^[a-f0-9-]{36}/[a-f0-9-]{36}\\.jpg$'
+      AND cover_image_path ~ '^[a-f0-9-]{36}/[a-f0-9-]{36}\.jpg$'
     )
   );
 
@@ -22,7 +22,7 @@ CREATE POLICY "tenant_covers_owner_insert"
 ON storage.objects FOR INSERT TO authenticated
 WITH CHECK (
   bucket_id = 'tenant-covers'
-  AND name ~ '^[a-f0-9-]{36}/[a-f0-9-]{36}\\.jpg$'
+  AND name ~ '^[a-f0-9-]{36}/[a-f0-9-]{36}\.jpg$'
   AND EXISTS (
     SELECT 1 FROM public.profiles p
     WHERE p.user_id = (SELECT auth.uid())
