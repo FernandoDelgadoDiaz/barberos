@@ -89,12 +89,6 @@ const CalendarBtnIcon = () => (
   </svg>
 )
 
-const HamburgerIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M4 7h16M4 12h16M4 17h16" stroke="#0F172A" strokeWidth="1.8" strokeLinecap="round" />
-  </svg>
-)
-
 const TrendingUpIcon = ({ color = '#16A34A' }: { color?: string }) => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M3 17l5-5 4 4 8-9" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
