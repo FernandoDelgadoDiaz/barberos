@@ -25,5 +25,6 @@ jobs:
       - run: node scripts/test-tenant-logo.mjs
       - run: node scripts/test-mobile-app-icons.mjs
       - run: node scripts/test-barber-checkout-wizard.mjs
+      - run: node scripts/test-barber-products-optional.mjs
       - run: npm run build
       - run: npx eslint netlify/functions/log-service.ts src/components/PrivateRoute.tsx src/components/layouts/BarberLayout.tsx src/components/layouts/OwnerLayout.tsx src/pages/owner/Barbers.tsx src/pages/owner/Settings.tsx src/router.tsx src/types/index.ts

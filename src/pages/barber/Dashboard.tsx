@@ -4,6 +4,7 @@ import { supabase } from '../../config/supabase'
 import { GraceBanner } from '../../components/GraceBanner'
 import type { ServiceCatalog, ServiceLog, CommissionRules, Shift } from '../../types'
 import { isRealService } from '../../types'
+import { getProductsStepAvailability } from '../../utils/barberCheckout'
 
 // =============================================================================
 // Palette — slate + blue (consistent with the owner panel: LivePanel / Metrics
@@ -526,6 +527,7 @@ export function Dashboard() {
   // Una atención necesita al menos un servicio o un producto. Se evalúa en el paso 4,
   // que es donde el barbero ya vio ambas listas.
   const nothingSelected = selectedServices.length === 0 && selectedProducts.length === 0
+  const { canSkipProducts, canContinueWithProducts } = getProductsStepAvailability(selectedServices.length, selectedProducts.length)
 
   if (loading) {
     return (
@@ -1002,7 +1004,20 @@ export function Dashboard() {
               <>
                 <div style={{ fontFamily: fontBody, fontSize: '11px', color: C.slate400, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px', marginTop: '28px' }}>Paso 4 de 5 · Productos</div>
                 <div style={{ fontFamily: fontTitle, fontWeight: 700, fontSize: '22px', color: C.ink, marginBottom: '6px' }}>¿Vendiste algún producto?</div>
-                <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate500, marginBottom: '20px' }}>Ceras, bebidas, etc. Van 100% al dueño</div>
+                <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate500, marginBottom: '14px' }}>Ceras, bebidas, etc. Van 100% al dueño. Son opcionales.</div>
+                {selectedServices.length > 0 && (
+                  <div data-testid="barber-selected-services-summary" style={{ fontFamily: fontBody, fontSize: '12px', color: C.slate600, background: C.blueBg, border: `1px solid ${C.blueSoft}`, padding: '10px 12px', borderRadius: '10px', marginBottom: '12px' }}>
+                    ✓ {selectedServices.length} servicio{selectedServices.length !== 1 ? 's' : ''} seleccionado{selectedServices.length !== 1 ? 's' : ''}. Podés registrar la atención sin productos.
+                  </div>
+                )}
+                {/* Most service-only attentions should not require scrolling through the catalog. */}
+                {canSkipProducts && (
+                  <button type="button" data-testid="barber-products-skip"
+                    onClick={() => { setSelectedProducts([]); setProductQty({}); setWizardError(null); setWizardStep(5) }}
+                    style={{ width: '100%', minHeight: '52px', padding: '12px', background: C.blue, border: 'none', borderRadius: '12px', color: '#fff', fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer', marginBottom: '14px', textAlign: 'center' }}>
+                    No vendí productos · Ir a confirmar →
+                  </button>
+                )}
                 {products.length === 0 ? (
                   <>
                     <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate400, marginBottom: '16px', textAlign: 'center', padding: '12px' }}>
@@ -1013,13 +1028,6 @@ export function Dashboard() {
                         Volvé atrás y elegí al menos un servicio.
                       </div>
                     )}
-                    <button
-                      onClick={() => setWizardStep(5)}
-                      disabled={nothingSelected}
-                      style={{ width: '100%', height: '48px', background: nothingSelected ? '#E2E8F0' : C.blue, color: nothingSelected ? C.slate400 : '#fff', border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: nothingSelected ? 'not-allowed' : 'pointer' }}
-                    >
-                      Continuar →
-                    </button>
                   </>
                 ) : (
                   <>
@@ -1076,13 +1084,13 @@ export function Dashboard() {
                         Elegí un producto, o volvé atrás y elegí un servicio.
                       </div>
                     )}
-                    <button
-                      onClick={() => setWizardStep(5)}
-                      disabled={nothingSelected}
-                      style={{ width: '100%', height: '48px', background: nothingSelected ? '#E2E8F0' : C.blue, color: nothingSelected ? C.slate400 : '#fff', border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: nothingSelected ? 'not-allowed' : 'pointer' }}
-                    >
-                      Siguiente →
-                    </button>
+                    {canContinueWithProducts && (
+                      <button type="button" data-testid="barber-products-next"
+                        onClick={() => { setWizardError(null); setWizardStep(5) }}
+                        style={{ width: '100%', minHeight: '48px', background: C.blue, color: '#fff', border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+                        Continuar con {selectedProducts.reduce((sum, p) => sum + (productQty[p.id] || 1), 0)} producto{selectedProducts.reduce((sum, p) => sum + (productQty[p.id] || 1), 0) !== 1 ? 's' : ''} →
+                      </button>
+                    )}
                   </>
                 )}
               </>
