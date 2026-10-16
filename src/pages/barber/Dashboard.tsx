@@ -94,6 +94,7 @@ export function Dashboard() {
   const [productQty, setProductQty] = useState<Record<string, number>>({})
   const [wizardStep, setWizardStep] = useState<0|1|2|3|4|5>(0)
   const [wizardPaymentMethod, setWizardPaymentMethod] = useState<'efectivo'|'transferencia'>('efectivo')
+  const [wizardPaymentChosen, setWizardPaymentChosen] = useState(false)
   // Tip and products have their OWN payment method (cash register reconciliation):
   // the client may pay the service by transfer but the tip in cash, etc. They default
   // to the service method (set when the service method is chosen) and can be overridden.
@@ -120,6 +121,7 @@ export function Dashboard() {
     setSelectedProducts([])
     setProductQty({})
     setWizardPaymentMethod('efectivo')
+    setWizardPaymentChosen(false)
     setWizardTipPaymentMethod('efectivo')
     setWizardOthersPaymentMethod('efectivo')
     setWizardTip('')
@@ -825,7 +827,7 @@ export function Dashboard() {
         {shiftStatus === 'open' ? (
           <button
             className="barber-primary"
-            onClick={() => { setSelectedServices([]); setSelectedProducts([]); setProductQty({}); setWizardError(null); setWizardStep(1) }}
+            onClick={() => { setSelectedServices([]); setSelectedProducts([]); setProductQty({}); setWizardPaymentChosen(false); setWizardTip(''); setWizardTipEnabled(false); setWizardError(null); setWizardStep(1) }}
             style={{ width: '100%', height: '56px', background: `linear-gradient(135deg, ${C.blue} 0%, ${C.blueBright} 100%)`, color: '#fff', fontFamily: fontBody, fontWeight: 600, fontSize: '16px', letterSpacing: '0.01em', border: 'none', borderRadius: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 6px 16px rgba(37,99,235,0.28)' }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
@@ -931,21 +933,29 @@ export function Dashboard() {
             {wizardStep === 2 && (
               <>
                 <div style={{ fontFamily: fontBody, fontSize: '11px', color: C.slate400, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px', marginTop: '28px' }}>Paso 2 de 5 · Método de pago</div>
-                <div style={{ fontFamily: fontTitle, fontWeight: 700, fontSize: '22px', color: C.ink, marginBottom: '24px' }}>Método de pago</div>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <button
-                    onClick={() => { setWizardPaymentMethod('efectivo'); setWizardTipPaymentMethod('efectivo'); setWizardOthersPaymentMethod('efectivo'); setWizardStep(3) }}
-                    style={{ flex: 1, padding: '20px 12px', borderRadius: '12px', border: wizardPaymentMethod === 'efectivo' ? 'none' : `1px solid ${C.border}`, background: wizardPaymentMethod === 'efectivo' ? C.blue : '#F8FAFC', color: wizardPaymentMethod === 'efectivo' ? '#fff' : C.ink, fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
+                <div style={{ fontFamily: fontTitle, fontWeight: 700, fontSize: '22px', color: C.ink, marginBottom: '8px' }}>¿Cómo pagó el cliente?</div>
+                <p style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate500, marginTop: 0, marginBottom: '18px' }}>Seleccioná un medio de pago y después tocá Continuar.</p>
+                <div role="group" aria-label="Método de pago" style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                  <button type="button" data-testid="barber-payment-cash"
+                    aria-pressed={wizardPaymentChosen && wizardPaymentMethod === 'efectivo'}
+                    onClick={() => { setWizardPaymentMethod('efectivo'); setWizardTipPaymentMethod('efectivo'); setWizardOthersPaymentMethod('efectivo'); setWizardPaymentChosen(true) }}
+                    style={{ flex: 1, padding: '20px 12px', borderRadius: '12px', border: wizardPaymentChosen && wizardPaymentMethod === 'efectivo' ? 'none' : `1px solid ${C.border}`, background: wizardPaymentChosen && wizardPaymentMethod === 'efectivo' ? C.blue : '#F8FAFC', color: wizardPaymentChosen && wizardPaymentMethod === 'efectivo' ? '#fff' : C.ink, fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
                   >
                     💵 Efectivo
                   </button>
-                  <button
-                    onClick={() => { setWizardPaymentMethod('transferencia'); setWizardTipPaymentMethod('transferencia'); setWizardOthersPaymentMethod('transferencia'); setWizardStep(3) }}
-                    style={{ flex: 1, padding: '20px 12px', borderRadius: '12px', border: wizardPaymentMethod === 'transferencia' ? 'none' : `1px solid ${C.border}`, background: wizardPaymentMethod === 'transferencia' ? C.blue : '#F8FAFC', color: wizardPaymentMethod === 'transferencia' ? '#fff' : C.ink, fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
+                  <button type="button" data-testid="barber-payment-transfer"
+                    aria-pressed={wizardPaymentChosen && wizardPaymentMethod === 'transferencia'}
+                    onClick={() => { setWizardPaymentMethod('transferencia'); setWizardTipPaymentMethod('transferencia'); setWizardOthersPaymentMethod('transferencia'); setWizardPaymentChosen(true) }}
+                    style={{ flex: 1, padding: '20px 12px', borderRadius: '12px', border: wizardPaymentChosen && wizardPaymentMethod === 'transferencia' ? 'none' : `1px solid ${C.border}`, background: wizardPaymentChosen && wizardPaymentMethod === 'transferencia' ? C.blue : '#F8FAFC', color: wizardPaymentChosen && wizardPaymentMethod === 'transferencia' ? '#fff' : C.ink, fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
                   >
                     📲 Transferencia
                   </button>
                 </div>
+                <button type="button" data-testid="barber-payment-next"
+                  onClick={() => { if (wizardPaymentChosen) { setWizardError(null); setWizardStep(3) } }}
+                  disabled={!wizardPaymentChosen}
+                  style={{ width: '100%', minHeight: '48px', background: wizardPaymentChosen ? C.blue : '#E2E8F0', color: wizardPaymentChosen ? '#fff' : C.slate400, border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: wizardPaymentChosen ? 'pointer' : 'not-allowed' }}
+                >Continuar a propina →</button>
               </>
             )}
 
