@@ -34,4 +34,5 @@ jobs:
           VITE_SUPABASE_URL: https://e2e.supabase.test
           VITE_SUPABASE_ANON_KEY: e2e
       - run: node scripts/e2e-barber-checkout.mjs dist-e2e
-      - run: npx eslint netlify/functions/log-service.ts src/components/PrivateRoute.tsx src/components/layouts/BarberLayout.tsx src/components/layouts/OwnerLayout.tsx src/pages/owner/Barbers.tsx src/pages/owner/Settings.tsx src/router.tsx src/types/index.ts src/utils/barberCheckout.ts src/pages/barber/Dashboard.tsx
+      - run: node scripts/e2e-app-update.mjs dist-e2e
+      - run: npx eslint netlify/functions/log-service.ts src/components/PrivateRoute.tsx src/components/layouts/BarberLayout.tsx src/components/layouts/OwnerLayout.tsx src/pages/owner/Barbers.tsx src/pages/owner/Settings.tsx src/router.tsx src/types/index.ts src/utils/barberCheckout.ts src/pages/barber/Dashboard.tsx src/App.tsx src/components/AppUpdateNotice.tsx src/utils/appVersion.ts
