@@ -200,6 +200,11 @@ export const handler = async (event: NetlifyFunctionEvent) => {
     const paymentMethod: 'efectivo' | 'transferencia' =
       body.payment_method === 'transferencia' ? 'transferencia' : 'efectivo'
     const tipAmount = typeof body.tip_amount === 'number' ? body.tip_amount : 0
+    // Una propina negativa o NaN descontaba de la ganancia del barbero (o cortaba la
+    // atención con un error genérico de cálculo). Es opcional, pero nunca negativa.
+    if (!Number.isFinite(tipAmount) || tipAmount < 0) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Propina inválida: debe ser 0 o un monto positivo' }) }
+    }
     const tipPaymentMethod: 'efectivo' | 'transferencia' =
       body.tip_payment_method === 'transferencia' ? 'transferencia' : 'efectivo'
     const othersPaymentMethod: 'efectivo' | 'transferencia' =

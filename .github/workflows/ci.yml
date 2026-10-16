@@ -25,5 +25,13 @@ jobs:
       - run: node scripts/test-tenant-logo.mjs
       - run: node scripts/test-mobile-app-icons.mjs
       - run: node scripts/test-barber-checkout-wizard.mjs
+      - run: node scripts/test-barber-products-optional.mjs
+      - run: node --import ./scripts/support/supabase-memory-loader.mjs scripts/test-log-service-handler.mjs
       - run: npm run build
-      - run: npx eslint netlify/functions/log-service.ts src/components/PrivateRoute.tsx src/components/layouts/BarberLayout.tsx src/components/layouts/OwnerLayout.tsx src/pages/owner/Barbers.tsx src/pages/owner/Settings.tsx src/router.tsx src/types/index.ts
+      # Mobile E2E of the checkout wizard (system Chrome, Supabase intercepted).
+      - run: npx vite build --outDir dist-e2e
+        env:
+          VITE_SUPABASE_URL: https://e2e.supabase.test
+          VITE_SUPABASE_ANON_KEY: e2e
+      - run: node scripts/e2e-barber-checkout.mjs dist-e2e
+      - run: npx eslint netlify/functions/log-service.ts src/components/PrivateRoute.tsx src/components/layouts/BarberLayout.tsx src/components/layouts/OwnerLayout.tsx src/pages/owner/Barbers.tsx src/pages/owner/Settings.tsx src/router.tsx src/types/index.ts src/utils/barberCheckout.ts src/pages/barber/Dashboard.tsx
