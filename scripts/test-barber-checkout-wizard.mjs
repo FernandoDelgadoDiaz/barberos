@@ -12,7 +12,12 @@ assert.equal((p.match(/setWizardStep\(3\)/g)||[]).length,1)
 assert.equal((p.match(/setWizardPaymentChosen\(true\)/g)||[]).length,2)
 assert.match(src,/setWizardPaymentChosen\(false\)/)
 assert.match(src,/setWizardTip\(''\); setWizardStep\(4\)/)
-assert.match(src,/disabled=\{nothingSelected\}/)
+// Step 4 now has separate safe actions: a service can skip products, a
+// product-only sale must select a product, and the backend rejects empty attentions.
+assert.match(src,/const nothingSelected = selectedServices.length === 0 && selectedProducts.length === 0/)
+assert.match(src,/if \(selectedServices.length === 0 && selectedProducts.length === 0\)/)
+assert.match(src,/\{canSkipProducts && \(/)
+assert.match(src,/\{canContinueWithProducts && \(/)
 assert.match(src,/setWizardError\(errorMessage\)/)
 assert.match(src,/payment_method: wizardPaymentMethod/)
 assert.match(src,/tip_payment_method: wizardTipPaymentMethod/)
