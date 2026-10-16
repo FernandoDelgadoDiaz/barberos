@@ -1,0 +1,12 @@
+-- protect_subscription_columns() es la función del trigger trg_protect_subscription
+-- (BEFORE UPDATE ON tenants). Por el GRANT por defecto a PUBLIC quedaba expuesta como
+-- /rest/v1/rpc/protect_subscription_columns para anon y authenticated (advisor 0028/0029).
+--
+-- Postgres no verifica EXECUTE al disparar un trigger, solo al crearlo: revocarlo no
+-- cambia la protección de las columnas de suscripción, solo cierra la llamada directa.
+--
+-- NO se revocan (a propósito):
+--   get_my_role(), get_my_tenant_id()  → las usan las políticas RLS; authenticated
+--                                        necesita EXECUTE o todas las lecturas fallan.
+--   get_tenant_login_name(text)        → la llama Login.tsx sin sesión (anon).
+REVOKE EXECUTE ON FUNCTION public.protect_subscription_columns() FROM PUBLIC, anon, authenticated;
