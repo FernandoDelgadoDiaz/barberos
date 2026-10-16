@@ -1,35 +1,59 @@
+// Behaviour of the checkout wizard rules (src/utils/barberCheckout.ts), the same
+// functions the barber Dashboard runs. Products are optional when a service exists.
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
-import { getProductsStepAvailability } from '../src/utils/barberCheckout.ts'
+import {
+  buildAttentionPayload, canSubmitAttention, getProductsStepAction, getServicesStepAction, sanitizeTip,
+} from '../src/utils/barberCheckout.ts'
 
-const state = (services, products) => getProductsStepAvailability(services, products)
-assert.deepEqual(state(1, 0), { canSkipProducts: true, canContinueWithProducts: false, canConfirm: true })
-assert.deepEqual(state(2, 0), { canSkipProducts: true, canContinueWithProducts: false, canConfirm: true })
-assert.deepEqual(state(1, 1), { canSkipProducts: false, canContinueWithProducts: true, canConfirm: true })
-assert.deepEqual(state(0, 1), { canSkipProducts: false, canContinueWithProducts: true, canConfirm: true })
-assert.deepEqual(state(0, 0), { canSkipProducts: false, canContinueWithProducts: false, canConfirm: false })
+const corte = { id: 's1', name: 'Corte', base_price: 20000 }
+const barba = { id: 's2', name: 'Barba', base_price: 7000 }
+const cera = { id: 'p1', name: 'Cera', base_price: 15000 }
+const coca = { id: 'p2', name: 'Coca', base_price: 2000 }
+const base = { barberId: 'b', tenantId: 't', shiftId: 'sh', productQty: {}, paymentMethod: 'efectivo', tipRaw: '', tipPaymentMethod: 'efectivo', othersPaymentMethod: 'efectivo', startedAt: '2026-10-16T18:00:00.000Z' }
+const build = over => buildAttentionPayload({ ...base, services: [], products: [], ...over })
 
-const dashboard = readFileSync('src/pages/barber/Dashboard.tsx', 'utf8')
-const api = readFileSync('netlify/functions/log-service.ts', 'utf8')
-const start = dashboard.indexOf('Step 4: Products')
-const end = dashboard.indexOf('Step 5: Summary & confirm', start)
-assert.ok(start >= 0 && end > start)
-const productsStep = dashboard.slice(start, end)
-assert.ok(productsStep.indexOf('data-testid="barber-products-skip"') < productsStep.indexOf('{products.length === 0 ? ('), 'Skip button must be above product catalog on mobile')
-assert.match(productsStep, /\{canSkipProducts && \(/)
-assert.match(productsStep, /setSelectedProducts\(\[\]\); setProductQty\(\{\}\); setWizardError\(null\); setWizardStep\(5\)/)
-assert.match(productsStep, /\{canContinueWithProducts && \(/)
-assert.match(productsStep, /data-testid="barber-products-next"/)
-assert.match(productsStep, /barber-selected-services-summary/)
-assert.ok(!productsStep.includes('disabled={nothingSelected}'), 'No disabled forward button without a visible skip action')
-assert.match(dashboard, /if \(selectedServices.length === 0 && selectedProducts.length === 0\)/)
-assert.match(dashboard, /services: servicesPayload/)
-assert.match(dashboard, /products: productsPayload/)
-assert.match(dashboard, /payment_method: wizardPaymentMethod/)
-assert.match(dashboard, /tip_payment_method: wizardTipPaymentMethod/)
-assert.match(dashboard, /others_payment_method: wizardOthersPaymentMethod/)
-assert.match(api, /if \(body.services.length === 0 && requestedProducts.length === 0\)/)
-assert.match(api, /const isProductOnly = body.services.length === 0/)
-assert.match(api, /if \(products.length > 0\) \{/)
-assert.match(api, /const commissionTierNumber = \(billableCount \|\| 0\) \+ 1/)
-console.log('Checkout with and without products: regression checks passed')
+// Step 1: continuing without a service is an explicit, different action.
+assert.equal(getServicesStepAction(1), 'continue-with-services')
+assert.equal(getServicesStepAction(2), 'continue-with-services')
+assert.equal(getServicesStepAction(0), 'products-only')
+
+// Step 4: never requires a product when there is a service.
+const cases = [
+  ['Un corte sin productos', 1, 0, 'skip-products', true],
+  ['Corte + barba sin productos', 2, 0, 'skip-products', true],
+  ['Servicio con productos', 1, 2, 'continue-with-products', true],
+  ['Solo productos', 0, 1, 'continue-with-products', true],
+  ['Nada seleccionado', 0, 0, 'needs-selection', false],
+]
+for (const [name, s, p, action, submit] of cases) {
+  assert.equal(getProductsStepAction(s, p), action, name)
+  assert.equal(canSubmitAttention(s, p), submit, name)
+}
+
+// Tip is optional and never negative.
+assert.equal(sanitizeTip(''), 0)
+assert.equal(sanitizeTip('abc'), 0)
+assert.equal(sanitizeTip('-500'), 0)
+assert.equal(sanitizeTip('1500'), 1500)
+assert.equal(sanitizeTip('1500,5'), 1500.5)
+
+// Payload: service only, no tip, no products.
+let body = build({ services: [corte] })
+assert.deepEqual(body.services, [{ service_id: 's1', price_charged: 20000 }])
+assert.deepEqual(body.products, [])
+assert.equal(body.others_amount, 0)
+assert.equal(body.tip_amount, 0)
+
+// Payload: two services + tip + products, each with its own payment method.
+body = build({ services: [corte, barba], products: [cera, coca], productQty: { p1: 2 }, paymentMethod: 'transferencia', tipRaw: '3000', tipPaymentMethod: 'efectivo', othersPaymentMethod: 'efectivo' })
+assert.equal(body.services.length, 2)
+assert.deepEqual(body.products.map(p => [p.product_id, p.quantity, p.line_total]), [['p1', 2, 30000], ['p2', 1, 2000]])
+assert.equal(body.others_amount, 32000)
+assert.deepEqual([body.payment_method, body.tip_payment_method, body.others_payment_method, body.tip_amount], ['transferencia', 'efectivo', 'efectivo', 3000])
+
+// Payload: product-only sale.
+body = build({ products: [coca] })
+assert.deepEqual(body.services, [])
+assert.equal(body.others_amount, 2000)
+
+console.log('Checkout with and without products: behaviour checks passed')

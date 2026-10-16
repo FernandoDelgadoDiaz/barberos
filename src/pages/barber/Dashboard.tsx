@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 import { GraceBanner } from '../../components/GraceBanner'
 import type { ServiceCatalog, ServiceLog, CommissionRules, Shift } from '../../types'
 import { isRealService } from '../../types'
-import { getProductsStepAvailability } from '../../utils/barberCheckout'
+import { buildAttentionPayload, canSubmitAttention, getProductsStepAction, getServicesStepAction, sanitizeTip } from '../../utils/barberCheckout'
 
 // =============================================================================
 // Palette — slate + blue (consistent with the owner panel: LivePanel / Metrics
@@ -115,6 +115,9 @@ export function Dashboard() {
   // so users perceive an infinite loop. This state makes the failure visible in-modal
   // and the new escape button below it guarantees the user can always exit.
   const [wizardError, setWizardError] = useState<string | null>(null)
+  // Synchronous lock against double submission: `processing` only disables the
+  // button after React re-renders, so two fast taps could both reach fetch().
+  const submittingRef = useRef(false)
 
   const resetWizard = () => {
     setWizardStep(0)
@@ -396,9 +399,13 @@ export function Dashboard() {
 
   const toggleServiceSelection = (service: ServiceWithEstimation) => {
     if (shiftStatus !== 'open') {
+      // Shown in-modal too: the page banner is hidden behind the wizard overlay,
+      // so the tap would otherwise look like it did nothing.
+      setWizardError('No hay un turno abierto. Inicia un turno para registrar servicios.')
       setError('No hay un turno abierto. Inicia un turno para registrar servicios.')
       return
     }
+    setWizardError(null)
     setSelectedServices(prev => {
       const existing = prev.find(s => s.id === service.id)
       if (existing) {
@@ -436,9 +443,9 @@ export function Dashboard() {
   }
 
   const confirmAttention = async () => {
-    if (!tenant || !profile) return
+    if (!tenant || !profile || submittingRef.current) return
     // Se admite una venta suelta (solo productos, sin servicios), pero no una atención vacía.
-    if (selectedServices.length === 0 && selectedProducts.length === 0) {
+    if (!canSubmitAttention(selectedServices.length, selectedProducts.length)) {
       setWizardError('Seleccioná al menos un servicio o un producto.')
       return
     }
@@ -447,44 +454,29 @@ export function Dashboard() {
       return
     }
 
+    submittingRef.current = true
     setProcessing(true)
     setError(null)
     setWizardError(null)
 
     try {
-      const servicesPayload = selectedServices.map(s => ({
-        service_id: s.id,
-        price_charged: s.base_price,
-      }))
-
-      const productsPayload = selectedProducts.map(p => {
-        const quantity = productQty[p.id] || 1
-        return {
-          product_id: p.id,
-          product_name: p.name,
-          unit_price: p.base_price,
-          quantity,
-          line_total: p.base_price * quantity,
-        }
-      })
-
       const authHeader = await getAuthHeader()
       const response = await fetch('/.netlify/functions/log-service', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
-        body: JSON.stringify({
-          barber_id: profile.id,
-          tenant_id: tenant.id,
-          services: servicesPayload,
-          started_at: new Date().toISOString(),
-          shift_id: activeShiftId,
-          payment_method: wizardPaymentMethod,
-          tip_amount: parseFloat(wizardTip) || 0,
-          tip_payment_method: wizardTipPaymentMethod,
-          others_amount: productsPayload.reduce((sum, p) => sum + p.line_total, 0),
-          others_payment_method: wizardOthersPaymentMethod,
-          products: productsPayload,
-        }),
+        body: JSON.stringify(buildAttentionPayload({
+          barberId: profile.id,
+          tenantId: tenant.id,
+          shiftId: activeShiftId,
+          services: selectedServices,
+          products: selectedProducts,
+          productQty,
+          paymentMethod: wizardPaymentMethod,
+          tipRaw: wizardTip,
+          tipPaymentMethod: wizardTipPaymentMethod,
+          othersPaymentMethod: wizardOthersPaymentMethod,
+          startedAt: new Date().toISOString(),
+        })),
       })
 
       if (!response.ok) {
@@ -519,15 +511,19 @@ export function Dashboard() {
     } finally {
       // Always re-enable the button. Critical: never leave processing=true on an
       // unrecoverable error or the user perceives an infinite loop.
+      submittingRef.current = false
       setProcessing(false)
     }
   }
 
 
-  // Una atención necesita al menos un servicio o un producto. Se evalúa en el paso 4,
-  // que es donde el barbero ya vio ambas listas.
-  const nothingSelected = selectedServices.length === 0 && selectedProducts.length === 0
-  const { canSkipProducts, canContinueWithProducts } = getProductsStepAvailability(selectedServices.length, selectedProducts.length)
+  // Derived wizard state shared by the step bodies and the fixed footer.
+  const servicesTotal = selectedServices.reduce((sum, s) => sum + s.base_price, 0)
+  const productUnits = selectedProducts.reduce((sum, p) => sum + (productQty[p.id] || 1), 0)
+  const productsTotal = selectedProducts.reduce((sum, p) => sum + p.base_price * (productQty[p.id] || 1), 0)
+  const tipValue = sanitizeTip(wizardTip)
+  const servicesStepAction = getServicesStepAction(selectedServices.length)
+  const productsStepAction = getProductsStepAction(selectedServices.length, selectedProducts.length)
 
   if (loading) {
     return (
@@ -851,46 +847,62 @@ export function Dashboard() {
         )}
       </div>
 
-      {/* Wizard Modal */}
+      {/* Wizard Modal
+          Layout: fixed header (Volver / ×) + ONE scrollable body + fixed footer that
+          always holds the step's forward action. The action can never end up below
+          the fold or behind a nested scroll list, whatever the screen height, the
+          catalog length or the system font size. */}
       {wizardStep > 0 && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
-          <div style={{ background: '#fff', maxWidth: '440px', width: '100%', maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto', WebkitOverflowScrolling: 'touch', borderRadius: '20px', padding: '28px', position: 'relative', boxShadow: '0 24px 60px rgba(15,23,42,0.28)', boxSizing: 'border-box' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 'max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom))', boxSizing: 'border-box' }}>
+          <div role="dialog" aria-modal="true" aria-label="Registrar cliente" data-testid="barber-wizard"
+            style={{ background: '#fff', maxWidth: '440px', width: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRadius: '20px', position: 'relative', boxShadow: '0 24px 60px rgba(15,23,42,0.28)', boxSizing: 'border-box' }}>
 
             {/* Progress bar */}
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: C.borderLt, borderRadius: '20px 20px 0 0', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${Math.min(wizardStep, 4) / 4 * 100}%`, background: `linear-gradient(90deg, ${C.blue}, ${C.blueBright})`, transition: 'width 0.3s ease' }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: C.borderLt, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${wizardStep / 5 * 100}%`, background: `linear-gradient(90deg, ${C.blue}, ${C.blueBright})`, transition: 'width 0.3s ease' }} />
             </div>
 
-            {/* Back button (steps 2-5) */}
-            {wizardStep > 1 && (
-              <button
-                onClick={() => { setWizardError(null); setWizardStep(prev => (prev - 1) as 0|1|2|3|4|5) }}
-                disabled={processing}
-                style={{ position: 'absolute', top: '16px', left: '16px', background: 'transparent', border: 'none', cursor: processing ? 'not-allowed' : 'pointer', color: C.slate400, fontSize: '13px', fontFamily: fontBody, display: 'flex', alignItems: 'center', gap: '4px', padding: '4px', opacity: processing ? 0.5 : 1 }}
+            {/* Header: back (steps 2-5) + close — the user can never get trapped */}
+            <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 12px 0 12px', minHeight: '44px' }}>
+              {wizardStep > 1 ? (
+                <button type="button" data-testid="barber-wizard-back"
+                  onClick={() => { setWizardError(null); setWizardStep(prev => (prev - 1) as 0|1|2|3|4|5) }}
+                  disabled={processing}
+                  style={{ background: 'transparent', border: 'none', cursor: processing ? 'not-allowed' : 'pointer', color: C.slate500, fontSize: '14px', fontFamily: fontBody, display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 10px', minHeight: '40px', opacity: processing ? 0.5 : 1 }}
+                >
+                  ← Volver
+                </button>
+              ) : <span />}
+              <button type="button" onClick={resetWizard} disabled={processing} aria-label="Cerrar"
+                style={{ background: 'transparent', border: 'none', cursor: processing ? 'not-allowed' : 'pointer', color: C.slate400, fontSize: '24px', lineHeight: 1, padding: '6px 12px', minHeight: '40px', fontFamily: fontBody, opacity: processing ? 0.5 : 1 }}
               >
-                ← Volver
+                ×
               </button>
-            )}
+            </div>
 
-            {/* Close (X) button — always available so the user can never get trapped */}
-            <button
-              onClick={resetWizard}
-              disabled={processing}
-              aria-label="Cerrar"
-              style={{ position: 'absolute', top: '12px', right: '12px', background: 'transparent', border: 'none', cursor: processing ? 'not-allowed' : 'pointer', color: C.slate400, fontSize: '22px', lineHeight: 1, padding: '4px 10px', fontFamily: fontBody, opacity: processing ? 0.5 : 1 }}
-            >
-              ×
-            </button>
-
-            {/* Step content — fades between steps (opacity + translateY) */}
+            {/* Scrollable body — the only scroll container of the wizard */}
+            <div data-testid="barber-wizard-body" style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: '4px 24px 16px' }}>
             <div key={wizardStep} className="barber-step">
+
+            <div style={{ fontFamily: fontBody, fontSize: '11px', color: C.slate400, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>
+              Paso {wizardStep} de 5 · {['', 'Servicios', 'Medio de pago', 'Propina', 'Productos', 'Confirmar'][wizardStep]}
+            </div>
+
+            {/* Recap of what is being registered (steps 2-4) */}
+            {wizardStep >= 2 && wizardStep <= 4 && (
+              <div data-testid="barber-selection-recap" style={{ fontFamily: fontBody, fontSize: '12px', color: C.slate600, background: selectedServices.length > 0 ? C.blueBg : '#F8FAFC', border: `1px solid ${selectedServices.length > 0 ? C.blueSoft : C.border}`, padding: '8px 12px', borderRadius: '10px', marginBottom: '14px', lineHeight: 1.4 }}>
+                {selectedServices.length > 0
+                  ? <>✓ {selectedServices.map(s => s.name.trim()).join(' + ')} · <strong style={{ fontWeight: 600 }}>${servicesTotal.toLocaleString('es-AR')}</strong></>
+                  : 'Venta sin servicio · solo productos'}
+              </div>
+            )}
 
             {/* ── Step 1: Services ── */}
             {wizardStep === 1 && (
               <>
-                <div style={{ fontFamily: fontBody, fontSize: '11px', color: C.slate400, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px', marginTop: '8px' }}>Paso 1 de 5 · Servicios</div>
-                <div style={{ fontFamily: fontTitle, fontWeight: 700, fontSize: '20px', color: C.ink, marginBottom: '20px' }}>¿Qué servicios?</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto', marginBottom: '12px' }}>
+                <div style={{ fontFamily: fontTitle, fontWeight: 700, fontSize: '20px', color: C.ink, marginBottom: '6px' }}>¿Qué servicios hiciste?</div>
+                <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate500, marginBottom: '14px' }}>Tocá uno o más.</div>
+                <div role="group" aria-label="Servicios" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {services.length === 0 && (
                     <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate400, textAlign: 'center', padding: '12px' }}>
                       No hay servicios en el catálogo
@@ -899,45 +911,30 @@ export function Dashboard() {
                   {services.map(service => {
                     const isSel = selectedServices.some(s => s.id === service.id)
                     return (
-                      <div
-                        key={service.id}
+                      <button type="button" key={service.id} data-testid="barber-service-option" aria-pressed={isSel}
                         onClick={() => toggleServiceSelection(service)}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: isSel ? C.blueBg : '#F8FAFC', borderRadius: '10px', border: isSel ? `1px solid ${C.blue}` : `1px solid ${C.border}`, cursor: 'pointer' }}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '12px', minHeight: '48px', background: isSel ? C.blueBg : '#F8FAFC', borderRadius: '10px', border: isSel ? `1px solid ${C.blue}` : `1px solid ${C.border}`, cursor: 'pointer', textAlign: 'left', fontFamily: fontBody }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '18px', height: '18px', borderRadius: '5px', border: `2px solid ${isSel ? C.blue : '#CBD5E1'}`, background: isSel ? C.blue : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                          <span style={{ width: '18px', height: '18px', borderRadius: '5px', border: `2px solid ${isSel ? C.blue : '#CBD5E1'}`, background: isSel ? C.blue : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             {isSel && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-                          </div>
-                          <span style={{ fontFamily: fontBody, fontSize: '14px', color: C.ink }}>{service.name}</span>
-                        </div>
-                        <span style={{ fontFamily: fontBody, fontWeight: 600, fontSize: '14px', color: C.ink }}>${service.base_price.toLocaleString('es-AR')}</span>
-                      </div>
+                          </span>
+                          <span style={{ fontSize: '14px', color: C.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{service.name}</span>
+                        </span>
+                        <span style={{ fontWeight: 600, fontSize: '14px', color: C.ink, flexShrink: 0 }}>${service.base_price.toLocaleString('es-AR')}</span>
+                      </button>
                     )
                   })}
                 </div>
-                <div style={{ fontFamily: fontBody, fontSize: '12px', color: C.slate500, marginBottom: '16px', minHeight: '18px' }}>
-                  {selectedServices.length > 0
-                    ? `${selectedServices.length} seleccionado${selectedServices.length !== 1 ? 's' : ''} · $${selectedServices.reduce((s, x) => s + x.base_price, 0).toLocaleString('es-AR')}`
-                    : 'Ninguno · seguí para vender solo productos'}
-                </div>
-                {/* Se puede avanzar sin servicios: el cliente puede llevar solo un producto.
-                    La validación real está en el paso 5 (servicio o producto, al menos uno). */}
-                <button
-                  onClick={() => setWizardStep(2)}
-                  style={{ width: '100%', height: '48px', background: `linear-gradient(135deg, ${C.blue} 0%, ${C.blueBright} 100%)`, color: '#fff', border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
-                >
-                  Siguiente →
-                </button>
               </>
             )}
 
             {/* ── Step 2: Payment method ── */}
             {wizardStep === 2 && (
               <>
-                <div style={{ fontFamily: fontBody, fontSize: '11px', color: C.slate400, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px', marginTop: '28px' }}>Paso 2 de 5 · Método de pago</div>
                 <div style={{ fontFamily: fontTitle, fontWeight: 700, fontSize: '22px', color: C.ink, marginBottom: '8px' }}>¿Cómo pagó el cliente?</div>
                 <p style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate500, marginTop: 0, marginBottom: '18px' }}>Seleccioná un medio de pago y después tocá Continuar.</p>
-                <div role="group" aria-label="Método de pago" style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                <div role="group" aria-label="Método de pago" style={{ display: 'flex', gap: '12px' }}>
                   <button type="button" data-testid="barber-payment-cash"
                     aria-pressed={wizardPaymentChosen && wizardPaymentMethod === 'efectivo'}
                     onClick={() => { setWizardPaymentMethod('efectivo'); setWizardTipPaymentMethod('efectivo'); setWizardOthersPaymentMethod('efectivo'); setWizardPaymentChosen(true) }}
@@ -953,144 +950,99 @@ export function Dashboard() {
                     📲 Transferencia
                   </button>
                 </div>
-                <button type="button" data-testid="barber-payment-next"
-                  onClick={() => { if (wizardPaymentChosen) { setWizardError(null); setWizardStep(3) } }}
-                  disabled={!wizardPaymentChosen}
-                  style={{ width: '100%', minHeight: '48px', background: wizardPaymentChosen ? C.blue : '#E2E8F0', color: wizardPaymentChosen ? '#fff' : C.slate400, border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: wizardPaymentChosen ? 'pointer' : 'not-allowed' }}
-                >Continuar a propina →</button>
               </>
             )}
 
-            {/* ── Step 3: Tip ── */}
+            {/* ── Step 3: Tip (optional) ── */}
             {wizardStep === 3 && (
               <>
-                <div style={{ fontFamily: fontBody, fontSize: '11px', color: C.slate400, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px', marginTop: '28px' }}>Paso 3 de 5 · Propina</div>
-                <div style={{ fontFamily: fontTitle, fontWeight: 700, fontSize: '22px', color: C.ink, marginBottom: '6px' }}>Propina</div>
-                <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate500, marginBottom: '24px' }}>La propina es 100% para el barbero</div>
-                {!wizardTipEnabled ? (
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <button onClick={() => setWizardTipEnabled(true)} style={{ flex: 1, padding: '16px', borderRadius: '12px', border: `1px solid ${C.border}`, background: '#F8FAFC', color: C.ink, fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
-                      Sí, hubo propina
-                    </button>
-                    <button onClick={() => { setWizardTip(''); setWizardStep(4) }} style={{ flex: 1, padding: '16px', borderRadius: '12px', border: 'none', background: C.blue, color: '#fff', fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
-                      No, continuar →
-                    </button>
-                  </div>
-                ) : (
+                <div style={{ fontFamily: fontTitle, fontWeight: 700, fontSize: '22px', color: C.ink, marginBottom: '6px' }}>¿Hubo propina?</div>
+                <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate500, marginBottom: '18px' }}>Opcional. La propina es 100% para el barbero.</div>
+                <div role="group" aria-label="Propina" style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                  <button type="button" data-testid="barber-tip-no" aria-pressed={!wizardTipEnabled}
+                    onClick={() => { setWizardTipEnabled(false); setWizardTip('') }}
+                    style={{ flex: 1, padding: '16px', borderRadius: '12px', border: !wizardTipEnabled ? 'none' : `1px solid ${C.border}`, background: !wizardTipEnabled ? C.blue : '#F8FAFC', color: !wizardTipEnabled ? '#fff' : C.ink, fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+                    No hubo
+                  </button>
+                  <button type="button" data-testid="barber-tip-yes" aria-pressed={wizardTipEnabled}
+                    onClick={() => setWizardTipEnabled(true)}
+                    style={{ flex: 1, padding: '16px', borderRadius: '12px', border: wizardTipEnabled ? 'none' : `1px solid ${C.border}`, background: wizardTipEnabled ? C.blue : '#F8FAFC', color: wizardTipEnabled ? '#fff' : C.ink, fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+                    Sí, hubo propina
+                  </button>
+                </div>
+                {wizardTipEnabled && (
                   <>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
                       <span style={{ fontSize: '20px', fontWeight: 700, color: C.ink, fontFamily: fontBody }}>$</span>
-                      <input type="number" placeholder="0" value={wizardTip} onChange={e => setWizardTip(e.target.value)} style={{ flex: 1, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '12px', fontSize: '16px', background: '#F8FAFC', color: C.ink, outline: 'none', fontFamily: fontBody }} />
-                    </div>
-                    <div style={{ fontFamily: fontBody, fontSize: '12px', color: C.slate500, marginBottom: '8px' }}>Método de pago de la propina</div>
-                    <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                      <button onClick={() => setWizardTipPaymentMethod('efectivo')} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: wizardTipPaymentMethod === 'efectivo' ? 'none' : `1px solid ${C.border}`, background: wizardTipPaymentMethod === 'efectivo' ? C.blue : '#F8FAFC', color: wizardTipPaymentMethod === 'efectivo' ? '#fff' : C.ink, fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+                      <input type="number" inputMode="decimal" min={0} placeholder="0" aria-label="Monto de la propina" data-testid="barber-tip-amount"
+                        value={wizardTip} onChange={e => setWizardTip(e.target.value.replace('-', ''))}
+                        style={{ flex: 1, minWidth: 0, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '12px', fontSize: '16px', background: '#F8FAFC', color: C.ink, outline: 'none', fontFamily: fontBody }} />
+                    </label>
+                    <div style={{ fontFamily: fontBody, fontSize: '12px', color: C.slate500, marginBottom: '8px' }}>¿Cómo la pagó?</div>
+                    <div role="group" aria-label="Método de pago de la propina" style={{ display: 'flex', gap: '8px' }}>
+                      <button type="button" data-testid="barber-tip-cash" aria-pressed={wizardTipPaymentMethod === 'efectivo'} onClick={() => setWizardTipPaymentMethod('efectivo')} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: wizardTipPaymentMethod === 'efectivo' ? 'none' : `1px solid ${C.border}`, background: wizardTipPaymentMethod === 'efectivo' ? C.blue : '#F8FAFC', color: wizardTipPaymentMethod === 'efectivo' ? '#fff' : C.ink, fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
                         💵 Efectivo
                       </button>
-                      <button onClick={() => setWizardTipPaymentMethod('transferencia')} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: wizardTipPaymentMethod === 'transferencia' ? 'none' : `1px solid ${C.border}`, background: wizardTipPaymentMethod === 'transferencia' ? C.blue : '#F8FAFC', color: wizardTipPaymentMethod === 'transferencia' ? '#fff' : C.ink, fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+                      <button type="button" data-testid="barber-tip-transfer" aria-pressed={wizardTipPaymentMethod === 'transferencia'} onClick={() => setWizardTipPaymentMethod('transferencia')} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: wizardTipPaymentMethod === 'transferencia' ? 'none' : `1px solid ${C.border}`, background: wizardTipPaymentMethod === 'transferencia' ? C.blue : '#F8FAFC', color: wizardTipPaymentMethod === 'transferencia' ? '#fff' : C.ink, fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
                         📲 Transferencia
                       </button>
                     </div>
-                    <button onClick={() => setWizardStep(4)} style={{ width: '100%', height: '48px', background: C.blue, color: '#fff', border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}>
-                      Siguiente →
-                    </button>
                   </>
                 )}
               </>
             )}
 
-            {/* ── Step 4: Products ── */}
+            {/* ── Step 4: Products (optional when there is a service) ── */}
             {wizardStep === 4 && (
               <>
-                <div style={{ fontFamily: fontBody, fontSize: '11px', color: C.slate400, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px', marginTop: '28px' }}>Paso 4 de 5 · Productos</div>
                 <div style={{ fontFamily: fontTitle, fontWeight: 700, fontSize: '22px', color: C.ink, marginBottom: '6px' }}>¿Vendiste algún producto?</div>
-                <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate500, marginBottom: '14px' }}>Ceras, bebidas, etc. Van 100% al dueño. Son opcionales.</div>
-                {selectedServices.length > 0 && (
-                  <div data-testid="barber-selected-services-summary" style={{ fontFamily: fontBody, fontSize: '12px', color: C.slate600, background: C.blueBg, border: `1px solid ${C.blueSoft}`, padding: '10px 12px', borderRadius: '10px', marginBottom: '12px' }}>
-                    ✓ {selectedServices.length} servicio{selectedServices.length !== 1 ? 's' : ''} seleccionado{selectedServices.length !== 1 ? 's' : ''}. Podés registrar la atención sin productos.
+                <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate500, marginBottom: '14px' }}>
+                  {selectedServices.length > 0 ? 'Opcional. Si no vendiste nada, continuá abajo.' : 'Elegí lo que compró el cliente.'} Van 100% al dueño.
+                </div>
+                {products.length === 0 ? (
+                  <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate400, textAlign: 'center', padding: '12px' }}>
+                    No hay productos en el catálogo
+                  </div>
+                ) : (
+                  <div role="group" aria-label="Productos" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {products.map(product => {
+                      const isSel = selectedProducts.some(p => p.id === product.id)
+                      const qty = productQty[product.id] || 1
+                      return (
+                        <div key={product.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 12px 0 0', background: isSel ? '#FFF7ED' : '#F8FAFC', borderRadius: '10px', border: isSel ? '1px solid #F97316' : `1px solid ${C.border}` }}>
+                          <button type="button" data-testid="barber-product-option" aria-pressed={isSel}
+                            onClick={() => toggleProductSelection(product)}
+                            style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', minHeight: '48px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: fontBody }}
+                          >
+                            <span style={{ width: '18px', height: '18px', borderRadius: '5px', border: `2px solid ${isSel ? '#F97316' : '#CBD5E1'}`, background: isSel ? '#F97316' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              {isSel && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                            </span>
+                            <span style={{ fontSize: '14px', color: C.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.name}</span>
+                          </button>
+                          {isSel && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                              <button type="button" onClick={() => changeProductQty(product.id, -1)} aria-label={`Restar uno de ${product.name.trim()}`} style={{ width: '32px', height: '32px', borderRadius: '8px', border: `1px solid ${C.border}`, background: '#fff', color: C.ink, fontSize: '16px', fontWeight: 700, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>−</button>
+                              <span style={{ minWidth: '18px', textAlign: 'center', fontFamily: fontBody, fontWeight: 600, fontSize: '14px', color: C.ink }}>{qty}</span>
+                              <button type="button" onClick={() => changeProductQty(product.id, 1)} aria-label={`Sumar uno de ${product.name.trim()}`} style={{ width: '32px', height: '32px', borderRadius: '8px', border: `1px solid ${C.border}`, background: '#fff', color: C.ink, fontSize: '16px', fontWeight: 700, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>+</button>
+                            </div>
+                          )}
+                          <span style={{ fontFamily: fontBody, fontWeight: 600, fontSize: '14px', color: C.ink, minWidth: '64px', textAlign: 'right', flexShrink: 0 }}>${(product.base_price * qty).toLocaleString('es-AR')}</span>
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
-                {/* Most service-only attentions should not require scrolling through the catalog. */}
-                {canSkipProducts && (
-                  <button type="button" data-testid="barber-products-skip"
-                    onClick={() => { setSelectedProducts([]); setProductQty({}); setWizardError(null); setWizardStep(5) }}
-                    style={{ width: '100%', minHeight: '52px', padding: '12px', background: C.blue, border: 'none', borderRadius: '12px', color: '#fff', fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer', marginBottom: '14px', textAlign: 'center' }}>
-                    No vendí productos · Ir a confirmar →
-                  </button>
-                )}
-                {products.length === 0 ? (
+                {selectedProducts.length > 0 && (
                   <>
-                    <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate400, marginBottom: '16px', textAlign: 'center', padding: '12px' }}>
-                      No hay productos en el catálogo
-                    </div>
-                    {nothingSelected && (
-                      <div style={{ fontFamily: fontBody, fontSize: '12px', color: '#B45309', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '10px 12px', marginBottom: '12px', textAlign: 'center' }}>
-                        Volvé atrás y elegí al menos un servicio.
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto', marginBottom: '12px' }}>
-                      {products.map(product => {
-                        const isSel = selectedProducts.some(p => p.id === product.id)
-                        const qty = productQty[product.id] || 1
-                        return (
-                          <div
-                            key={product.id}
-                            onClick={() => toggleProductSelection(product)}
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: isSel ? '#FFF7ED' : '#F8FAFC', borderRadius: '10px', border: isSel ? '1px solid #F97316' : `1px solid ${C.border}`, cursor: 'pointer' }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                              <div style={{ width: '18px', height: '18px', borderRadius: '5px', border: `2px solid ${isSel ? '#F97316' : '#CBD5E1'}`, background: isSel ? '#F97316' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                {isSel && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-                              </div>
-                              <span style={{ fontFamily: fontBody, fontSize: '14px', color: C.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.name}</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-                              {isSel && (
-                                <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <button onClick={(e) => { e.stopPropagation(); changeProductQty(product.id, -1) }} aria-label="Restar uno" style={{ width: '26px', height: '26px', borderRadius: '7px', border: `1px solid ${C.border}`, background: '#fff', color: C.ink, fontSize: '16px', fontWeight: 700, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>−</button>
-                                  <span style={{ minWidth: '18px', textAlign: 'center', fontFamily: fontBody, fontWeight: 600, fontSize: '14px', color: C.ink }}>{qty}</span>
-                                  <button onClick={(e) => { e.stopPropagation(); changeProductQty(product.id, 1) }} aria-label="Sumar uno" style={{ width: '26px', height: '26px', borderRadius: '7px', border: `1px solid ${C.border}`, background: '#fff', color: C.ink, fontSize: '16px', fontWeight: 700, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>+</button>
-                                </div>
-                              )}
-                              <span style={{ fontFamily: fontBody, fontWeight: 600, fontSize: '14px', color: C.ink, minWidth: '60px', textAlign: 'right' }}>${(product.base_price * qty).toLocaleString('es-AR')}</span>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                    <div style={{ fontFamily: fontBody, fontSize: '12px', color: C.slate500, marginBottom: '16px', minHeight: '18px' }}>
-                      {selectedProducts.length > 0
-                        ? `${selectedProducts.reduce((s, x) => s + (productQty[x.id] || 1), 0)} unidad${selectedProducts.reduce((s, x) => s + (productQty[x.id] || 1), 0) !== 1 ? 'es' : ''} · $${selectedProducts.reduce((s, x) => s + x.base_price * (productQty[x.id] || 1), 0).toLocaleString('es-AR')}`
-                        : 'Ningún producto seleccionado'}
-                    </div>
-                    {selectedProducts.length > 0 && (
-                      <>
-                        <div style={{ fontFamily: fontBody, fontSize: '12px', color: C.slate500, marginBottom: '8px' }}>Método de pago de los productos</div>
-                        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                          <button onClick={() => setWizardOthersPaymentMethod('efectivo')} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: wizardOthersPaymentMethod === 'efectivo' ? 'none' : `1px solid ${C.border}`, background: wizardOthersPaymentMethod === 'efectivo' ? C.blue : '#F8FAFC', color: wizardOthersPaymentMethod === 'efectivo' ? '#fff' : C.ink, fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
-                            💵 Efectivo
-                          </button>
-                          <button onClick={() => setWizardOthersPaymentMethod('transferencia')} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: wizardOthersPaymentMethod === 'transferencia' ? 'none' : `1px solid ${C.border}`, background: wizardOthersPaymentMethod === 'transferencia' ? C.blue : '#F8FAFC', color: wizardOthersPaymentMethod === 'transferencia' ? '#fff' : C.ink, fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
-                            📲 Transferencia
-                          </button>
-                        </div>
-                      </>
-                    )}
-                    {nothingSelected && (
-                      <div style={{ fontFamily: fontBody, fontSize: '12px', color: '#B45309', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '10px 12px', marginBottom: '12px', textAlign: 'center' }}>
-                        Elegí un producto, o volvé atrás y elegí un servicio.
-                      </div>
-                    )}
-                    {canContinueWithProducts && (
-                      <button type="button" data-testid="barber-products-next"
-                        onClick={() => { setWizardError(null); setWizardStep(5) }}
-                        style={{ width: '100%', minHeight: '48px', background: C.blue, color: '#fff', border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
-                        Continuar con {selectedProducts.reduce((sum, p) => sum + (productQty[p.id] || 1), 0)} producto{selectedProducts.reduce((sum, p) => sum + (productQty[p.id] || 1), 0) !== 1 ? 's' : ''} →
+                    <div style={{ fontFamily: fontBody, fontSize: '12px', color: C.slate500, margin: '16px 0 8px' }}>Método de pago de los productos</div>
+                    <div role="group" aria-label="Método de pago de los productos" style={{ display: 'flex', gap: '8px' }}>
+                      <button type="button" aria-pressed={wizardOthersPaymentMethod === 'efectivo'} onClick={() => setWizardOthersPaymentMethod('efectivo')} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: wizardOthersPaymentMethod === 'efectivo' ? 'none' : `1px solid ${C.border}`, background: wizardOthersPaymentMethod === 'efectivo' ? C.blue : '#F8FAFC', color: wizardOthersPaymentMethod === 'efectivo' ? '#fff' : C.ink, fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+                        💵 Efectivo
                       </button>
-                    )}
+                      <button type="button" aria-pressed={wizardOthersPaymentMethod === 'transferencia'} onClick={() => setWizardOthersPaymentMethod('transferencia')} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: wizardOthersPaymentMethod === 'transferencia' ? 'none' : `1px solid ${C.border}`, background: wizardOthersPaymentMethod === 'transferencia' ? C.blue : '#F8FAFC', color: wizardOthersPaymentMethod === 'transferencia' ? '#fff' : C.ink, fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+                        📲 Transferencia
+                      </button>
+                    </div>
                   </>
                 )}
               </>
@@ -1099,7 +1051,7 @@ export function Dashboard() {
             {/* ── Step 5: Summary & confirm ── */}
             {wizardStep === 5 && (
               <>
-                <div style={{ fontFamily: fontTitle, fontWeight: 700, fontSize: '20px', color: C.ink, marginBottom: '20px', marginTop: '8px' }}>
+                <div style={{ fontFamily: fontTitle, fontWeight: 700, fontSize: '20px', color: C.ink, marginBottom: '16px' }}>
                   {selectedServices.length === 0 ? 'Confirmar venta' : 'Confirmar cliente'}
                 </div>
                 {selectedServices.length > 0 && (
@@ -1141,59 +1093,131 @@ export function Dashboard() {
                       Método de pago: {wizardPaymentMethod === 'transferencia' ? '📲 Transferencia' : '💵 Efectivo'}
                     </div>
                   )}
-                  {(parseFloat(wizardTip) || 0) > 0 && (
-                    <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate500 }}>
-                      Propina: <span style={{ color: C.blue, fontWeight: 600 }}>${(parseFloat(wizardTip) || 0).toLocaleString('es-AR')}</span> <span style={{ color: C.slate400 }}>(100% para vos · {wizardTipPaymentMethod === 'transferencia' ? '📲 Transferencia' : '💵 Efectivo'})</span>
-                    </div>
-                  )}
-                  {selectedProducts.length > 0 && (
-                    <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate500 }}>
-                      Productos: <span style={{ color: C.slate400 }}>{wizardOthersPaymentMethod === 'transferencia' ? '📲 Transferencia' : '💵 Efectivo'}</span>
-                    </div>
-                  )}
+                  <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate500 }}>
+                    {tipValue > 0
+                      ? <>Propina: <span style={{ color: C.blue, fontWeight: 600 }}>${tipValue.toLocaleString('es-AR')}</span> <span style={{ color: C.slate400 }}>(100% para vos · {wizardTipPaymentMethod === 'transferencia' ? '📲 Transferencia' : '💵 Efectivo'})</span></>
+                      : 'Sin propina'}
+                  </div>
+                  <div style={{ fontFamily: fontBody, fontSize: '13px', color: C.slate500 }}>
+                    {selectedProducts.length > 0
+                      ? <>Productos: <span style={{ color: C.slate400 }}>{wizardOthersPaymentMethod === 'transferencia' ? '📲 Transferencia' : '💵 Efectivo'}</span></>
+                      : 'Sin productos'}
+                  </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', background: '#F8FAFC', borderRadius: '12px', marginBottom: '20px', border: `1px solid ${C.border}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', background: '#F8FAFC', borderRadius: '12px', border: `1px solid ${C.border}` }}>
                   <span style={{ fontFamily: fontTitle, fontWeight: 700, fontSize: '14px', color: C.ink }}>Total</span>
-                  <span style={{ fontFamily: fontNum, fontWeight: 800, fontSize: '22px', color: C.blue, letterSpacing: '-0.5px' }}>
-                    ${(selectedServices.reduce((s, x) => s + x.base_price, 0) + (parseFloat(wizardTip) || 0) + selectedProducts.reduce((s, x) => s + x.base_price * (productQty[x.id] || 1), 0)).toLocaleString('es-AR')}
+                  <span data-testid="barber-confirm-total" style={{ fontFamily: fontNum, fontWeight: 800, fontSize: '22px', color: C.blue, letterSpacing: '-0.5px' }}>
+                    ${(servicesTotal + tipValue + productsTotal).toLocaleString('es-AR')}
                   </span>
                 </div>
-
-                {/* Inline wizard error — critical: page-level error banner is hidden
-                    behind the modal overlay, so any failure MUST be displayed here. */}
-                {wizardError && (
-                  <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '12px 14px', marginBottom: '12px', color: C.red, fontFamily: fontBody, fontSize: '13px', lineHeight: 1.4 }}>
-                    {wizardError}
-                  </div>
-                )}
-
-                <button
-                  className="barber-primary"
-                  onClick={confirmAttention}
-                  disabled={processing}
-                  style={{ width: '100%', height: '52px', background: `linear-gradient(135deg, ${C.blue} 0%, ${C.blueBright} 100%)`, color: '#fff', border: 'none', borderRadius: '14px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: processing ? 'not-allowed' : 'pointer', opacity: processing ? 0.7 : 1, boxShadow: '0 6px 16px rgba(37,99,235,0.28)' }}
-                >
-                  {processing ? 'Procesando...' : wizardError ? '↻ Reintentar' : '✓ Confirmar y Registrar'}
-                </button>
-
-                {/* Escape hatch: always allow the user to abandon the wizard,
-                    especially after a failure. Prevents the "infinite loop" UX. */}
-                {wizardError && !processing && (
-                  <button
-                    onClick={resetWizard}
-                    style={{ width: '100%', height: '44px', marginTop: '10px', background: 'transparent', color: C.slate500, border: `1px solid ${C.border}`, borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
-                  >
-                    Cancelar y cerrar
-                  </button>
-                )}
               </>
             )}
 
             </div>
+            </div>
+
+            {/* Fixed footer: the step's forward action, always visible */}
+            <div data-testid="barber-wizard-footer" style={{ flexShrink: 0, padding: '12px 24px 18px', borderTop: `1px solid ${C.borderLt}`, background: '#fff' }}>
+              {/* Inline wizard error — the page-level banner is hidden behind the modal
+                  overlay, so any failure MUST be displayed here. */}
+              {wizardError && (
+                <div role="alert" data-testid="barber-wizard-error" style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '10px 12px', marginBottom: '10px', color: C.red, fontFamily: fontBody, fontSize: '13px', lineHeight: 1.4 }}>
+                  {wizardError}
+                </div>
+              )}
+
+              {wizardStep === 1 && (servicesStepAction === 'continue-with-services' ? (
+                <button type="button" className="barber-primary" data-testid="barber-services-next"
+                  onClick={() => { setWizardError(null); setWizardStep(2) }}
+                  style={{ width: '100%', minHeight: '52px', padding: '12px', background: `linear-gradient(135deg, ${C.blue} 0%, ${C.blueBright} 100%)`, color: '#fff', border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
+                >
+                  Continuar · {selectedServices.length} servicio{selectedServices.length !== 1 ? 's' : ''} · ${servicesTotal.toLocaleString('es-AR')} →
+                </button>
+              ) : (
+                <>
+                  <div style={{ fontFamily: fontBody, fontSize: '12px', color: C.slate500, marginBottom: '8px', textAlign: 'center' }}>
+                    Tocá el servicio que hiciste para continuar.
+                  </div>
+                  <button type="button" data-testid="barber-services-products-only"
+                    onClick={() => { setWizardError(null); setWizardStep(2) }}
+                    style={{ width: '100%', minHeight: '48px', padding: '12px', background: '#fff', color: C.slate600, border: `1px solid ${C.border}`, borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
+                  >
+                    Sin servicio · solo vender productos →
+                  </button>
+                </>
+              ))}
+
+              {wizardStep === 2 && (
+                <button type="button" data-testid="barber-payment-next"
+                  onClick={() => { if (wizardPaymentChosen) { setWizardError(null); setWizardStep(3) } }}
+                  disabled={!wizardPaymentChosen}
+                  style={{ width: '100%', minHeight: '52px', background: wizardPaymentChosen ? C.blue : '#E2E8F0', color: wizardPaymentChosen ? '#fff' : C.slate400, border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: wizardPaymentChosen ? 'pointer' : 'not-allowed' }}
+                >{wizardPaymentChosen ? 'Continuar a propina →' : 'Elegí cómo pagó'}</button>
+              )}
+
+              {wizardStep === 3 && (
+                <button type="button" data-testid="barber-tip-next"
+                  onClick={() => { setWizardError(null); setWizardStep(4) }}
+                  style={{ width: '100%', minHeight: '52px', background: C.blue, color: '#fff', border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
+                >
+                  {tipValue > 0 ? `Continuar con propina de $${tipValue.toLocaleString('es-AR')} →` : 'Continuar sin propina →'}
+                </button>
+              )}
+
+              {wizardStep === 4 && productsStepAction === 'skip-products' && (
+                <button type="button" data-testid="barber-products-skip"
+                  onClick={() => { setSelectedProducts([]); setProductQty({}); setWizardError(null); setWizardStep(5) }}
+                  style={{ width: '100%', minHeight: '52px', padding: '12px', background: C.blue, color: '#fff', border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
+                >
+                  No vendí productos · Continuar →
+                </button>
+              )}
+              {wizardStep === 4 && productsStepAction === 'continue-with-products' && (
+                <button type="button" data-testid="barber-products-next"
+                  onClick={() => { setWizardError(null); setWizardStep(5) }}
+                  style={{ width: '100%', minHeight: '52px', padding: '12px', background: C.blue, color: '#fff', border: 'none', borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
+                >
+                  Continuar con {productUnits} producto{productUnits !== 1 ? 's' : ''} · ${productsTotal.toLocaleString('es-AR')} →
+                </button>
+              )}
+              {wizardStep === 4 && productsStepAction === 'needs-selection' && (
+                <>
+                  <div data-testid="barber-products-needs-selection" style={{ fontFamily: fontBody, fontSize: '12px', color: C.amber, background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '10px 12px', marginBottom: '10px', textAlign: 'center' }}>
+                    {products.length > 0 ? 'Elegí un producto, o volvé y elegí el servicio que hiciste.' : 'Volvé y elegí el servicio que hiciste.'}
+                  </div>
+                  <button type="button" data-testid="barber-products-back-to-services"
+                    onClick={() => { setWizardError(null); setWizardStep(1) }}
+                    style={{ width: '100%', minHeight: '48px', padding: '12px', background: '#fff', color: C.blue, border: `1px solid ${C.blueSoft}`, borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
+                  >
+                    ← Elegir servicio
+                  </button>
+                </>
+              )}
+
+              {wizardStep === 5 && (
+                <>
+                  <button type="button" className="barber-primary" data-testid="barber-confirm"
+                    onClick={confirmAttention}
+                    disabled={processing}
+                    style={{ width: '100%', minHeight: '52px', background: `linear-gradient(135deg, ${C.blue} 0%, ${C.blueBright} 100%)`, color: '#fff', border: 'none', borderRadius: '14px', fontFamily: fontBody, fontWeight: 600, fontSize: '15px', cursor: processing ? 'not-allowed' : 'pointer', opacity: processing ? 0.7 : 1, boxShadow: '0 6px 16px rgba(37,99,235,0.28)' }}
+                  >
+                    {processing ? 'Registrando...' : wizardError ? '↻ Reintentar' : '✓ Confirmar y registrar'}
+                  </button>
+                  {/* Escape hatch: always allow the user to abandon the wizard,
+                      especially after a failure. Prevents the "infinite loop" UX. */}
+                  {wizardError && !processing && (
+                    <button type="button" onClick={resetWizard}
+                      style={{ width: '100%', minHeight: '44px', marginTop: '10px', background: 'transparent', color: C.slate500, border: `1px solid ${C.border}`, borderRadius: '12px', fontFamily: fontBody, fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
+                    >
+                      Cancelar y cerrar
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
-
     </div>
   )
 }

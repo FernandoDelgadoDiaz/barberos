@@ -1,25 +1,21 @@
+// Structural guarantees of the wizard markup that the mobile E2E relies on.
+// Behaviour is covered by test-barber-products-optional.mjs (rules),
+// test-log-service-handler.mjs (server) and e2e-barber-checkout.mjs (browser).
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-const src=readFileSync('src/pages/barber/Dashboard.tsx','utf8')
-const i=src.indexOf('Step 2: Payment method'),j=src.indexOf('Step 3: Tip',i)
-assert.ok(i>0&&j>i)
-const p=src.slice(i,j)
-for(const id of ['barber-payment-cash','barber-payment-transfer','barber-payment-next'])assert.ok(p.includes('data-testid="'+id+'"'),id)
-assert.match(p,/disabled=\{!wizardPaymentChosen\}/)
-assert.match(p,/aria-pressed=\{wizardPaymentChosen && wizardPaymentMethod === 'efectivo'\}/)
-assert.match(p,/aria-pressed=\{wizardPaymentChosen && wizardPaymentMethod === 'transferencia'\}/)
-assert.equal((p.match(/setWizardStep\(3\)/g)||[]).length,1)
-assert.equal((p.match(/setWizardPaymentChosen\(true\)/g)||[]).length,2)
-assert.match(src,/setWizardPaymentChosen\(false\)/)
-assert.match(src,/setWizardTip\(''\); setWizardStep\(4\)/)
-// Step 4 now has separate safe actions: a service can skip products, a
-// product-only sale must select a product, and the backend rejects empty attentions.
-assert.match(src,/const nothingSelected = selectedServices.length === 0 && selectedProducts.length === 0/)
-assert.match(src,/if \(selectedServices.length === 0 && selectedProducts.length === 0\)/)
-assert.match(src,/\{canSkipProducts && \(/)
-assert.match(src,/\{canContinueWithProducts && \(/)
-assert.match(src,/setWizardError\(errorMessage\)/)
-assert.match(src,/payment_method: wizardPaymentMethod/)
-assert.match(src,/tip_payment_method: wizardTipPaymentMethod/)
-assert.match(src,/others_payment_method: wizardOthersPaymentMethod/)
+const src = readFileSync('src/pages/barber/Dashboard.tsx', 'utf8')
+const wizard = src.slice(src.indexOf('{/* Wizard Modal'), src.indexOf('// Shared subcomponents'))
+const footer = wizard.slice(wizard.indexOf('data-testid="barber-wizard-footer"'))
+assert.ok(wizard.length > 0 && footer.length > 0)
+// Every forward action lives in the fixed footer, never inside the scrolling body.
+for (const id of ['barber-services-next', 'barber-services-products-only', 'barber-payment-next', 'barber-tip-next', 'barber-products-skip', 'barber-products-next', 'barber-products-back-to-services', 'barber-confirm', 'barber-wizard-error'])
+  assert.ok(footer.includes(`data-testid="${id}"`), `${id} must be in the fixed footer`)
+// One scroll container: no nested fixed-height lists that trap the scroll on mobile.
+assert.ok(!/maxHeight: '280px'/.test(wizard), 'no nested scroll lists inside the wizard')
+// Payment step keeps PR #18: explicit choice, then continue.
+assert.match(wizard, /disabled=\{!wizardPaymentChosen\}/)
+// Double submission lock and in-modal errors.
+assert.match(src, /if \(!tenant \|\| !profile \|\| submittingRef\.current\) return/)
+assert.match(src, /setWizardError\(errorMessage\)/)
+assert.match(src, /body: JSON\.stringify\(buildAttentionPayload\(/)
 console.log('Checkout wizard regression checks passed')

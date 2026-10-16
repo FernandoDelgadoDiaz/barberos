@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:checkout": "node scripts/test-barber-products-optional.mjs && node scripts/test-barber-checkout-wizard.mjs && node --import ./scripts/support/supabase-memory-loader.mjs scripts/test-log-service-handler.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",
@@ -30,6 +31,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
     "pg": "^8.20.0",
+    "playwright-core": "^1.56.1",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.2",
     "typescript": "~5.9.3",
