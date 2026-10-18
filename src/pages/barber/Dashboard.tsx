@@ -135,6 +135,27 @@ export function Dashboard() {
   }
 
 
+  // Keep the wizard inside the area the barber actually sees (Safari bars, keyboard).
+  const wizardOpen = wizardStep > 0
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!wizardOpen || !vv) return
+    const root = document.documentElement.style
+    const sync = () => {
+      root.setProperty('--barber-vv-height', `${vv.height}px`)
+      root.setProperty('--barber-vv-top', `${vv.offsetTop}px`)
+    }
+    sync()
+    vv.addEventListener('resize', sync)
+    vv.addEventListener('scroll', sync)
+    return () => {
+      vv.removeEventListener('resize', sync)
+      vv.removeEventListener('scroll', sync)
+      root.removeProperty('--barber-vv-height')
+      root.removeProperty('--barber-vv-top')
+    }
+  }, [wizardOpen])
+
   useEffect(() => {
     let isMounted = true
 
@@ -546,6 +567,11 @@ export function Dashboard() {
         .barber-step { animation: barberFadeIn 240ms cubic-bezier(0.23,1,0.32,1); }
         .barber-primary { transition: transform 160ms cubic-bezier(0.23,1,0.32,1), box-shadow 200ms ease, opacity 150ms ease; }
         .barber-primary:active:not(:disabled) { transform: scale(0.97); }
+        /* The wizard overlay tracks the VISIBLE viewport, not inset:0. On iPhone the
+           layout viewport extends behind Safari's bottom bar and the keyboard, which
+           hid the footer with the forward button. --barber-vv-* come from
+           window.visualViewport (see the effect in Dashboard); dvh is the fallback. */
+        .barber-wizard-overlay { position: fixed; left: 0; right: 0; top: var(--barber-vv-top, 0px); height: 100vh; height: var(--barber-vv-height, 100dvh); }
       `}</style>
 
       {/* Success toast */}
@@ -853,7 +879,7 @@ export function Dashboard() {
           the fold or behind a nested scroll list, whatever the screen height, the
           catalog length or the system font size. */}
       {wizardStep > 0 && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 'max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom))', boxSizing: 'border-box' }}>
+        <div className="barber-wizard-overlay" data-testid="barber-wizard-overlay" style={{ background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 'max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom))', boxSizing: 'border-box' }}>
           <div role="dialog" aria-modal="true" aria-label="Registrar cliente" data-testid="barber-wizard"
             style={{ background: '#fff', maxWidth: '440px', width: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRadius: '20px', position: 'relative', boxShadow: '0 24px 60px rgba(15,23,42,0.28)', boxSizing: 'border-box' }}>
 

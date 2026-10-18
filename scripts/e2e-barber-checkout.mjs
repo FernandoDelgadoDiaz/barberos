@@ -29,12 +29,13 @@ const SHIFT = { id: 'shift-1', tenant_id: 't1', barber_id: 'barber-1', status: '
 
 const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : { channel: 'chrome' })
 
-async function open(viewport, responder = () => ({ status: 200, json: { message: 'Attention #1 registered' } })) {
+async function open(viewport, responder = () => ({ status: 200, json: { message: 'Attention #1 registered' } }), initScript = null) {
   const context = await browser.newContext({ viewport, deviceScaleFactor: 2, isMobile: true, hasTouch: true, baseURL: 'http://app.test' })
   const now = Math.floor(Date.now() / 1000)
   const user = { id: 'user-1', aud: 'authenticated', role: 'authenticated', email: 'barber@e2e.test', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() }
   const session = { access_token: 'e2e.' + Buffer.from(JSON.stringify({ sub: 'user-1', exp: now + 36000 })).toString('base64url') + '.sig', token_type: 'bearer', expires_in: 36000, expires_at: now + 36000, refresh_token: 'r', user }
   await context.addInitScript(s => localStorage.setItem('barberos-auth-token', s), JSON.stringify(session))
+  if (initScript) await context.addInitScript(initScript)
   const calls = []
   await context.route('**/*', async route => {
     const req = route.request()
@@ -226,6 +227,43 @@ for (const viewport of VIEWPORTS) {
     assert.equal(calls.length, 2)
     console.log('  ✓ Fallo del servidor: error visible y reintento')
   } catch (err) { failures++; console.error(`  ✗ Fallo del servidor\n    ${err.message}`) } finally { await ctx.close() }
+}
+
+// iPhone Safari: the layout viewport (390×844) is taller than what the barber sees
+// (bottom bar, then the keyboard). Chromium cannot reproduce that, so visualViewport
+// is faked: the forward button must stay inside the VISIBLE area.
+{
+  const fakeVisualViewport = () => {
+    const vv = new EventTarget()
+    Object.assign(vv, { width: 390, height: 600, offsetTop: 0, offsetLeft: 0, scale: 1 })
+    Object.defineProperty(window, 'visualViewport', { value: vv, configurable: true })
+    window.__setVisible = (height, offsetTop = 0) => { vv.height = height; vv.offsetTop = offsetTop; vv.dispatchEvent(new Event('resize')) }
+  }
+  const ctx = await open({ width: 390, height: 844 }, undefined, fakeVisualViewport)
+  const insideVisible = async (testId, visibleBottom) => {
+    const r = await ctx.page.getByTestId(testId).boundingBox()
+    assert.ok(r && r.y >= 0 && r.y + r.height <= visibleBottom, `${testId} bottom ${r && Math.round(r.y + r.height)} must be <= ${visibleBottom}`)
+  }
+  try {
+    const { page, calls } = ctx
+    await option(page, 'service', 'Corte').tap()
+    await insideVisible('barber-services-next', 600) // Safari bottom bar
+    await tap(page, 'barber-services-next')
+    await pay(page, 'efectivo'); await tap(page, 'barber-payment-next')
+    await page.getByTestId('barber-tip-yes').tap()
+    await page.getByTestId('barber-tip-amount').fill('2000')
+    await page.evaluate(() => window.__setVisible(380)) // keyboard open
+    await page.waitForTimeout(100)
+    await insideVisible('barber-tip-next', 380)
+    await page.evaluate(() => window.__setVisible(600))
+    await tap(page, 'barber-tip-next')
+    await insideVisible('barber-products-skip', 600)
+    await tap(page, 'barber-products-skip')
+    await finish(page)
+    assert.equal(calls[0].tip_amount, 2000)
+    assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--barber-vv-height')), '', 'cleaned up after closing')
+    console.log('  ✓ iPhone: botón visible con barra de Safari y con teclado abierto')
+  } catch (err) { failures++; console.error(`  ✗ iPhone: botón visible\n    ${err.message}`) } finally { await ctx.close() }
 }
 
 // Repeated taps on confirm while the request is in flight → a single request.
