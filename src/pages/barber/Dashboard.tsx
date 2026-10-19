@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useTenantStore } from '../../stores/tenantStore'
 import { supabase } from '../../config/supabase'
 import { GraceBanner } from '../../components/GraceBanner'
@@ -575,7 +576,8 @@ export function Dashboard() {
       `}</style>
 
       {/* Success toast */}
-      {successMessage && (
+      {/* Portaled for the same iOS reason as the wizard: the confirmation must never hide behind the header. */}
+      {successMessage && createPortal(
         <div style={{
           position: 'fixed', top: '16px', left: '50%', transform: 'translateX(-50%)',
           background: '#fff', color: C.ink,
@@ -592,7 +594,7 @@ export function Dashboard() {
           </span>
           {successMessage}
         </div>
-      )}
+      , document.body)}
 
       {/* Aviso de gracia (suscripción vencida) — primer elemento, arriba del hero */}
       <GraceBanner style={{ marginTop: '16px' }} />
@@ -878,7 +880,8 @@ export function Dashboard() {
           always holds the step's forward action. The action can never end up below
           the fold or behind a nested scroll list, whatever the screen height, the
           catalog length or the system font size. */}
-      {wizardStep > 0 && (
+      {/* Portaled to <body>: inside the layout's scrolling <main>, iOS WebKit painted this fixed overlay UNDER the header and the bottom nav, hiding "Volver" and the footer with the forward button. */}
+      {wizardStep > 0 && createPortal(
         <div className="barber-wizard-overlay" data-testid="barber-wizard-overlay" style={{ background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 'max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom))', boxSizing: 'border-box' }}>
           <div role="dialog" aria-modal="true" aria-label="Registrar cliente" data-testid="barber-wizard"
             style={{ background: '#fff', maxWidth: '440px', width: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRadius: '20px', position: 'relative', boxShadow: '0 24px 60px rgba(15,23,42,0.28)', boxSizing: 'border-box' }}>
@@ -1243,7 +1246,7 @@ export function Dashboard() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   )
 }

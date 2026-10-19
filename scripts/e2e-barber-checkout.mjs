@@ -266,6 +266,33 @@ for (const viewport of VIEWPORTS) {
   } catch (err) { failures++; console.error(`  ✗ iPhone: botón visible\n    ${err.message}`) } finally { await ctx.close() }
 }
 
+// iPhone home-screen app (WebKit): the layout's scrolling <main> is painted as its own
+// layer, so a fixed overlay rendered inside it ends up UNDER the header and the bottom
+// nav. Chromium does not do that by itself; forcing <main> into its own stacking
+// context reproduces it. The wizard must stay on top: back and footer reachable.
+{
+  const webkitLayers = () => {
+    const style = document.createElement('style')
+    style.textContent = '.barber-main { position: relative; z-index: 0; }'
+    document.addEventListener('DOMContentLoaded', () => document.head.appendChild(style))
+  }
+  const ctx = await open({ width: 390, height: 844 }, undefined, webkitLayers)
+  try {
+    const { page, calls } = ctx
+    assert.equal(await page.getByTestId('barber-wizard-overlay').evaluate(el => el.parentElement === document.body), true, 'wizard is portaled to <body>')
+    await option(page, 'service', 'Corte').tap()
+    await tap(page, 'barber-services-next')
+    await tap(page, 'barber-wizard-back') // header area must not be covered
+    await tap(page, 'barber-services-next')
+    await pay(page, 'efectivo'); await tap(page, 'barber-payment-next')
+    await tap(page, 'barber-tip-next')
+    await tap(page, 'barber-products-skip') // footer must not be covered by the nav
+    await finish(page)
+    assert.equal(calls.length, 1)
+    console.log('  ✓ iPhone app de inicio: el cobro queda por encima del encabezado y la barra')
+  } catch (err) { failures++; console.error(`  ✗ iPhone app de inicio: cobro tapado\n    ${err.message}`) } finally { await ctx.close() }
+}
+
 // Repeated taps on confirm while the request is in flight → a single request.
 {
   const ctx = await open({ width: 375, height: 548 }, async () => { await new Promise(r => setTimeout(r, 800)); return { status: 200, json: { message: 'ok' } } })
