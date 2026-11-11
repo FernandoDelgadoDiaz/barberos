@@ -1,7 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
-import Landing from './pages/Landing'
+import { HomeRoute } from './components/HomeRoute'
 import { PrivateRoute } from './components/PrivateRoute'
 import { BarberLayout } from './components/layouts/BarberLayout'
 import { OwnerLayout } from './components/layouts/OwnerLayout'
@@ -20,7 +20,7 @@ import { PaymentResult } from './pages/PaymentResult'
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <Landing />
+    element: <HomeRoute />
   },
   {
     path: '/login',

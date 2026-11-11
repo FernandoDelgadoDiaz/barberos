@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { useTenantStore } from '../stores/tenantStore'
 import type { UserRole } from '../types'
+import { AppSplash } from './AppSplash'
 
 interface PrivateRouteProps {
   allowedRoles: UserRole[]
@@ -8,15 +9,12 @@ interface PrivateRouteProps {
 }
 
 export function PrivateRoute({ allowedRoles, requireBarberCapability = false }: PrivateRouteProps) {
-  const { profile, isLoading } = useTenantStore()
+  const { profile, authStatus, authError } = useTenantStore()
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-lg">Cargando...</div>
-      </div>
-    )
-  }
+  // Wait for the stored session to be restored: a cold start (e.g. iOS reopening
+  // the home-screen app) must not bounce a logged-in user to the login form.
+  if (authStatus === 'checking') return <AppSplash />
+  if (authStatus === 'error') return <AppSplash error={authError} />
 
   if (!profile) {
     return <Navigate to="/login" replace />
