@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
+import { homePathFor, useAuth } from '../hooks/useAuth'
+import { AppSplash } from '../components/AppSplash'
 import { useTenantStore } from '../stores/tenantStore'
 import { supabase } from '../config/supabase'
 
@@ -11,7 +12,7 @@ export function Login() {
   const [error, setError] = useState<string | null>(null)
   const [tenantName, setTenantName] = useState<string | null>(null)
   const { signIn } = useAuth()
-  const { profile } = useTenantStore()
+  const { profile, authStatus, authError } = useTenantStore()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
@@ -29,11 +30,7 @@ export function Login() {
   }, [searchParams])
 
   useEffect(() => {
-    if (profile) {
-      if (profile.role === 'barber') navigate('/barber/dashboard')
-      else if (profile.role === 'owner') navigate('/owner/live')
-      else if (profile.role === 'superadmin') navigate('/superadmin/tenants')
-    }
+    if (profile) navigate(homePathFor(profile), { replace: true })
   }, [profile, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,6 +46,11 @@ export function Login() {
       setIsLoading(false)
     }
   }
+
+  // A stored session is being restored (or failed to load): never show the
+  // form then, or barbers type their password again for nothing.
+  if (authStatus === 'error' && !isLoading) return <AppSplash error={authError} />
+  if (profile || (authStatus === 'checking' && !isLoading)) return <AppSplash />
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F4F5F7', padding: '20px' }}>
