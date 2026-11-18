@@ -58,6 +58,9 @@ async function getAuthHeader(): Promise<string> {
   return `Bearer ${session.access_token}`
 }
 
+// Same rule as netlify/functions/set-barber-password.ts.
+const MIN_PASSWORD_LENGTH = 6
+
 interface Barber extends Profile {
   avatar_color: string
 }
@@ -69,6 +72,7 @@ export function Barbers() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [actionNotice, setActionNotice] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [editingBarber, setEditingBarber] = useState<Barber | null>(null)
   const [modalLoading, setModalLoading] = useState(false)
@@ -167,6 +171,7 @@ export function Barbers() {
   }
 
   const handleEdit = (barber: Barber) => {
+    setActionNotice(null)
     setEditingBarber(barber)
     setDisplayName(barber.display_name)
     setEmail('')
@@ -206,11 +211,29 @@ export function Barbers() {
         setModalError('La contraseña es obligatoria.')
         return
       }
+    } else if (password.trim() && password.trim().length < MIN_PASSWORD_LENGTH) {
+      setModalError(`La nueva contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`)
+      return
     }
     setModalLoading(true)
     setModalError(null)
     try {
       if (editingBarber) {
+        // Contraseña primero: si falla, no se guarda nada y el dueño puede reintentar.
+        let passwordNotice: string | null = null
+        if (editingBarber.role === 'barber' && password.trim()) {
+          const authHeader = await getAuthHeader()
+          const response = await fetch('/api/set-barber-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+            body: JSON.stringify({ barber_id: editingBarber.id, password: password.trim() }),
+          })
+          const payload = await response.json() as { error?: string; email?: string | null }
+          if (!response.ok) throw new Error(payload.error || 'No se pudo cambiar la contraseña')
+          passwordNotice = payload.email
+            ? `Contraseña actualizada. ${displayName.trim()} entra con ${payload.email} y la nueva contraseña.`
+            : `Contraseña de ${displayName.trim()} actualizada.`
+        }
         const { error } = await supabase
           .from('profiles')
           .update({
@@ -222,6 +245,8 @@ export function Barbers() {
           .eq('tenant_id', tenantId)
         if (error) throw error
         setBarbers(barbers.map(b => b.id === editingBarber.id ? { ...b, display_name: displayName.trim(), works_as_barber: editingBarber.role === 'barber' ? true : worksAsBarber, earning_mode: editingBarber.role === 'owner' ? earningMode : 'tenant_rules' } : b))
+        setPassword('')
+        setActionNotice(passwordNotice)
         setShowModal(false)
       } else {
         const authHeader = await getAuthHeader()
@@ -351,6 +376,12 @@ export function Barbers() {
   return (
     <div className="premium-directory premium-barbers" style={rootStyle}>
       <ScreenHeader />
+
+      {actionNotice && (
+        <div role="status" data-testid="barber-action-notice" style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '12px', padding: '12px', marginTop: '16px', color: C.green, fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px' }}>
+          {actionNotice}
+        </div>
+      )}
 
       {actionError && (
         <div role="alert" style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '12px', padding: '12px', marginTop: '16px', color: C.red, fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px' }}>
@@ -839,6 +870,28 @@ export function Barbers() {
                   </select>
                   <div style={{ marginTop: '6px', fontSize: '12px', color: C.slate400, lineHeight: 1.4 }}>
                     Esta opción cambia solo cómo se reparte el servicio. El rol de dueño y su panel de métricas permanecen separados.
+                  </div>
+                </div>
+              )}
+
+              {editingBarber?.role === 'barber' && (
+                <div>
+                  <label style={modalLabelStyle} htmlFor="barber-new-password">Nueva contraseña (opcional)</label>
+                  <input
+                    id="barber-new-password"
+                    data-testid="barber-new-password"
+                    type="text"
+                    autoComplete="new-password"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Dejala vacía para no cambiarla"
+                    style={modalInputStyle}
+                  />
+                  <div style={{ marginTop: '6px', fontSize: '12px', color: C.slate400, lineHeight: 1.4 }}>
+                    Usala si el barbero olvidó su contraseña. Mínimo {MIN_PASSWORD_LENGTH} caracteres. Después pasásela para que entre.
                   </div>
                 </div>
               )}
