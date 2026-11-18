@@ -16,12 +16,13 @@ const LATENCY_MS = 1500 // a slow shop network makes the old login-form flash ob
 
 const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : { channel: 'chrome' })
 
-async function open({ withSession, profileFails = () => false }) {
+async function open({ withSession, profileFails = () => false, expired = false, hangFonts = false, hangSupabase = false }) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, baseURL: 'http://app.test' })
   const now = Math.floor(Date.now() / 1000)
   const user = { id: 'user-1', aud: 'authenticated', role: 'authenticated', email: 'b@e2e.test', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() }
   if (withSession) {
-    const session = { access_token: 'e2e.' + Buffer.from(JSON.stringify({ sub: 'user-1', exp: now + 3000 })).toString('base64url') + '.sig', token_type: 'bearer', expires_in: 3000, expires_at: now + 3000, refresh_token: 'r', user }
+    const exp = expired ? now - 30000 : now + 3000
+    const session = { access_token: 'e2e.' + Buffer.from(JSON.stringify({ sub: 'user-1', exp })).toString('base64url') + '.sig', token_type: 'bearer', expires_in: 3000, expires_at: exp, refresh_token: 'r', user }
     await context.addInitScript(s => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem('barberos-auth-token', s); sessionStorage.setItem('seeded', '1') } }, JSON.stringify(session))
   }
   await context.route('**/*', async route => {
@@ -32,7 +33,9 @@ async function open({ withSession, profileFails = () => false }) {
       if (!extname(url.pathname) || !existsSync(file)) file = join(DIST, 'index.html')
       return route.fulfill({ body: readFileSync(file), headers: { 'content-type': MIME[extname(file)] || 'application/octet-stream' } })
     }
+    if (url.host === 'fonts.googleapis.com' && hangFonts) return // never answers
     if (url.host !== 'e2e.supabase.test') return route.fulfill({ status: 204, body: '' })
+    if (hangSupabase) return // never answers
     await new Promise(r => setTimeout(r, LATENCY_MS))
     if (url.pathname.startsWith('/auth/')) return route.fulfill({ json: user })
     const table = url.pathname.slice('/rest/v1/'.length)
@@ -96,6 +99,17 @@ await scenario('Sin red al reabrir: ofrece Reintentar, conserva la sesión y no 
   failProfile = false
   await page.getByTestId('app-splash-retry').tap()
   await untilWithoutLoginForm(page, inPanel(page))
+})
+
+await scenario('Google Fonts no responde: la app se dibuja igual', { withSession: true, hangFonts: true }, async page => {
+  page.goto('/barber/dashboard').catch(() => {})
+  await untilWithoutLoginForm(page, inPanel(page))
+})
+
+await scenario('Supabase no responde con la sesión vencida: ofrece Reintentar y no queda en "Cargando…"', { withSession: true, expired: true, hangSupabase: true }, async page => {
+  page.goto('/barber/dashboard').catch(() => {})
+  await untilWithoutLoginForm(page, async () => await page.getByTestId('app-splash-retry').count() > 0, 20000)
+  assert.ok(await page.evaluate(() => !!localStorage.getItem('barberos-auth-token')), 'session kept')
 })
 
 await scenario('Sin sesión: "/" muestra la página pública', { withSession: false }, async page => {
