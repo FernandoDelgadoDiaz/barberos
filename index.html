@@ -21,16 +21,22 @@
     -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-    <!-- Google Fonts for Dark Luxury Design -->
+    <!--
+      Google Fonts load WITHOUT blocking the first paint: a render-blocking
+      stylesheet left the app blank (and Android's launch splash on screen) when
+      fonts.googleapis.com was slow or unreachable from the shop's network. The
+      app shows system fonts first and swaps when the fonts arrive.
+    -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <!-- Inter font for glassmorphism UI -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Space+Grotesk:wght@300;400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Space+Grotesk:wght@300;400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap"></noscript>
 
     <title>BarberOS | Gestión para barberías</title>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Painted before any JavaScript runs, so the phone never sits on a blank screen.
+         React replaces it on mount. -->
+    <div id="root"><div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:#F8FAFC;font-family:system-ui,sans-serif;color:#94A3B8"><div style="font-weight:700;font-size:22px;color:#0F172A">BarberOS</div><div style="font-size:14px">Cargando…</div></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

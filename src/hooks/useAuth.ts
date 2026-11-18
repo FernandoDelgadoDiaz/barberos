@@ -10,23 +10,38 @@ export function homePathFor(profile: Pick<Profile, 'role'>): string {
   return '/barber/dashboard'
 }
 
+// A request that never answers (weak mobile signal, a network that drops
+// supabase.co) must not leave the app on "Cargando…" forever.
+const STARTUP_TIMEOUT_MS = 12000
+const TIMEOUT_MESSAGE = 'La conexión está tardando demasiado'
+
+function withTimeout<T>(promise: PromiseLike<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(TIMEOUT_MESSAGE)), STARTUP_TIMEOUT_MS)
+    Promise.resolve(promise).then(
+      value => { clearTimeout(timer); resolve(value) },
+      error => { clearTimeout(timer); reject(error) },
+    )
+  })
+}
+
 async function loadUserData(userId: string) {
   const { setProfile, setTenant, setAuthStatus } = useTenantStore.getState()
   setAuthStatus('checking')
   try {
-    const { data: profileData, error: profileError } = await supabase
+    const { data: profileData, error: profileError } = await withTimeout(supabase
       .from('profiles')
       .select('*')
       .eq('user_id', userId)
-      .single()
+      .single())
     if (profileError) throw profileError
     if (!profileData) throw new Error('Perfil no encontrado')
 
-    const { data: tenantData, error: tenantError } = await supabase
+    const { data: tenantData, error: tenantError } = await withTimeout(supabase
       .from('tenants')
       .select('*')
       .eq('id', profileData.tenant_id)
-      .single()
+      .single())
     if (tenantError) throw tenantError
     if (!tenantData) throw new Error('Tenant no encontrado')
 
@@ -55,7 +70,14 @@ export function useAuthBootstrap() {
     let active = true
     const { clearSession, setAuthStatus } = useTenantStore.getState()
 
+    // getSession() renews an expired token over the network and has no timeout
+    // of its own. If it does not answer in time, offer "Reintentar"; if it answers
+    // later anyway, continue normally.
+    const timer = setTimeout(() => {
+      if (active && useTenantStore.getState().authStatus === 'checking') setAuthStatus('error', TIMEOUT_MESSAGE)
+    }, STARTUP_TIMEOUT_MS)
     supabase.auth.getSession().then(({ data: { session } }) => {
+      clearTimeout(timer)
       if (!active) return
       if (session) void loadUserData(session.user.id)
       else setAuthStatus('ready')
@@ -76,6 +98,7 @@ export function useAuthBootstrap() {
 
     return () => {
       active = false
+      clearTimeout(timer)
       subscription.unsubscribe()
     }
   }, [])
@@ -83,9 +106,15 @@ export function useAuthBootstrap() {
 
 /** Retry after a failed startup load, keeping the stored session. */
 export async function retryAuthBootstrap() {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (session) await loadUserData(session.user.id)
-  else useTenantStore.getState().setAuthStatus('ready')
+  const { setAuthStatus } = useTenantStore.getState()
+  setAuthStatus('checking')
+  try {
+    const { data: { session } } = await withTimeout(supabase.auth.getSession())
+    if (session) await loadUserData(session.user.id)
+    else setAuthStatus('ready')
+  } catch (err) {
+    setAuthStatus('error', err instanceof Error ? err.message : TIMEOUT_MESSAGE)
+  }
 }
 
 export function useAuth() {
