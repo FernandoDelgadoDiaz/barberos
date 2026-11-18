@@ -2,12 +2,14 @@
 // Supports only the query-builder surface log-service touches.
 import { randomUUID } from 'node:crypto'
 
-export const db = { tables: {}, users: {}, failInsertOn: null }
+export const db = { tables: {}, users: {}, failInsertOn: null, authUsers: {}, passwordUpdates: [] }
 
 export function resetDb(seed) {
   db.tables = structuredClone(seed.tables)
   db.users = { ...seed.users }
   db.failInsertOn = null
+  db.authUsers = structuredClone(seed.authUsers || {})
+  db.passwordUpdates = []
 }
 
 class Query {
@@ -46,6 +48,16 @@ class Query {
 export function createClient() {
   return {
     from: table => new Query(table),
-    auth: { getUser: async token => db.users[token] ? { data: { user: db.users[token] }, error: null } : { data: { user: null }, error: { message: 'bad token' } } },
+    auth: {
+      getUser: async token => db.users[token] ? { data: { user: db.users[token] }, error: null } : { data: { user: null }, error: { message: 'bad token' } },
+      admin: {
+        updateUserById: async (id, attrs) => {
+          const u = db.authUsers[id]
+          if (!u) return { data: { user: null }, error: { message: 'user not found' } }
+          db.passwordUpdates.push({ id, password: attrs.password })
+          return { data: { user: { id, email: u.email } }, error: null }
+        },
+      },
+    },
   }
 }

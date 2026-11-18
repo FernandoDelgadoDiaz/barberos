@@ -28,6 +28,7 @@ jobs:
       - run: node scripts/test-barber-products-optional.mjs
       - run: node scripts/test-supabase-proxy.mjs
       - run: node --import ./scripts/support/supabase-memory-loader.mjs scripts/test-log-service-handler.mjs
+      - run: node --import ./scripts/support/supabase-memory-loader.mjs scripts/test-set-barber-password.mjs
       - run: npm run build
       # Mobile E2E of the checkout wizard (system Chrome, Supabase intercepted).
       - run: npx vite build --outDir dist-e2e
@@ -37,4 +38,5 @@ jobs:
       - run: node scripts/e2e-barber-checkout.mjs dist-e2e
       - run: node scripts/e2e-app-update.mjs dist-e2e
       - run: node scripts/e2e-session-persistence.mjs dist-e2e
-      - run: npx eslint netlify/functions/log-service.ts src/components/PrivateRoute.tsx src/components/layouts/BarberLayout.tsx src/components/layouts/OwnerLayout.tsx src/pages/owner/Barbers.tsx src/pages/owner/Settings.tsx src/router.tsx src/types/index.ts src/utils/barberCheckout.ts src/pages/barber/Dashboard.tsx src/App.tsx src/components/AppUpdateNotice.tsx src/utils/appVersion.ts src/hooks/useAuth.ts src/components/AppSplash.tsx src/components/HomeRoute.tsx src/pages/Login.tsx src/stores/tenantStore.ts src/config/supabase.ts src/utils/supabaseProxy.ts
+      - run: node scripts/e2e-owner-barber-password.mjs dist-e2e
+      - run: npx eslint netlify/functions/log-service.ts src/components/PrivateRoute.tsx src/components/layouts/BarberLayout.tsx src/components/layouts/OwnerLayout.tsx src/pages/owner/Barbers.tsx src/pages/owner/Settings.tsx src/router.tsx src/types/index.ts src/utils/barberCheckout.ts src/pages/barber/Dashboard.tsx src/App.tsx src/components/AppUpdateNotice.tsx src/utils/appVersion.ts src/hooks/useAuth.ts src/components/AppSplash.tsx src/components/HomeRoute.tsx src/pages/Login.tsx src/stores/tenantStore.ts src/config/supabase.ts src/utils/supabaseProxy.ts netlify/functions/set-barber-password.ts
