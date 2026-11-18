@@ -12,6 +12,15 @@
   to = "/.netlify/functions/:splat"
   status = 200
 
+# Supabase through the app's own domain: networks that reach the app but not
+# *.supabase.co (seen with some carriers and Wi-Fi) can still log in and save.
+# Must stay before the SPA catch-all. See src/utils/supabaseProxy.ts.
+[[redirects]]
+  from = "/sb/*"
+  to = "https://anwqupemaircnlszjgmd.supabase.co/:splat"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
